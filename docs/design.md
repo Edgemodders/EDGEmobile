@@ -463,9 +463,11 @@ Built on 2026-10-29, as EDGEmobile 0.0.4.
 
 *Unverified until the M3 test:* everything that reads the game (the district through `PreventionSystem`, its LocKey through `GetLocalizedText`, the rain through `WeatherSystem`: how REDnode returns their handles and enums is a guess, so the mod accepts several shapes and logs the first failure of each as "Status line: could not read …"), the window in REDnode (transparent, the drag edges, the drawer, Pin to HUD), the frame rule in REDnode's Electron, and the dock on the phone.
 
+**Found at the first launch** (2026-10-29): the game crashed twice on launch, an access violation reading `0x280`. REDnode's log, a second before each crash: "rtti.call: GetWeatherSystem crashed inside the game". The phone window now opens with the game, so the in-game screen connects while the game boots; `mainMenu` is still false then, so the mod asked for the weather system before the world existed. Fixed in 0.0.5: no call into the game's world systems (time, district, rain) until V is in the world, known from `PlayerPuppet.OnGameAttached` or from REDnode's `game.player.position()`, which rejects safely with no player; and one tick at a time, so a slow answer does not pile calls up. Checked with a `boot` mode in the harness: the in-game screen connected with no player, 6 ticks went by with no time, no place and no world call, then V arrived and the time, district and rain followed within 5 s. All 41 checks passed again. Rule from this: **never call into the game's world before V exists.**
+
 ### M3 test
 
-On the PC with the game, and the user's Android phone (already paired in M2). EDGEmobile 0.0.4 is deployed.
+On the PC with the game, and the user's Android phone (already paired in M2). EDGEmobile 0.0.5 is deployed.
 
 | # | Step | Expect |
 |---|---|---|
