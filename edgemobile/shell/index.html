@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- EDGEmobile M1 spike: the page the PC serves through the tunnel. The OS shell replaces it in M3. -->
+<!-- EDGEmobile's phone page, served by the player's PC through the tunnel. M2: pairing and a connected screen; the home screen comes in M3. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -25,20 +25,12 @@
   .rule { height: 2px; width: 64px; background: var(--red); margin: 12px 0 8px; }
   .date { color: var(--ink-dim); }
   .dim { opacity: .45; }
-  dl { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; font-family: var(--font-mono); font-size: 13px; }
-  dt { color: var(--ink-dim); }
-  dd { margin: 0; text-align: right; color: var(--ink); }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; }
-  .row .nc-btn { flex: 1 1 auto; }
-  video, img.shot { display: block; width: 100%; margin-top: 12px; background: var(--bg-100); }
   [hidden] { display: none !important; }
-  input[type=file] { display: none; }
 </style>
 </head>
 <body class="nc nc-grid">
 <main>
   <header>
-    <div class="nc-eyebrow">M1 tunnel spike</div>
     <h1>EDGE<span>mobile</span></h1>
     <div id="status" class="status">Starting…</div>
   </header>
@@ -51,50 +43,16 @@
 
   <section id="refused" class="nc-panel" hidden>
     <div class="nc-panel__head"><h2 class="nc-panel__title">Not connected</h2></div>
-    <p>This phone is not connected. Open <b>EDGEmobile</b> in the game and scan its QR code again.</p>
+    <p>This phone is not paired with this game, or its code ran out. In the game, open <b>EDGEmobile</b> and scan the QR code it shows.</p>
   </section>
 
-  <section id="nc" class="nc-panel" hidden>
+  <section id="connected" class="nc-panel" hidden>
     <div class="nc-panel__head"><h2 class="nc-panel__title">Night City</h2><span id="signal" class="nc-panel__meta"></span></div>
     <div id="clockbox">
       <div id="clock" class="clock">--:--</div>
       <div class="rule"></div>
       <div id="date" class="date"></div>
     </div>
-  </section>
-
-  <section id="delay" class="nc-panel" hidden>
-    <div class="nc-panel__head"><h2 class="nc-panel__title">Delay</h2><span class="nc-panel__meta">round trip, ms</span></div>
-    <dl>
-      <dt>Phone → PC → phone (median)</dt><dd id="up">–</dd>
-      <dt>Phone → PC → phone (last)</dt><dd id="upLast">–</dd>
-      <dt>PC → phone → PC (median)</dt><dd id="down">–</dd>
-      <dt>PC → phone → PC (last)</dt><dd id="downLast">–</dd>
-    </dl>
-  </section>
-
-  <section id="checks" class="nc-panel" hidden>
-    <div class="nc-panel__head"><h2 class="nc-panel__title">Phone checks</h2></div>
-    <p>Camera</p>
-    <div class="row">
-      <label class="nc-btn nc-btn--secondary" for="photo">Take a photo</label>
-      <button id="live" class="nc-btn nc-btn--secondary">Live camera</button>
-    </div>
-    <input id="photo" type="file" accept="image/*" capture="environment">
-    <img id="shot" class="shot" alt="" hidden>
-    <video id="video" playsinline muted hidden></video>
-    <p id="camNote" class="status"></p>
-    <p>Dialer and messages (each opens your phone's own app, with a made-up number). A link without a target fails inside the loader's frame (M1 test), so each one opens from the whole page.</p>
-    <div class="row">
-      <a class="nc-btn nc-btn--ghost" href="tel:5550100" target="_top">Dial (top)</a>
-      <a class="nc-btn nc-btn--ghost" href="tel:5550100" target="_blank" rel="noopener">Dial (new)</a>
-      <a class="nc-btn nc-btn--ghost" href="sms:5550100" target="_top">Message</a>
-    </div>
-  </section>
-
-  <section id="about" class="nc-panel" hidden>
-    <div class="nc-panel__head"><h2 class="nc-panel__title">This page</h2></div>
-    <dl id="facts"></dl>
   </section>
 </main>
 <script src="/phone.js"></script>

@@ -1,5 +1,5 @@
-// EDGEmobile M1 spike: the in-game window's script. The mod (mod.mjs) does the work and sends
-// its whole state over the package channel; this page draws it and sends the buttons back.
+// EDGEmobile's Connect window. The mod (mod.mjs) does the work and sends its whole state over
+// the package channel; this page draws it and sends the buttons back.
 
 const { channel } = await import('rednode');
 const $ = (id) => document.getElementById(id);
@@ -9,10 +9,6 @@ let askedKey = 0;
 
 channel.on((m) => {
   if (m.type === 'state') draw(m);
-  if (m.type === 'local') {
-    $('frame').src = m.url;
-    $('frame').hidden = false;
-  }
 });
 
 function draw(s) {
@@ -43,15 +39,17 @@ function draw(s) {
   if (t === 'ready') {
     $('address').textContent = s.tunnel.url;
     if (s.qr) $('qr').innerHTML = s.qr.svg;
-    else if (!s.pending && Date.now() - askedKey > 3000) {
-      askedKey = Date.now();
-      channel.post({ type: 'new-key' });
-    }
+    else if (!s.pending) newKey();
   }
-  $('direct').toggleAttribute('checked', s.direct);
+  $('autoStart').toggleAttribute('checked', s.autoStart);
 
   $('phones').replaceChildren(...(s.phones.length ? s.phones.map(phoneRow) : [fine('None yet.')]));
-  $('localRtt').textContent = s.local?.rtt ? `round trip ${s.local.rtt.median} ms` : '';
+}
+
+function newKey() {
+  if (Date.now() - askedKey < 3000) return;
+  askedKey = Date.now();
+  channel.post({ type: 'new-key' });
 }
 
 function phoneRow(p) {
@@ -63,7 +61,7 @@ function phoneRow(p) {
   name.textContent = p.name;
   const meta = document.createElement('div');
   meta.className = 'meta';
-  meta.textContent = p.online ? `online · round trip ${p.rtt ? `${p.rtt.median} ms (last ${p.rtt.last})` : '…'}` : `offline · last seen ${new Date(p.lastSeen).toLocaleString()}`;
+  meta.textContent = p.online ? `online${p.rtt ? ` · round trip ${p.rtt.median} ms` : ''}` : `offline · last seen ${new Date(p.lastSeen).toLocaleString()}`;
   text.append(name, meta);
   const off = document.createElement('rn-button');
   off.setAttribute('variant', 'ghost');
@@ -80,15 +78,12 @@ function fine(text) {
   return p;
 }
 
-// The countdown, and a new key when the old one expires.
+// The countdown, and a new code when the old one runs out.
 setInterval(() => {
   if (!state?.qr || state.pending || state.tunnel.status !== 'ready') return;
   const left = Math.max(0, Math.ceil((state.qr.expires - Date.now()) / 1000));
   $('left').textContent = left;
-  if (left === 0 && Date.now() - askedKey > 3000) {
-    askedKey = Date.now();
-    channel.post({ type: 'new-key' });
-  }
+  if (left === 0) newKey();
 }, 500);
 
 $('fetch').addEventListener('click', () => channel.post({ type: 'fetch' }));
@@ -96,7 +91,6 @@ $('go').addEventListener('click', () => channel.post({ type: 'start' }));
 $('stop').addEventListener('click', () => channel.post({ type: 'stop' }));
 $('allow').addEventListener('click', () => channel.post({ type: 'allow' }));
 $('deny').addEventListener('click', () => channel.post({ type: 'deny' }));
-$('direct').addEventListener('change', (e) => channel.post({ type: 'direct', on: e.detail.checked }));
-$('local').addEventListener('click', () => channel.post({ type: 'local' }));
+$('autoStart').addEventListener('change', (e) => channel.post({ type: 'auto-start', on: e.detail.checked }));
 
 channel.post({ type: 'hello' });

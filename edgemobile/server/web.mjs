@@ -11,13 +11,13 @@ import { join } from 'node:path';
 import { WebSocketServer } from 'ws';
 
 const FILES = {
-  '/': ['spike/phone.html', 'text/html; charset=utf-8'],
-  '/phone.js': ['spike/phone.js', 'text/javascript; charset=utf-8'],
+  '/': ['shell/index.html', 'text/html; charset=utf-8'],
+  '/phone.js': ['shell/phone.js', 'text/javascript; charset=utf-8'],
   '/theme/tokens.css': ['shell/theme/tokens.css', 'text/css; charset=utf-8'],
   '/theme/nc.css': ['shell/theme/nc.css', 'text/css; charset=utf-8'],
 };
 
-const CSP = [
+const BASE_CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -27,13 +27,17 @@ const CSP = [
   "connect-src 'self'",
   "base-uri 'none'",
   "form-action 'none'",
-].join('; ');
+];
 
 /**
  * Starts the server. `originOk(origin, viaTunnel)` says whether a WebSocket may open;
- * `onSocket(ws, info)` gets each one with { ua, viaTunnel, local }.
+ * `onSocket(ws, info)` gets each one with { ua, origin, viaTunnel, local }. Through the tunnel
+ * the page may be framed only by `loaderOrigin`. From 127.0.0.1 no frame rule is set yet:
+ * the in-game phone window that frames it comes in M3.
  */
-export function startWeb({ dir, port, originOk, onSocket, log = console.log }) {
+export function startWeb({ dir, port, loaderOrigin, originOk, onSocket, log = console.log }) {
+  const tunnelCsp = [...BASE_CSP, `frame-ancestors ${loaderOrigin}`].join('; ');
+  const localCsp = BASE_CSP.join('; ');
   let firstTunnelRequest = true;
   // Requests through the tunnel come from cloudflared on this PC too, so the address cannot
   // tell them apart. Cloudflare adds its own headers to each one, and a phone cannot remove them.
@@ -57,7 +61,7 @@ export function startWeb({ dir, port, originOk, onSocket, log = console.log }) {
         'Cache-Control': 'no-store',
         'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'no-referrer',
-        'Content-Security-Policy': CSP,
+        'Content-Security-Policy': viaTunnel(req) ? tunnelCsp : localCsp,
       });
       res.end(body);
     } catch {
@@ -74,7 +78,7 @@ export function startWeb({ dir, port, originOk, onSocket, log = console.log }) {
       socket.end('HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n');
       return;
     }
-    wss.handleUpgrade(req, socket, head, (ws) => onSocket(ws, { ua: req.headers['user-agent'] ?? '', viaTunnel: tunnel, local: !tunnel }));
+    wss.handleUpgrade(req, socket, head, (ws) => onSocket(ws, { ua: req.headers['user-agent'] ?? '', origin: req.headers.origin, viaTunnel: tunnel, local: !tunnel }));
   });
 
   return new Promise((resolve, reject) => {

@@ -1,10 +1,10 @@
 {
   "id": "edgemobile",
   "name": "EDGEmobile",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Edgemodders",
-  "description": "A phone for Night City, in the game and on your real phone. This build is the M1 tunnel spike: it connects a real phone to the game through a private web address, for testing.",
-  "entry": "spike/window.html",
+  "description": "A phone for Night City, in the game and on your real phone. This build is M2, onboarding: it connects a real phone to the game through a private web address, for testing. Only a phone that scans the QR code and that you allow can connect.",
+  "entry": "connect/window.html",
   "main": "mod.mjs",
   "isolation": "process",
   "requires": { "rednode": ">=0.41.0" },

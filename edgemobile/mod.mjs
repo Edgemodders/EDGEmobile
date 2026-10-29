@@ -1,7 +1,7 @@
-// EDGEmobile's Node mod. M1, the tunnel spike (docs/design.md, "Phases"): the web server and
-// WebSocket on 127.0.0.1, Cloudflare's quick tunnel through the keeper, pairing with Allow and
-// Deny, and the game's time sent to each phone with the delay both ways. The in-game window is
-// spike/window.html; it talks to this mod over the package channel.
+// EDGEmobile's Node mod (docs/design.md): the web server and WebSocket on 127.0.0.1, Cloudflare's
+// quick tunnel through the keeper, pairing with Allow and Deny, paired phones that prove
+// themselves by signature, and the game's time sent to each phone. The Connect window is
+// connect/window.html; it talks to this mod over the package channel.
 
 import { api, channel, game, pkg } from 'rednode';
 import { randomInt } from 'node:crypto';
@@ -13,7 +13,9 @@ import { Phones } from './server/phones.mjs';
 import { CLOUDFLARED, Tunnel, fetchCloudflared, findCloudflared } from './server/tunnel.mjs';
 import { startWeb } from './server/web.mjs';
 
-const LOADER = 'https://edgemodders.github.io/EDGEmobile/phone/';
+// The loader: a fixed page on its own origin that the phone installs, showing the PC's page in a frame.
+const LOADER_ORIGIN = 'https://mobile.edgemodders.ai';
+const LOADER = `${LOADER_ORIGIN}/`;
 const TICK_MS = 1000;
 
 mkdirSync(pkg.dataDir, { recursive: true });
@@ -32,13 +34,14 @@ if (!settings.port) {
 }
 const port = settings.port;
 const localOrigin = `http://127.0.0.1:${port}`;
+const saveSettings = () => writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
 
 const view = {
   cloudflared: { have: !!findCloudflared(pkg.dataDir), version: CLOUDFLARED.version, mb: Math.round(CLOUDFLARED.size / 1e6) },
   fetching: null,
   error: null,
   tunnel: { status: 'off', url: null },
-  direct: false,
+  autoStart: !!settings.autoStart,
   qr: null,
   port,
 };
@@ -86,7 +89,7 @@ function showKey() {
   if (view.tunnel.status !== 'ready') return;
   const key = phones.newKey();
   const host = new URL(view.tunnel.url).host;
-  const link = view.direct ? `${view.tunnel.url}/#k=${key.value}` : `${LOADER}#h=${host}&k=${key.value}`;
+  const link = `${LOADER}#h=${host}&k=${key.value}`;
   const qr = qrcode(0, 'M');
   qr.addData(link);
   qr.make();
@@ -105,6 +108,9 @@ function onSocket(ws, info) {
   let conn = null;
   let waiting = false;
   const refuse = setTimeout(() => ws.close(), 10000); // the first message must come soon
+  // A fresh challenge for this connection only: the phone signs it to prove who it is.
+  const challenge = phones.challenge();
+  send({ t: 'challenge', challenge });
   ws.on('message', async (data) => {
     let msg;
     try {
@@ -116,7 +122,7 @@ function onSocket(ws, info) {
       if (waiting || msg.t !== 'hello') return;
       clearTimeout(refuse);
       waiting = true;
-      const who = await phones.hello(msg, { ua: info.ua, local: info.local, send });
+      const who = await phones.hello(msg, { ua: info.ua, local: info.local, origin: info.origin, challenge, send });
       waiting = false;
       if (!who || ws.readyState !== ws.OPEN) return ws.close();
       conn = { ws, ...who, rtt: [] };
@@ -212,9 +218,11 @@ channel.on(async (msg) => {
     case 'new-key':
       showKey();
       break;
-    case 'direct':
-      view.direct = !!msg.on;
-      showKey();
+    case 'auto-start':
+      settings.autoStart = !!msg.on;
+      saveSettings();
+      view.autoStart = settings.autoStart;
+      post();
       break;
     case 'allow':
       phones.decide(true);
@@ -245,13 +253,22 @@ async function pickPort() {
   }
 }
 
+let webUp = false;
 try {
-  await startWeb({ dir: pkg.dir, port, originOk, onSocket });
-  console.log(`EDGEmobile M1 spike: web server on ${localOrigin}`);
+  await startWeb({ dir: pkg.dir, port, loaderOrigin: LOADER_ORIGIN, originOk, onSocket });
+  webUp = true;
+  console.log(`EDGEmobile: web server on ${localOrigin}`);
 } catch (err) {
   view.error = `The web server could not start on port ${port}: ${err.message}`;
   console.log(view.error);
 }
-// A tunnel left running by the last start of this mod (hot reload) is used again.
+// A tunnel left running by the last start of this mod (hot reload) is used again. Otherwise,
+// with the setting on and a phone paired, the tunnel starts with the game.
 if (await tunnel.relink()) console.log('Tunnel reused after a restart');
+else if (webUp && settings.autoStart && phones.saved.length && findCloudflared(pkg.dataDir)) {
+  console.log('Tunnel: starting with the game (setting on)');
+  view.tunnel = { status: 'starting', url: null };
+  post();
+  await tunnel.start(findCloudflared(pkg.dataDir));
+}
 post();
