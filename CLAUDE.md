@@ -27,3 +27,4 @@ The same as REDnode's:
 
 - `docs/` is published by GitHub Pages at https://edgemodders.github.io/EDGEmobile/ through `.github/workflows/pages.yml` (Settings > Pages > Source: GitHub Actions). Jekyll renders it with the HUD layout copied from REDagent.
 - `docs/index.md` has the roadmap table: keep it current with each phase. Add every new page to `nav` in `docs/_config.yml`.
+- The banner, social image, icon and badges come from `tools/brand/` (`render.ps1`, copied from EDGEchat's house style). Update the status badge in `badges.py` when the phase changes, then render again.

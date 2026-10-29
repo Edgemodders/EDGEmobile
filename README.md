@@ -1,4 +1,14 @@
-# EDGEmobile
+<p align="center">
+  <img src="docs/assets/brand/banner.png" alt="EDGEmobile: the EDGEmodders phone OS for Cyberpunk 2077. A phone for Night City, in the game and in your hand. Runs in REDnode, on two screens: the game and your phone, MIT." width="100%">
+</p>
+
+<p align="center">
+  <a href="https://edgemodders.github.io/EDGEmobile/"><img src="docs/assets/brand/badges/docs.svg" alt="docs: read the docs"></a>
+  <img src="docs/assets/brand/badges/status.svg" alt="status: design">
+  <img src="docs/assets/brand/badges/game.svg" alt="game: Cyberpunk 2077">
+  <a href="https://github.com/Edgemodders/REDnode"><img src="docs/assets/brand/badges/rednode.svg" alt="runs in: REDnode"></a>
+  <a href="LICENSE"><img src="docs/assets/brand/badges/license.svg" alt="license: MIT"></a>
+</p>
 
 A phone for Night City. EDGEmobile is a phone operating system for Cyberpunk 2077, built as a [REDnode](https://github.com/Edgemodders/REDnode) app. The same phone shows in two places:
 
@@ -27,7 +37,7 @@ The tunnel gives your PC a private web address, and it is locked two ways. A pho
 |---|---|
 | `edgemobile/` | The REDnode package: the Node mod (`mod.mjs`), the OS shell and its theme (`shell/`), installed mobile apps (`mobile-apps/`) |
 | `docs/` | The docs site, published at https://edgemodders.github.io/EDGEmobile/ |
-| `tools/` | `deploy.ps1` copies the package into the game |
+| `tools/` | `deploy.ps1` copies the package into the game. `brand/render.ps1` renders the banner, icon and badges |
 
 ## Install (developers)
 
