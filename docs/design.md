@@ -265,7 +265,7 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 | Phase | What | Status |
 |---|---|---|
 | M0 Repo and design | The repo's scaffolding and this page | Done 2026-10-29 |
-| M1 Tunnel spike | Fetch and check `cloudflared`, start a quick tunnel to a server in a REDnode mod, open a page on a real phone, a WebSocket both ways and its delay. Tested on the user's Android phone; iPhones stay *unverified* until someone tests one. Also: the loader (option D) installed on a real phone, showing the PC's page full screen in a frame, with the camera and a `tel:` link from inside it; reusing a running tunnel after a mod restart; `cloudflared` ending with the game; a REDnode page window reaching `127.0.0.1` | Built and tested 2026-10-29; four fixes, awaiting a short retest ([M1 test](#m1-test)) |
+| M1 Tunnel spike | Fetch and check `cloudflared`, start a quick tunnel to a server in a REDnode mod, open a page on a real phone, a WebSocket both ways and its delay. Tested on the user's Android phone; iPhones stay *unverified* until someone tests one. Also: the loader (option D) installed on a real phone, showing the PC's page full screen in a frame, with the camera and a `tel:` link from inside it; reusing a running tunnel after a mod restart; `cloudflared` ending with the game; a REDnode page window reaching `127.0.0.1` | Done 2026-10-29: built, tested on Android, four fixes, retested ([M1 test](#m1-test)) |
 | M2 Onboarding | The Connect window: the first fetch, the QR code, the pairing code with Allow and Deny, session keys, Connected phones with Disconnect, reconnecting by scan after a restart | Not started |
 | M3 The OS | The shell on both screens: the home screen (status line, clock, empty app grid, dock), the dock's actions on each screen, the phone window in the game with Pin to HUD | Not started |
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Not started |
@@ -303,7 +303,9 @@ Even the spike follows the two conditions: a phone gets in only with the QR code
 | The installed app showed the broken-page picture after a game restart | It framed the old address, which no longer exists; "Can't reach your game" came only after 10 s | The frame stays hidden behind "Connecting to your game…" until the PC's page says it is up. The loader also fetches the address first: a name that is gone fails at once, so "Can't reach your game" shows at once |
 | The window listed the phone after the restart, read as still connected | The list shows every paired phone, online or not, under "Connected phones" | Renamed **Paired phones** |
 
-Not measured: the delays (the test did not say where they show). A new address still needs Allow again, since the page keeps its session under the old address: the loader keeping the session is M2's work (see [Pairing and security](#pairing-and-security)).
+**Retest** (2026-10-29, the same phone): steps 1 to 6 passed with the fixes. The delay, median round trips through the tunnel: phone → PC → phone 44 ms, PC → phone → PC 102 ms. Why the PC's way round is slower is *unverified*; a likely cause is the phone's Wi-Fi power saving, which holds traffic to the phone until the radio wakes (about every 100 ms), while the phone's own pings go out when it is awake. Step 14: "Connecting to your game…", then "Can't reach your game", without the broken page. That is the expected result, but it is not what a player expects: the installed app cannot find the game's new address without a scan (see "Reaching the game after a restart" in the M2 plan, to be written).
+
+A new address still needs Allow again, since the page keeps its session under the old address: the loader keeping the session is M2's work (see [Pairing and security](#pairing-and-security)).
 
 ### M1 test
 
