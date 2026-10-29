@@ -41,13 +41,13 @@ EDGEmobile is one REDnode package, `edgemobile`, installed in `red4ext/plugins/R
 | Part | Where | What it does |
 |---|---|---|
 | Node mod | `edgemobile/mod.mjs` | Runs the web server and the WebSocket on `127.0.0.1`, starts and watches the tunnel, keeps paired phones and the phone's state, finds mobile apps, and answers both screens |
-| Phone window | `edgemobile/shell/` (*proposed*) | The OS, shown in a REDnode overlay window shaped like a phone. The same files are served to the real phone |
-| Connect window | `edgemobile/connect/` (*proposed*) | Onboarding in the game: the QR code, the pairing code with Allow and Deny, and the list of connected phones |
+| Phone window | `edgemobile/shell/` (pairing and the clock from M2; the OS from M3) | The OS, shown in a REDnode overlay window shaped like a phone. The same files are served to the real phone |
+| Connect window | `edgemobile/connect/` (from M2) | Onboarding in the game: the QR code, the pairing code with Allow and Deny, and the list of paired phones |
 | Mobile apps | `red4ext/plugins/REDnode/mobile-apps/<id>/`, beside EDGEmobile's folder (from M4) | One folder per installed app, with its own `mobile-app.json` |
 | Tunnel program | `<pkg.dataDir>/cloudflared/<version>/cloudflared.exe` | Cloudflare's `cloudflared`, fetched on first use (see [The tunnel](#the-tunnel)) |
-| Paired phones | `<pkg.dataDir>/phones.json` | A hash of each phone's session token, its name and when it was last seen |
+| Paired phones | `<pkg.dataDir>/phones.json` | Each phone's public key, its name and when it was last seen. Nothing in it is secret |
 
-REDnode's parts it uses: Node mods (`main`), page windows, Pin to HUD, `pkg.dataDir`, `game` and `api` for the game's time and place, services and roles (`use`) for app back ends, and secrets for the session keys (*proposed*).
+REDnode's parts it uses: Node mods (`main`), page windows, Pin to HUD, `pkg.dataDir`, `game` and `api` for the game's time and place, and services and roles (`use`) for app back ends.
 
 ## Onboarding a real phone
 
@@ -61,14 +61,14 @@ The sequence the player sees, the first time:
 | 4 | | The player scans it. The phone opens the loader, which shows the PC's phone page full screen. The page connects and shows a pairing code, such as `482 913` |
 | 5 | The window shows "A phone wants to connect: **482 913**", with the phone's browser and system, and **Allow** and **Deny** | "Check that the game shows the same code" |
 | 6 | The player checks the codes match and presses **Allow** | |
-| 7 | The phone shows in **Connected phones** | The loader stores the session key and the PC's page shows the EDGEmobile home screen, with no apps yet |
+| 7 | The phone shows in **Paired phones** | The loader keeps the phone's signing key and the PC's page shows the EDGEmobile home screen, with no apps yet |
 | 8 | | The loader offers **Install** (Add to Home screen) |
 
-After a game restart, the tunnel's address is new (see [The tunnel](#the-tunnel)), so the phone has to find the PC again. A phone already paired does not need the pairing code again. It scans the QR code once more, either with its camera or with a **Scan** button in the installed app, and the home screen comes back.
+After a game restart, the tunnel's address is new (see [The tunnel](#the-tunnel)), so the phone has to find the PC again. A phone already paired does not need the pairing code again. It scans the QR code once more, either with its camera or with **Scan the code** in the installed app, and the home screen comes back, with no pairing code and no Allow (from M2).
 
 ### What the QR code holds
 
-*Proposed:* `https://<loader address>/#h=<tunnel host>&t=<pairing token>`, with the loader on GitHub Pages at first (`edgemodders.github.io/EDGEmobile/phone/`).
+`https://mobile.edgemodders.ai/#h=<tunnel host>&k=<one-time key>` (from M2; the loader was on GitHub Pages in M1).
 
 - The part after `#` (the fragment) never leaves the phone, so the loader's host never sees the tunnel's address or the token. The loader reads it and shows `https://<tunnel host>/` in a full-screen frame.
 - The loader is served from one fixed address, so the installed app keeps working after the tunnel's address changes (see [Installing on the phone](#installing-on-the-phone-pwa)).
@@ -91,12 +91,12 @@ The rules that keep it that way:
 | Rule | Why |
 |---|---|
 | One pairing waits at a time. Repeated tries from one address are answered more slowly | No one can flood the player with requests or approval dialogs |
-| A paired phone gets a 256-bit random session key. The PC keeps only its hash | A copy of `phones.json` lets no one in |
-| **Connected phones** lists each phone with **Disconnect**, which ends its key | The player can remove a phone at any time |
+| A paired phone proves itself by signing a fresh challenge with a key its browser will not give out. The PC keeps only public keys (from M2; in M1, the hash of a session key) | A copy of `phones.json` lets no one in |
+| **Paired phones** lists each phone with **Disconnect**, which drops its key | The player can remove a phone at any time |
 | A phone can do only what EDGEmobile and its apps offer. It never reaches REDnode's `api`, the MCP server or files | A paired phone cannot run code in the game |
 | The server listens on `127.0.0.1` only | A phone reaches it only through the tunnel, never over the home network |
 | Only the PC's own page may open the WebSocket: its `Origin` header must be the tunnel's own address | Other websites the phone visits cannot use the session |
-| *Proposed for M2:* a paired phone proves itself by signing the PC's challenge with a key its browser will not give out, bound to the PC's own address (see [M2 plan](#m2-plan)). The PC keeps only public keys | A QR code made by someone else, naming another address, gets the loader to show that site, but nothing it gets works at the player's PC. A copy of `phones.json` holds no secret |
+| Each signature names the origin the phone talks to, and the loader signs only for the page in its own frame, naming that page's origin (from M2; see [M2 plan](#m2-plan)). Through the tunnel, only the loader may frame the PC's page | A QR code made by someone else, naming another address, gets the loader to show that site, but nothing it gets works at the player's PC. A copy of `phones.json` holds no secret |
 | Closing EDGEmobile, or the game, stops the server and the tunnel | Nothing stays open after the game |
 
 **Cloudflare carries the traffic.** A quick tunnel ends HTTPS at Cloudflare's edge, so the traffic is decrypted there before it travels on to the PC. *Proposed, later:* encrypt the WebSocket's messages end to end with a key carried in the QR code's fragment, which Cloudflare never sees.
@@ -266,7 +266,7 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 |---|---|---|
 | M0 Repo and design | The repo's scaffolding and this page | Done 2026-10-29 |
 | M1 Tunnel spike | Fetch and check `cloudflared`, start a quick tunnel to a server in a REDnode mod, open a page on a real phone, a WebSocket both ways and its delay. Tested on the user's Android phone; iPhones stay *unverified* until someone tests one. Also: the loader (option D) installed on a real phone, showing the PC's page full screen in a frame, with the camera and a `tel:` link from inside it; reusing a running tunnel after a mod restart; `cloudflared` ending with the game; a REDnode page window reaching `127.0.0.1` | Done 2026-10-29: built, tested on Android, four fixes, retested ([M1 test](#m1-test)) |
-| M2 Onboarding | The Connect window: the first fetch, the QR code, the pairing code with Allow and Deny, session keys, Connected phones with Disconnect, reconnecting by scan after a restart | Not started |
+| M2 Onboarding | The Connect window: the first fetch, the QR code, the pairing code with Allow and Deny, phones that prove themselves by signature, Paired phones with Disconnect, reconnecting by scan after a restart, the loader at its own address | Built 2026-10-29, awaiting the test ([M2 test](#m2-test)) |
 | M3 The OS | The shell on both screens: the home screen (status line, clock, empty app grid, dock), the dock's actions on each screen, the phone window in the game with Pin to HUD | Not started |
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Not started |
 | M5 Install on the phone | The loader as a PWA: manifest, service worker, icons, the Scan button, offline screen, and its own origin | Not started |
@@ -334,7 +334,7 @@ Send back: the delays, and, if anything failed, `tunnel.log` from EDGEmobile's d
 
 ### M2 plan
 
-*Proposed* 2026-10-29, for the user's approval. M2 turns the spike into the real onboarding, and changes how a paired phone proves itself, so that after a game restart one scan brings it back with no pairing code and no Allow.
+Agreed with the user on 2026-10-29. M2 turns the spike into the real onboarding, and changes how a paired phone proves itself, so that after a game restart one scan brings it back with no pairing code and no Allow.
 
 **Reaching the game after a restart.** A quick tunnel's address is new at each start, and the installed app cannot learn it by itself.
 
@@ -358,7 +358,7 @@ What it stops: a QR code made by someone else, naming another site, gets the loa
 
 A browser without the loader (a direct link) has no lasting key: its page makes a key of its own, kept only under that tunnel address, so it pairs again with Allow after each restart. The page from 127.0.0.1 in the game keeps the local session of M1, refused through the tunnel as now.
 
-**Who may frame the PC's page.** The page served through the tunnel gets `frame-ancestors https://mobile.edgemodders.ai`, so no other site can show it in a frame. The page from 127.0.0.1 may be framed only by the game's own window.
+**Who may frame the PC's page.** The page served through the tunnel gets `frame-ancestors https://mobile.edgemodders.ai`, so no other site can show it in a frame. The page from 127.0.0.1 gets no frame rule yet: the in-game phone window that frames it comes in M3, and its rule with it.
 
 **The parts.**
 
@@ -371,7 +371,49 @@ A browser without the loader (a direct link) has no lasting key: its page makes 
 | Server | Public keys in `phones.json`; the challenge and signature check; `frame-ancestors`; the loader's address in the QR code and the page. M1's paired phones pair once more |
 | Kept | The tunnel, the keeper, reuse after a mod restart, `cloudflared` ending with the game |
 
-**M2 test**, on the user's Android phone, to be written in full with the build: pair through the loader at the new address and install it; restart the game; come back with the **Scan** button, and again with the camera app, with no pairing code and no Allow; **Disconnect**, then the phone is refused until it pairs again; Deny. Outside the game: a page on another origin asking the loader to sign gets a signature the PC refuses; `phones.json` alone lets no one in; a frame from another site is refused.
+### M2: built
+
+Built on 2026-10-29, as EDGEmobile 0.0.3.
+
+| Part | Where |
+|---|---|
+| Pairing, the challenge and the signature check, public keys in `phones.json` (M1's phones are dropped and pair again) | `edgemobile/server/phones.mjs` |
+| The web server: the shell's files, `frame-ancestors https://mobile.edgemodders.ai` through the tunnel, each connection's origin passed to pairing | `edgemobile/server/web.mjs` |
+| The mod: a challenge on each connection, the loader's address in the QR code, the setting **Start the tunnel when the game starts** | `edgemobile/mod.mjs` |
+| The Connect window | `edgemobile/connect/window.html`, `window.js` |
+| The phone page: pairing, then Night City's clock; signs through the loader, or with a key of its own when opened directly | `edgemobile/shell/index.html`, `phone.js` |
+| The loader: the key pair, signing for its own frame only, **Scan the code** | `docs/phone/`, served at https://mobile.edgemodders.ai/ |
+
+The spike's files (`edgemobile/spike/`) are gone.
+
+**Checked outside the game** (plain Node with a stand-in `rednode`, against real quick tunnels; Node's WebCrypto signs as a phone's browser does; 34 checks, all passed): an M1 phone is dropped; the page through the tunnel carries the frame rule, the one from 127.0.0.1 does not; `phones.json`, the window and the mod are not served; each connection gets a challenge first; refused, each after the pause: an unknown phone without a key, a signature made for another site even with a valid key, a signature over another connection's challenge, a broken signature, the key without a public key, a wrong key, the same key twice; the game and the phone show the same pairing code; `phones.json` keeps the public key only; the paired phone is back by signature alone (130 ms), also with a stale key; its signature for another site is refused; Deny; Disconnect closes the phone and drops its key; the local session works at 127.0.0.1 only; a restarted mod reuses the tunnel and the phone is in by signature; with the setting on, the tunnel starts with the mod and the phone is in at the new address with no Allow.
+
+**Checked in Chrome on the PC** (the real loader at https://mobile.edgemodders.ai/, a real tunnel, Allow pressed by the harness): the loader made a P-256 key the browser reports as not extractable; the frame showed the PC's page; it paired; opened again with no key, it was in by signature with no pairing code; the PC's page refused to be framed by any origin but the loader's (tried from its own origin); opened directly, the page made a key of its own, also not extractable, and without a QR key showed "Not connected".
+
+**Found:** Windows Firewall allows a program by its path, so a copy of `cloudflared` in another folder is blocked again: the harness's copy was, and the window's firewall message showed, as built in M1. Players are not affected, since EDGEmobile keeps one folder per `cloudflared` version; a new pinned version means one new firewall prompt.
+
+*Unverified until the M2 test:* **Scan the code** (Chrome's barcode reader on Android), the installed app sharing the loader's key with Chrome after a scan with the camera app (both on the same origin; expected on Android), and the Connect window in the game.
+
+### M2 test
+
+On the PC with the game, and the user's Android phone. Deploy first: `.\tools\deploy.ps1 -GameDir 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077'` (the game closed). On the phone, uninstall the M1 app (from `edgemodders.github.io`) first: the PC's page no longer shows inside it.
+
+| # | Step | Expect |
+|---|---|---|
+| 1 | Start the game. F10, the launcher, open **EDGEmobile** | The Connect window: **Start**, with the firewall note. **Paired phones** is empty: the M1 phone must pair again |
+| 2 | **Start** | A QR code; when its minute runs out, a new one follows by itself |
+| 3 | Load a save. Scan with the phone's camera | Chrome opens `mobile.edgemodders.ai`, then the pairing code |
+| 4 | Compare codes; **Allow** | The phone shows Night City's clock and date. The window lists the phone, online |
+| 5 | Install the app (its **Install**, or Chrome's menu, Add to Home screen). Close Chrome. Open the installed app | Connected, with no scan and no Allow |
+| 6 | Quit the game. Start it again, and **Start** the tunnel. Open the installed app | "Can't reach your game", with **Scan the code** |
+| 7 | **Scan the code**, at the game's QR code | Connected, with no pairing code and no Allow |
+| 8 | Quit and restart the game again; **Start**. This time scan with the phone's camera app instead | Connected, in Chrome, with no Allow. Open the installed app: connected there too |
+| 9 | Turn on **Start the tunnel when the game starts**. Quit and restart the game, and load a save without opening the window | The tunnel starts by itself (open the window to see it ready). Scan: connected with no Allow |
+| 10 | **Disconnect** the phone | The phone shows "Not connected". Scanning again needs the pairing code and Allow |
+| 11 | Scan, and press **Deny** | "Not connected" |
+| 12 | Quit the game | Task Manager shows no `cloudflared.exe` |
+
+Send back: anything that did not match, and if the tunnel misbehaved, `tunnel.log` from `%APPDATA%\@rednode\overlay\packages\edgemobile\` and the mod's lines in `red4ext/logs/rednode-mods.log`.
 
 ## Answered questions
 
