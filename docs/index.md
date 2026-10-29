@@ -15,7 +15,7 @@ As of 2026-10-29. Nothing is released yet. Each phase ends with a test by the us
 | Phase | Status |
 |---|---|
 | M0 Repo and design | Done 2026-10-29 |
-| M1 Tunnel spike | Built 2026-10-29, awaiting the test on an Android phone |
+| M1 Tunnel spike | Built and tested on an Android phone 2026-10-29; a short retest of four fixes to come |
 | M2 Onboarding | Not started |
 | M3 The OS | Not started |
 | M4 Mobile apps | Not started |

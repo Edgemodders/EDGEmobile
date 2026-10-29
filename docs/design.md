@@ -136,7 +136,7 @@ Limits of quick tunnels, from Cloudflare's docs (*check again in M1*):
 | About 200 requests in flight at once | Plenty for one player's phones |
 | No Server-Sent Events | Live updates go over a WebSocket |
 
-**Keeping the address across restarts of the mod.** REDnode restarts a mod when its files change while hot reload is on, and a new tunnel means a new address. The mod uses one fixed local port, chosen at first start and kept in `<pkg.dataDir>/settings.json`, and writes the keeper's link port and token to `<pkg.dataDir>/tunnel.json`. A restarted mod links to the keeper again and keeps the address, and paired phones only reconnect (checked outside the game; *unverified* in it).
+**Keeping the address across restarts of the mod.** REDnode restarts a mod when its files change while hot reload is on, and a new tunnel means a new address. The mod uses one fixed local port, chosen at first start and kept in `<pkg.dataDir>/settings.json`, and writes the keeper's link port and token to `<pkg.dataDir>/tunnel.json`. A restarted mod links to the keeper again and keeps the address, and paired phones only reconnect (checked outside the game, and in it on 2026-10-29).
 
 ## The OS
 
@@ -235,7 +235,7 @@ The phone app itself comes from the player's PC (agreed 2026-10-29). The shell, 
 
 | Option | Good | Bad |
 |---|---|---|
-| **D. Everything from the PC, plus a tiny fixed loader** (*agreed, to be tried in M1*) | The loader is a small static page at a fixed address. It keeps the session key, scans the new address after a restart, and shows the PC's page full screen in a frame. Everything that matters comes from the PC. The loader almost never changes, so it cannot fall out of step | The loader needs a fixed address (GitHub Pages at first). A frame needs care with the camera (`allow="camera"`) and with `tel:` and `sms:` links (*unverified*). How each phone platform treats an installed app showing another site in a frame is *unverified*, iPhones most of all |
+| **D. Everything from the PC, plus a tiny fixed loader** (*agreed, to be tried in M1*) | The loader is a small static page at a fixed address. It keeps the session key, scans the new address after a restart, and shows the PC's page full screen in a frame. Everything that matters comes from the PC. The loader almost never changes, so it cannot fall out of step | The loader needs a fixed address (GitHub Pages at first). A frame needs care with the camera (`allow="camera"`) and with `tel:` and `sms:` links, which must open from the whole page (both checked on Android in the M1 test). How iPhones treat an installed app showing another site in a frame is *unverified* |
 | B. Everything from the PC, no loader | Simplest. Nothing hosted | The installed app breaks at each game start, so installing is pointless. The player scans again in the browser each session. The fallback if D fails |
 | C. A fixed address per player | No scanning after restarts | Needs a Cloudflare account and a named tunnel, or a small Edgemodders service that maps each PC to its current address |
 
@@ -265,7 +265,7 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 | Phase | What | Status |
 |---|---|---|
 | M0 Repo and design | The repo's scaffolding and this page | Done 2026-10-29 |
-| M1 Tunnel spike | Fetch and check `cloudflared`, start a quick tunnel to a server in a REDnode mod, open a page on a real phone, a WebSocket both ways and its delay. Tested on the user's Android phone; iPhones stay *unverified* until someone tests one. Also: the loader (option D) installed on a real phone, showing the PC's page full screen in a frame, with the camera and a `tel:` link from inside it; reusing a running tunnel after a mod restart; `cloudflared` ending with the game; a REDnode page window reaching `127.0.0.1` | Built 2026-10-29, awaiting the test ([M1 test](#m1-test)) |
+| M1 Tunnel spike | Fetch and check `cloudflared`, start a quick tunnel to a server in a REDnode mod, open a page on a real phone, a WebSocket both ways and its delay. Tested on the user's Android phone; iPhones stay *unverified* until someone tests one. Also: the loader (option D) installed on a real phone, showing the PC's page full screen in a frame, with the camera and a `tel:` link from inside it; reusing a running tunnel after a mod restart; `cloudflared` ending with the game; a REDnode page window reaching `127.0.0.1` | Built and tested 2026-10-29; four fixes, awaiting a short retest ([M1 test](#m1-test)) |
 | M2 Onboarding | The Connect window: the first fetch, the QR code, the pairing code with Allow and Deny, session keys, Connected phones with Disconnect, reconnecting by scan after a restart | Not started |
 | M3 The OS | The shell on both screens: the home screen (status line, clock, empty app grid, dock), the dock's actions on each screen, the phone window in the game with Pin to HUD | Not started |
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Not started |
@@ -294,6 +294,17 @@ Even the spike follows the two conditions: a phone gets in only with the QR code
 
 **Found:** a firewall that asks about programs connecting out (the user's did) asks about `cloudflared` on first start. The Connect window should say so in M2.
 
+**First test in the game** (2026-10-29, the user's Android phone, Chrome 156 on Android 10). Passed: the fetch, the tunnel ready about 6 s after **Start** (address in 3 to 4 s, findable 1.6 to 2.1 s later), pairing through the loader with Allow, the game's time and date, the camera inside the loader's frame, installing the loader, the dimmed clock at the main menu, the page from 127.0.0.1 in the game's window, Skip the loader, hot reload (the restarted mod linked to the running tunnel and the phone was back 2 s later), Deny, Stop and Start, and no `cloudflared.exe` after quitting. Found, and fixed for the retest:
+
+| Found | Why | Fix |
+|---|---|---|
+| The first **Start** failed: "An attempt was made to access a socket in a way forbidden by its access permissions" | Windows blocked `cloudflared` while the firewall's prompt was open; the second **Start** worked | The keeper recognises those words and says: allow `cloudflared` in the firewall, then press Start again. The mod no longer replaces the keeper's reason with "The tunnel stopped." |
+| **Dial** without a target showed the browser's broken-page picture; **Dial (top)**, **Dial (new)** and **Message** (`_top`) worked | A `tel:` link without a target navigates the frame itself | The spike's plain **Dial** is gone. Rule for M3 and M4: the shell opens `tel:` and `sms:` links from the whole page, and mobile apps ask the `mobile` library to dial rather than writing links |
+| The installed app showed the broken-page picture after a game restart | It framed the old address, which no longer exists; "Can't reach your game" came only after 10 s | The frame stays hidden behind "Connecting to your game…" until the PC's page says it is up. The loader also fetches the address first: a name that is gone fails at once, so "Can't reach your game" shows at once |
+| The window listed the phone after the restart, read as still connected | The list shows every paired phone, online or not, under "Connected phones" | Renamed **Paired phones** |
+
+Not measured: the delays (the test did not say where they show). A new address still needs Allow again, since the page keeps its session under the old address: the loader keeping the session is M2's work (see [Pairing and security](#pairing-and-security)).
+
 ### M1 test
 
 On the PC with the game, and the user's Android phone. Deploy first: `.\tools\deploy.ps1 -GameDir 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077'` (the game closed). The loader must be live at https://edgemodders.github.io/EDGEmobile/phone/ (GitHub Pages publishes it on push).
@@ -304,18 +315,20 @@ On the PC with the game, and the user's Android phone. Deploy first: `.\tools\de
 | 2 | Press **Get cloudflared** | A progress bar, then **Start**. Allow `cloudflared` if a firewall asks |
 | 3 | Press **Start** | A few seconds, then a QR code with a 60 s countdown, the address under it |
 | 4 | Load a save. Scan the QR code with the phone's camera | The loader opens in Chrome, then the PC's page with a pairing code |
-| 5 | Compare codes; press **Allow** in the game | The phone shows Night City's time and date (from 1 January 2077), and both delays. The window lists the phone, online, with its delay |
-| 6 | On the phone: **Take a photo**, **Live camera**, and each **Dial** and **Message** button | Note which work inside the loader's frame |
+| 5 | Compare codes; press **Allow** in the game | The phone shows Night City's time and date (from 1 January 2077). Under it, the **Delay** panel: note its two **median** lines, in ms. The window lists the phone, online, with its round trip |
+| 6 | On the phone: **Take a photo**, **Live camera**, **Dial (top)**, **Dial (new)** and **Message** | Each works inside the loader's frame |
 | 7 | Accept the loader's **Install** (or Chrome's menu, Add to Home screen). Open the installed app | It opens the game's page again without a new scan |
 | 8 | Go back to the main menu | The clock dims, "No signal from Night City" |
 | 9 | In the window, the **In the game** tab: **Load it here** | The same page, from 127.0.0.1, connected as "This PC" |
 | 10 | Turn on **Skip the loader**, scan again with a second browser or after **Disconnect** | The PC's page opens directly, without the loader |
-| 11 | Hot reload on (launcher settings), then save any file in the deployed `edgemobile` folder | The mod restarts; the address stays the same and the phone reconnects by itself |
+| 11 | Hot reload on (launcher settings), then save `mod.mjs` in the deployed folder, `<game>\red4ext\plugins\REDnode\apps\edgemobile` (add an empty line) | The mod restarts; the address stays the same and the phone reconnects by itself |
 | 12 | Scan a QR code and press **Deny** | The phone says it is not connected |
 | 13 | **Stop the tunnel**; then **Start** again and pair; then quit the game | After the quit, Task Manager shows no `cloudflared.exe` |
-| 14 | Restart the game, start the tunnel, open the installed app | "Can't reach your game" (new address); a new scan connects |
+| 14 | Restart the game, start the tunnel, open the installed app | "Connecting to your game…", then "Can't reach your game" within a second or two, never the browser's broken-page picture. A new scan connects (with Allow, until M2) |
 
-Send back: the delays, which camera and dialer buttons worked, and, if anything failed, `tunnel.log` from EDGEmobile's data folder (`%APPDATA%\@rednode\overlay\packages\edgemobile\`) and the mod's lines in `red4ext/logs/rednode-mods.log`.
+Send back: the delays, and, if anything failed, `tunnel.log` from EDGEmobile's data folder (`%APPDATA%\@rednode\overlay\packages\edgemobile\`) and the mod's lines in `red4ext/logs/rednode-mods.log`.
+
+**Retest after the fixes** (only what changed or was not measured): deploy again with the game closed, then steps 1 to 6 (the window now says **Paired phones**; note the delays), and step 14. The firewall message cannot be retested once `cloudflared` is allowed; it was checked outside the game with a stand-in that fails with Windows' words.
 
 ## Answered questions
 
