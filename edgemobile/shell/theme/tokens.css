@@ -1,0 +1,38 @@
+/* Night City Mobile UI — generated from tokens.json */
+:root, [data-theme="night"] {
+  --bg-000: #05070b;
+  --bg-100: #08090d;
+  --bg-200: #10131b;
+  --bg-300: #151925;
+  --line: #262c3d;
+  --ink: #e3e6ee;
+  --ink-dim: #8a93a8;
+  --ink-faint: #5d6780;
+  --red: #ff2a52;
+  --red-hi: #ff5c78;
+  --red-dim: #4a1220;
+  --cyan: #19f3ff;
+  --cyan-dim: #0b4a52;
+  --yellow: #fcee0a;
+  --green: #5dffa1;
+  --on-accent: var(--bg-000);
+  --select-fill: rgba(25, 243, 255, 0.08);
+  --grid-line: rgba(25, 243, 255, 0.05);
+  --scanline: rgba(255, 255, 255, 0.025);
+  --rarity-common: #b4bccb;
+  --rarity-uncommon: var(--green);
+  --rarity-rare: #3d9bff;
+  --rarity-epic: #c26bff;
+  --rarity-legendary: #ffa630;
+  --glow-red: 0 0 12px rgba(255, 42, 82, 0.55);
+  --glow-cyan: 0 0 12px rgba(25, 243, 255, 0.45);
+}
+:root {
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px; --space-7: 48px;
+  --radius-0: 0;
+  --cut-xs: 6px; --cut-sm: 10px; --cut-md: 14px; --cut-lg: 20px;
+  --touch-min: 44px; --control-h: 48px; --appbar-h: 56px; --tabbar-h: 64px;
+  --font-display: "Chakra Petch", "Arial Narrow", sans-serif;
+  --font-body: Rajdhani, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, monospace;
+}

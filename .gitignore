@@ -1,0 +1,9 @@
+node_modules/
+# tools/release zips
+release/
+# Jekyll's output, when the docs are built locally
+docs/_site/
+docs/.jekyll-cache/
+# never commit Cloudflare's program or a player's data
+cloudflared*.exe
+phones.json
