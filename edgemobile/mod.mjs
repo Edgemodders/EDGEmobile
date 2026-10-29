@@ -159,12 +159,14 @@ function onSocket(ws, info) {
 // Whether V is in the world. Every call into the game's world systems waits for this: while
 // the game boots, mainMenu is still false, and calling GetWeatherSystem then crashed the game
 // (2026-10-29, the M3 test). REDnode's player.position rejects, safely, when there is no player.
-const WORLD_MS = 5000;
+// Checked again before each round of calls, not trusted once: loading another save from the
+// pause menu takes the world away without passing the main menu.
+const WORLD_MS = 900;
 let inWorld = false;
 let worldCheckedAt = 0;
 async function worldReady() {
   if (mainMenu) return (inWorld = false);
-  if (inWorld || Date.now() - worldCheckedAt < WORLD_MS) return inWorld;
+  if (Date.now() - worldCheckedAt < WORLD_MS) return inWorld;
   worldCheckedAt = Date.now();
   inWorld = await game.player.position().then(
     () => true,
@@ -187,6 +189,7 @@ async function gameSeconds() {
 }
 game.on('PlayerPuppet.OnGameAttached', () => {
   inWorld = true;
+  worldCheckedAt = Date.now();
   timeSystem = null;
   place.at = 0;
 });
