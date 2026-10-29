@@ -6,7 +6,7 @@ EDGEmobile is a phone operating system for Cyberpunk 2077, built as a REDnode ap
 
 - Asked for by the user on 2026-10-29 as a side project ahead of REDnode's schedule, since it may change and improve REDnode; REDnode's schedule resumes after it. Its own repo, version, changelog, zip and Nexus page.
 - The look comes from the user's design canvas **Chooms! prototype** (claude.ai artifact https://claude.ai/artifact/CfF1Ri6LhBR5FkGPhGNFp3, private to the user; read it with the Artifact tool), whose **Home screen** artboard is the basis for the OS, with the **Night City Mobile UI** design system (https://claude.ai/artifact/TwDf9vxw4BxqLppZSzhCmn). Its tokens and component styles are copied into `edgemobile/shell/theme/`.
-- M0 (scaffolding and the design) done on 2026-10-29. **Next: agree the design's open questions with the user, then M1, the tunnel spike.**
+- M0 (scaffolding and the design) done on 2026-10-29. Agreed with the user the same day: the phone app comes from the player's PC through the tunnel, with a tiny fixed loader page for the installed app (option D in docs/design.md; GitHub Pages hosting the whole shell was rejected). The user tests on Android. **Next: agree the remaining open questions and the M1 plan, then M1, the tunnel spike.**
 - Chooms!, the first mobile app, is designed with the user after the OS works (M3, M4).
 - Stop after each phase for the user's test, in the game and on a real phone.
 

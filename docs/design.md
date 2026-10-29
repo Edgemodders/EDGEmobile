@@ -23,6 +23,7 @@ Agreed with the user on 2026-10-28 and 2026-10-29.
 | Why now | It is a side project ahead of REDnode's schedule, because it may change and improve REDnode itself. REDnode's schedule resumes after it |
 | The two screens | A phone view in the game, on REDnode's overlay and HUD, and a real-life endpoint that a real phone opens and can install as a PWA |
 | How a real phone reaches the PC | A REDnode Node mod runs a web server on the PC, behind a free Cloudflare quick tunnel (`https://….trycloudflare.com`). EDGEmobile sets up the tunnel itself: the player never uses Cloudflare's command line and makes no Cloudflare account |
+| Where the phone app comes from | The player's PC, through the tunnel: the shell, the `mobile` library, the mobile apps and the live game data. A tiny fixed **loader** page lets the installed app find the PC again after a restart (option D in [Installing on the phone](#installing-on-the-phone-pwa); agreed 2026-10-29, to be tried in M1) |
 | How a phone gets in | The game shows a QR code. The phone scans it and shows a pairing code. The game shows the same code with **Allow** and **Deny**, and the player allows it |
 | Who gets in | Only a phone that has the QR code's link with its one-time key **and** was approved by someone at the PC. Either alone gets nothing (see [Pairing and security](#pairing-and-security)) |
 | How players are told | That the tunnel gives the PC a private web address, always together with how the two conditions keep others out. Never "exposes" (see [What players are told](#what-players-are-told)) |
@@ -57,20 +58,20 @@ The sequence the player sees, the first time:
 | 1 | The player opens EDGEmobile's **Connect a phone**. The first time, it says it will fetch Cloudflare's tunnel program (its size, from GitHub) and asks to go on | |
 | 2 | EDGEmobile fetches `cloudflared`, checks its SHA-256 against the one pinned in EDGEmobile's source, starts the local server and the tunnel, and reads the tunnel's address | |
 | 3 | The window shows a QR code, with "Scan this with your phone's camera" and a countdown | |
-| 4 | | The player scans it. The phone opens EDGEmobile's phone page, which connects and shows a pairing code, such as `482 913` |
+| 4 | | The player scans it. The phone opens the loader, which shows the PC's phone page full screen. The page connects and shows a pairing code, such as `482 913` |
 | 5 | The window shows "A phone wants to connect: **482 913**", with the phone's browser and system, and **Allow** and **Deny** | "Check that the game shows the same code" |
 | 6 | The player checks the codes match and presses **Allow** | |
-| 7 | The phone shows in **Connected phones** | The phone stores its session key and shows the EDGEmobile home screen, with no apps yet |
-| 8 | | The page offers **Install** (Add to Home screen) |
+| 7 | The phone shows in **Connected phones** | The loader stores the session key and the PC's page shows the EDGEmobile home screen, with no apps yet |
+| 8 | | The loader offers **Install** (Add to Home screen) |
 
 After a game restart, the tunnel's address is new (see [The tunnel](#the-tunnel)), so the phone has to find the PC again. A phone already paired does not need the pairing code again. It scans the QR code once more, either with its camera or with a **Scan** button in the installed app, and the home screen comes back.
 
 ### What the QR code holds
 
-*Proposed:* `https://edgemodders.github.io/EDGEmobile/phone/#h=<tunnel host>&t=<pairing token>`
+*Proposed:* `https://<loader address>/#h=<tunnel host>&t=<pairing token>`, with the loader on GitHub Pages at first (`edgemodders.github.io/EDGEmobile/phone/`).
 
-- The part after `#` (the fragment) never leaves the phone, so GitHub's servers never see the tunnel's address or the token. The page reads it and connects to the tunnel itself.
-- The page is served from one fixed address, so the installed app keeps working after the tunnel's address changes (see [Installing on the phone](#installing-on-the-phone-pwa)).
+- The part after `#` (the fragment) never leaves the phone, so the loader's host never sees the tunnel's address or the token. The loader reads it and shows `https://<tunnel host>/` in a full-screen frame.
+- The loader is served from one fixed address, so the installed app keeps working after the tunnel's address changes (see [Installing on the phone](#installing-on-the-phone-pwa)).
 
 ## Pairing and security
 
@@ -83,7 +84,7 @@ The tunnel gives the player's PC a web address on the internet, so their phone c
 
 Neither condition is enough alone. A valid link without approval waits until it expires. Approval can only be given to a phone that brought a valid link.
 
-**What anyone else gets.** The tunnel serves no pages: the phone page comes from GitHub Pages (option A below). A request without a valid key or session gets the same short refusal every time, with no hint of what was wrong, and nothing reaches the game.
+**What anyone else gets.** The tunnel serves the shell's static files and the pairing screen to anyone, since a phone needs them before it has a key. They hold no game data and no secrets, and serving them reaches nothing in the game. Everything else (game data, mobile apps' files, the WebSocket) needs a valid one-time key or session. A request without one gets the same short refusal every time, with no hint of what was wrong, and nothing reaches the game.
 
 The rules that keep it that way:
 
@@ -94,7 +95,8 @@ The rules that keep it that way:
 | **Connected phones** lists each phone with **Disconnect**, which ends its key | The player can remove a phone at any time |
 | A phone can do only what EDGEmobile and its apps offer. It never reaches REDnode's `api`, the MCP server or files | A paired phone cannot run code in the game |
 | The server listens on `127.0.0.1` only | A phone reaches it only through the tunnel, never over the home network |
-| Only the phone page's own origin may open the WebSocket (its `Origin` header is checked) | Other websites the phone visits cannot use the session |
+| Only the PC's own page may open the WebSocket: its `Origin` header must be the tunnel's own address | Other websites the phone visits cannot use the session |
+| *Proposed, designed in M2:* the loader never hands the session key to the page in its frame. It proves the key to the PC by challenge and response, and the PC proves it back, before the page gets a short-lived ticket for its WebSocket | A QR code made by someone else, naming another address, gets the loader to show that site but learns nothing from it |
 | Closing EDGEmobile, or the game, stops the server and the tunnel | Nothing stays open after the game |
 
 **Cloudflare carries the traffic.** A quick tunnel ends HTTPS at Cloudflare's edge, so the traffic is decrypted there before it travels on to the PC. *Proposed, later:* encrypt the WebSocket's messages end to end with a key carried in the QR code's fragment, which Cloudflare never sees.
@@ -217,11 +219,15 @@ A mobile app is a folder in `edgemobile/mobile-apps/<id>/`. It is plain web file
 
 A web app installs on a phone's home screen when it is served over HTTPS with a manifest and a service worker. The tunnel gives HTTPS. But an installed app is tied to the address it came from, and a quick tunnel's address changes each start, so an installed app served from the tunnel would break after every restart.
 
+The phone app itself comes from the player's PC (agreed 2026-10-29). The shell, the `mobile` library and the mobile apps then always come from the same install, so third-party apps run against the library they were written for, and the live game data comes straight from the game. Option A, the whole shell on GitHub Pages, was dropped for that reason: its version could differ from the player's EDGEmobile and the apps on their PC.
+
 | Option | Good | Bad |
 |---|---|---|
-| **A. The shell from a fixed address** (*recommended*): the phone page lives on GitHub Pages, at `edgemodders.github.io/EDGEmobile/phone/`, and connects to the tunnel's current address | The installed app keeps working. Its key stays in the app's own storage. After a restart, one scan with its **Scan** button reconnects | The phone page's version can differ from the player's EDGEmobile, so they compare versions when they connect. It depends on Edgemodders' GitHub Pages being up |
-| B. The shell from the tunnel | Everything comes from the player's PC | The installed app breaks at each game start. It suits a page kept open in the browser, not an installed app |
+| **D. Everything from the PC, plus a tiny fixed loader** (*agreed, to be tried in M1*) | The loader is a small static page at a fixed address. It keeps the session key, scans the new address after a restart, and shows the PC's page full screen in a frame. Everything that matters comes from the PC. The loader almost never changes, so it cannot fall out of step | The loader needs a fixed address (GitHub Pages at first). A frame needs care with the camera (`allow="camera"`) and with `tel:` and `sms:` links (*unverified*). How each phone platform treats an installed app showing another site in a frame is *unverified*, iPhones most of all |
+| B. Everything from the PC, no loader | Simplest. Nothing hosted | The installed app breaks at each game start, so installing is pointless. The player scans again in the browser each session. The fallback if D fails |
 | C. A fixed address per player | No scanning after restarts | Needs a Cloudflare account and a named tunnel, or a small Edgemodders service that maps each PC to its current address |
+
+**The loader's own origin.** Every Edgemodders docs site shares the origin `edgemodders.github.io`, so the session key the loader keeps would sit in storage those sites share. *Proposed:* GitHub Pages for the spike, then an address with its own origin before M5 (a domain, or a GitHub account of its own).
 
 ## Look
 
@@ -247,11 +253,11 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 | Phase | What | Status |
 |---|---|---|
 | M0 Repo and design | The repo's scaffolding and this page | Done 2026-10-29 |
-| M1 Tunnel spike | Fetch and check `cloudflared`, start a quick tunnel to a server in a REDnode mod, open a page on a real phone, a WebSocket both ways and its delay. Also: reusing a running tunnel after a mod restart, `cloudflared` ending with the game, a GitHub Pages page opening the tunnel's WebSocket, and a REDnode page window reaching `127.0.0.1` | Not started |
+| M1 Tunnel spike | Fetch and check `cloudflared`, start a quick tunnel to a server in a REDnode mod, open a page on a real phone, a WebSocket both ways and its delay. Tested on the user's Android phone; iPhones stay *unverified* until someone tests one. Also: the loader (option D) installed on a real phone, showing the PC's page full screen in a frame, with the camera and a `tel:` link from inside it; reusing a running tunnel after a mod restart; `cloudflared` ending with the game; a REDnode page window reaching `127.0.0.1` | Not started |
 | M2 Onboarding | The Connect window: the first fetch, the QR code, the pairing code with Allow and Deny, session keys, Connected phones with Disconnect, reconnecting by scan after a restart | Not started |
 | M3 The OS | The shell on both screens: the home screen (status line, clock, empty app grid, dock), the dock's actions on each screen, the phone window in the game with Pin to HUD | Not started |
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Not started |
-| M5 Install on the phone | The PWA: manifest, service worker, icons, the Scan button, offline screen, version check | Not started |
+| M5 Install on the phone | The loader as a PWA: manifest, service worker, icons, the Scan button, offline screen, and its own origin | Not started |
 | M6 Chooms! | To be designed with the user | Not started |
 | Release | The zip, `requires` for REDnode, the Nexus page, the changelog | Not started |
 
@@ -259,7 +265,8 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 
 | Question | Recommendation |
 |---|---|
-| Where the phone page is served from (see [Installing on the phone](#installing-on-the-phone-pwa)) | A, a fixed address on GitHub Pages |
+| The loader's own origin (see [Installing on the phone](#installing-on-the-phone-pwa)) | GitHub Pages for the spike, an address with its own origin before M5 |
+| Where mobile apps are installed | Beside EDGEmobile's folder, in `red4ext/plugins/REDnode/mobile-apps/`, so installing one does not restart EDGEmobile under hot reload, and an EDGEmobile update never touches them |
 | The clock on the real phone | Night City's time while a save is loaded |
 | Should the two screens mirror each other's navigation? | No: shared data, separate navigation |
 | How to open the phone in the game | The launcher now, a key once REDnode has package keys |
