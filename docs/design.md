@@ -96,7 +96,7 @@ The rules that keep it that way:
 | A phone can do only what EDGEmobile and its apps offer. It never reaches REDnode's `api`, the MCP server or files | A paired phone cannot run code in the game |
 | The server listens on `127.0.0.1` only | A phone reaches it only through the tunnel, never over the home network |
 | Only the PC's own page may open the WebSocket: its `Origin` header must be the tunnel's own address | Other websites the phone visits cannot use the session |
-| *Proposed, designed in M2:* the loader never hands the session key to the page in its frame. It proves the key to the PC by challenge and response, and the PC proves it back, before the page gets a short-lived ticket for its WebSocket | A QR code made by someone else, naming another address, gets the loader to show that site but learns nothing from it |
+| *Proposed for M2:* a paired phone proves itself by signing the PC's challenge with a key its browser will not give out, bound to the PC's own address (see [M2 plan](#m2-plan)). The PC keeps only public keys | A QR code made by someone else, naming another address, gets the loader to show that site, but nothing it gets works at the player's PC. A copy of `phones.json` holds no secret |
 | Closing EDGEmobile, or the game, stops the server and the tunnel | Nothing stays open after the game |
 
 **Cloudflare carries the traffic.** A quick tunnel ends HTTPS at Cloudflare's edge, so the traffic is decrypted there before it travels on to the PC. *Proposed, later:* encrypt the WebSocket's messages end to end with a key carried in the QR code's fragment, which Cloudflare never sees.
@@ -239,7 +239,7 @@ The phone app itself comes from the player's PC (agreed 2026-10-29). The shell, 
 | B. Everything from the PC, no loader | Simplest. Nothing hosted | The installed app breaks at each game start, so installing is pointless. The player scans again in the browser each session. The fallback if D fails |
 | C. A fixed address per player | No scanning after restarts | Needs a Cloudflare account and a named tunnel, or a small Edgemodders service that maps each PC to its current address |
 
-**The loader's own origin.** Every Edgemodders docs site shares the origin `edgemodders.github.io`, so the session key the loader keeps would sit in storage those sites share. *Proposed:* GitHub Pages for the spike, then an address with its own origin before M5 (a domain, or a GitHub account of its own).
+**The loader's own origin.** Every Edgemodders docs site shares the origin `edgemodders.github.io`, so the key the loader keeps would sit in storage those sites share. Agreed 2026-10-29: from M2 the loader is at `https://mobile.edgemodders.ai/`, an origin of its own (see [M2 plan](#m2-plan)).
 
 ## Look
 
@@ -303,7 +303,7 @@ Even the spike follows the two conditions: a phone gets in only with the QR code
 | The installed app showed the broken-page picture after a game restart | It framed the old address, which no longer exists; "Can't reach your game" came only after 10 s | The frame stays hidden behind "Connecting to your game…" until the PC's page says it is up. The loader also fetches the address first: a name that is gone fails at once, so "Can't reach your game" shows at once |
 | The window listed the phone after the restart, read as still connected | The list shows every paired phone, online or not, under "Connected phones" | Renamed **Paired phones** |
 
-**Retest** (2026-10-29, the same phone): steps 1 to 6 passed with the fixes. The delay, median round trips through the tunnel: phone → PC → phone 44 ms, PC → phone → PC 102 ms. Why the PC's way round is slower is *unverified*; a likely cause is the phone's Wi-Fi power saving, which holds traffic to the phone until the radio wakes (about every 100 ms), while the phone's own pings go out when it is awake. Step 14: "Connecting to your game…", then "Can't reach your game", without the broken page. That is the expected result, but it is not what a player expects: the installed app cannot find the game's new address without a scan (see "Reaching the game after a restart" in the M2 plan, to be written).
+**Retest** (2026-10-29, the same phone): steps 1 to 6 passed with the fixes. The delay, median round trips through the tunnel: phone → PC → phone 44 ms, PC → phone → PC 102 ms. Why the PC's way round is slower is *unverified*; a likely cause is the phone's Wi-Fi power saving, which holds traffic to the phone until the radio wakes (about every 100 ms), while the phone's own pings go out when it is awake. Step 14: "Connecting to your game…", then "Can't reach your game", without the broken page. That is the expected result, but it is not what a player expects: the installed app cannot find the game's new address without a scan (see [M2 plan](#m2-plan), "Reaching the game after a restart").
 
 A new address still needs Allow again, since the page keeps its session under the old address: the loader keeping the session is M2's work (see [Pairing and security](#pairing-and-security)).
 
@@ -332,13 +332,54 @@ Send back: the delays, and, if anything failed, `tunnel.log` from EDGEmobile's d
 
 **Retest after the fixes** (only what changed or was not measured): deploy again with the game closed, then steps 1 to 6 (the window now says **Paired phones**; note the delays), and step 14. The firewall message cannot be retested once `cloudflared` is allowed; it was checked outside the game with a stand-in that fails with Windows' words.
 
+### M2 plan
+
+*Proposed* 2026-10-29, for the user's approval. M2 turns the spike into the real onboarding, and changes how a paired phone proves itself, so that after a game restart one scan brings it back with no pairing code and no Allow.
+
+**Reaching the game after a restart.** A quick tunnel's address is new at each start, and the installed app cannot learn it by itself.
+
+| Option | Status |
+|---|---|
+| One scan per game session: a paired phone that scans the new QR code is back at once | **M2** (agreed 2026-10-29). Always kept, as the fallback |
+| A lookup service: the PC tells it its new address at each start, and the installed app asks it, so no scan is needed | **Later** (agreed 2026-10-29), on the user's AWS server behind NGINX, beside the loader. Designed in its own phase, with its own security check |
+| The player's own Cloudflare account and a named tunnel | Not planned: a sign-up and setup for each player |
+
+**The loader's own address** (agreed 2026-10-29): `https://mobile.edgemodders.ai/`, on the user's AWS server. NGINX passes each request on to the files on GitHub Pages (`docs/phone/`), so a push still publishes the loader, and the phone sees one origin of its own, apart from every other Edgemodders site. Let's Encrypt certificate, renewed by certbot's cron job (dry run passed 2026-10-29); HTTP redirects to HTTPS; HSTS. The copy at `edgemodders.github.io/EDGEmobile/phone/` stays, as NGINX's source, but the QR code and the PC's page name only the new address.
+
+**How a paired phone proves itself.** Replaces the session key of M1, and designs the *proposed* rule in [Pairing and security](#pairing-and-security):
+
+1. The loader makes an ECDSA P-256 key pair with the browser's WebCrypto, **non-extractable**: the browser signs with it, but no script, not even the loader's own, can read the private key out. It is kept in the loader's IndexedDB, on the loader's own origin.
+2. The PC keeps each phone's **public key** only, in `phones.json`. A copy of the file lets no one in, and nothing in it is secret.
+3. On each connection the PC sends a fresh random challenge. The page in the frame asks the loader to sign it. The loader signs `edgemobile-auth`, **the origin it is framing** (chosen by the loader, never by the page) and the challenge, and the page sends the signature. The PC checks it with the phone's public key, its own tunnel address and the challenge it sent.
+4. Pairing a new phone is as in M1, with the public key added: the QR code's one-time key, the pairing code, **Allow**. Both conditions stay for every new phone.
+5. A paired phone that scans a new QR code, or opens the installed app while the address is the same, is in by its signature alone.
+
+What it stops: a QR code made by someone else, naming another site, gets the loader to frame that site, and the site can ask for signatures, but each names that site's own origin, so the player's PC refuses them. A stolen `phones.json` holds no secret. The page in the frame never holds anything that lets it in later.
+
+A browser without the loader (a direct link) has no lasting key: its page makes a key of its own, kept only under that tunnel address, so it pairs again with Allow after each restart. The page from 127.0.0.1 in the game keeps the local session of M1, refused through the tunnel as now.
+
+**Who may frame the PC's page.** The page served through the tunnel gets `frame-ancestors https://mobile.edgemodders.ai`, so no other site can show it in a frame. The page from 127.0.0.1 may be framed only by the game's own window.
+
+**The parts.**
+
+| Part | What changes |
+|---|---|
+| Connect window (`edgemobile/connect/`, replacing `spike/window`) | The first-time text on the tunnel and the two conditions; the firewall note; **Get cloudflared**, **Start**, **Stop the tunnel**; the QR code, made again by itself when its minute runs out while the window is open; **Allow** and **Deny**; **Paired phones** with online or offline and **Disconnect** (which drops the public key). The spike's **Skip the loader** goes |
+| Setting: **Start the tunnel when the game starts** | Off by default (agreed 2026-10-29). On, the tunnel starts with the game when a phone is paired. Meant for the lookup service, when it becomes the default |
+| Loader | The key pair and the signing (above), answering only its own frame and only for the origin it frames. On "Can't reach your game", a **Scan** button that reads the QR code with the phone's camera inside the app (Chrome's barcode reader on Android, *unverified*); the camera app stays the fallback |
+| Phone page (`edgemobile/shell/`, a start of the shell) | Pairing, then a plain connected screen with Night City's clock and date. The home screen itself is M3. The spike's camera, dialer and delay checks go |
+| Server | Public keys in `phones.json`; the challenge and signature check; `frame-ancestors`; the loader's address in the QR code and the page. M1's paired phones pair once more |
+| Kept | The tunnel, the keeper, reuse after a mod restart, `cloudflared` ending with the game |
+
+**M2 test**, on the user's Android phone, to be written in full with the build: pair through the loader at the new address and install it; restart the game; come back with the **Scan** button, and again with the camera app, with no pairing code and no Allow; **Disconnect**, then the phone is refused until it pairs again; Deny. Outside the game: a page on another origin asking the loader to sign gets a signature the PC refuses; `phones.json` alone lets no one in; a frame from another site is refused.
+
 ## Answered questions
 
 Agreed with the user on 2026-10-29, as recommended.
 
 | Question | Answer |
 |---|---|
-| The loader's own origin (see [Installing on the phone](#installing-on-the-phone-pwa)) | GitHub Pages for the spike, an address with its own origin before M5 |
+| The loader's own origin (see [Installing on the phone](#installing-on-the-phone-pwa)) | GitHub Pages for the spike, then `https://mobile.edgemodders.ai/` from M2, on the user's AWS server (agreed 2026-10-29; see [M2 plan](#m2-plan)) |
 | Where mobile apps are installed | Beside EDGEmobile's folder, in `red4ext/plugins/REDnode/mobile-apps/`, so installing one does not restart EDGEmobile under hot reload, and an EDGEmobile update never touches them. The folder moves in M4 |
 | The date's start, since the game has no calendar date | 1 January 2077 plus the game's day count |
 | The clock with no save loaded (main menu) | The last game time read, frozen and dimmed, with "No signal from Night City". With the game closed the tunnel is closed too, and the loader shows its offline screen |
