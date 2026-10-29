@@ -258,7 +258,7 @@ The look comes from the user's **Chooms! prototype** canvas, which uses the **Ni
 | Type | Chakra Petch (display), Rajdhani (body), JetBrains Mono (data) | From Google Fonts |
 | Shape | No rounded corners: one cut top-right corner per shape (`--cut-xs` 6 px to `--cut-lg` 20 px) | Buttons, panels, icons |
 
-*To check:* the fonts are fetched from Google Fonts in the prototype. The shell should ship them so it works offline and in the game without fetching (their licence is the SIL Open Font License, which allows it).
+The fonts ship with EDGEmobile (from M3): `edgemobile/shell/fonts/`, woff2 in Latin and Latin Extended, with their SIL Open Font License files, so neither screen fetches from Google.
 
 ## Phases
 
@@ -269,7 +269,7 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 | M0 Repo and design | The repo's scaffolding and this page | Done 2026-10-29 |
 | M1 Tunnel spike | Fetch and check `cloudflared`, start a quick tunnel to a server in a REDnode mod, open a page on a real phone, a WebSocket both ways and its delay. Tested on the user's Android phone; iPhones stay *unverified* until someone tests one. Also: the loader (option D) installed on a real phone, showing the PC's page full screen in a frame, with the camera and a `tel:` link from inside it; reusing a running tunnel after a mod restart; `cloudflared` ending with the game; a REDnode page window reaching `127.0.0.1` | Done 2026-10-29: built, tested on Android, four fixes, retested ([M1 test](#m1-test)) |
 | M2 Onboarding | The Connect window: the first fetch, the QR code, the pairing code with Allow and Deny, phones that prove themselves by signature, Paired phones with Disconnect, reconnecting by scan after a restart, the loader at its own address | Done 2026-10-29: built, tested on Android ([M2 test](#m2-test)) |
-| M3 The OS | The shell on both screens: the home screen (status line, clock, empty app grid, dock), the dock's actions on each screen, the phone window in the game with Pin to HUD | Not started |
+| M3 The OS | The shell on both screens: the home screen (status line, clock, app grid, dock), the dock on the real phone, the phone in the game (a borderless red frame, Pin to HUD), the two themes, the fonts shipped | Built 2026-10-29, awaiting the test ([M3 test](#m3-test)) |
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Not started |
 | M5 Install on the phone | The loader as a PWA: manifest, service worker, icons, the Scan button, offline screen, and its own origin | Not started |
 | M6 Chooms! | To be designed with the user | Not started |
@@ -421,7 +421,7 @@ Send back: anything that did not match, and if the tunnel misbehaved, `tunnel.lo
 
 ### M3 plan
 
-*Proposed* 2026-10-29, for the user's approval. M3 builds the OS's first screen on both screens, the phone in the game, and the two themes.
+Agreed with the user on 2026-10-29. M3 builds the OS's first screen on both screens, the phone in the game, and the two themes.
 
 **What the game offers** (read from REDnode's game API reference for 2.5; *unverified* in the game):
 
@@ -439,12 +439,50 @@ Send back: anything that did not match, and if the tunnel misbehaved, `tunnel.lo
 | The dock on a real phone | **Phone** opens the dialer (`tel:`), **Messages** the messaging app (`sms:`), **Camera** the phone's camera (the photo stays on the phone; nothing is sent), **Browser** a new browser tab. Each opens from the whole page, not the frame (M1's rule) |
 | Settings | A screen with **Theme**: Night City or Edgemodders. The choice goes to the PC (`settings.json`), and every connected screen switches at once |
 | Themes | Colour sets over the same layout, as CSS custom properties, so every later screen gets both. **Night City**: the design system as it is. **Edgemodders**: yellow takes red's role as the voice (titles, the main button, the rule, the active item), cyan stays interaction, green success, red attention (badges); the 32 px cyan grid with the soft yellow glow from the banner; yellow corner brackets on hero panels (the clock). Cyan wherever the house style might suggest blue (the user, 2026-10-29) |
-| The phone in the game | EDGEmobile's window becomes the phone: a transparent, borderless page with a phone frame drawn in the game's UI red, `#ff6158` (REDnode's own `hud` theme, which matches the game's menus), about 340 × 700 px on screen. Only the frame is the drag handle (`data-rednode-drag`); the screen inside takes taps and scrolls as usual. The screen is the shell from 127.0.0.1 with the local session (M1), so both screens run the same code and data. No dock in the game. **Pin to HUD** in REDnode's Mod Manager keeps it on screen during play (in play, the game keeps the mouse: the phone shows but takes taps only with the overlay open, F10) |
+| The phone in the game | EDGEmobile's window becomes the phone: a transparent, borderless page with a solid phone frame in the game's UI red, `#ff6158` (REDnode's own `hud` theme, which matches the game's menus), 336 × 704 px on screen. Only the frame's four edges are drag handles (`data-rednode-drag`; REDnode sends each handle to the game as a rectangle, so one handle around the whole phone would cover the screen too); the screen inside takes taps and scrolls as usual. The screen is the shell from 127.0.0.1 with the local session (M1), so both screens run the same code and data. No dock in the game. **Pin to HUD** in REDnode's Mod Manager keeps it on screen during play (in play, the game keeps the mouse: the phone shows but takes taps only with the overlay open, F10) |
 | Connect a phone | A drawer beside the phone, opened from a small icon on the frame, and by itself when a phone asks to pair. The same content as the M2 Connect window |
 | Fonts | Chakra Petch, Rajdhani and JetBrains Mono shipped as woff2 in `edgemobile/shell/fonts/` with their SIL Open Font License files, served to both screens, so nothing is fetched from Google |
-| Frame rule from 127.0.0.1 | `frame-ancestors` set to the game window's own origin, found in the game (*unverified*: M2 left it open for this) |
+| Frame rule from 127.0.0.1 | `frame-ancestors file:`: REDnode's app pages are `file://` pages, so the game's window may frame the shell and no website can. Checked in Chrome: a `file://` page framed it under this rule; `'none'` and `'self'` refused it (*unverified* in REDnode's Electron) |
 
-**M3 test**, to be written in full with the build: the phone in the game (its frame's red beside the game's menus, dragged by the frame only, pinned to the HUD, the drawer, pairing from it); the home screen on both screens (district and rain as you travel and as the weather turns); the dock on the real phone; the theme switched on one screen and seen on both; the fonts right with Google's font servers out of reach.
+### M3: built
+
+Built on 2026-10-29, as EDGEmobile 0.0.4.
+
+| Part | Where |
+|---|---|
+| The phone in the game: the frame, the four drag edges, the screen, the Connect drawer | `edgemobile/game/window.html`, `window.js` (the M2 Connect window, `edgemobile/connect/`, is gone) |
+| The home screen, Settings, the dock | `edgemobile/shell/index.html`, `phone.js` |
+| The Edgemodders theme | `edgemobile/shell/theme/themes.css` |
+| The fonts and their licences | `edgemobile/shell/fonts/` (Fontsource 5.3.0 packages, 260 KB) |
+| The district and the rain, the theme kept on the PC and sent to every screen | `edgemobile/mod.mjs` |
+| Fonts served (cached for a day), `font-src 'self'`, the frame rule from 127.0.0.1 | `edgemobile/server/web.mjs` |
+
+**Checked outside the game** (the harness, against real quick tunnels, with a stand-in game whose district record is a sub-district under Watson, named through a LocKey, and light rain; 41 checks, all passed): every M2 check; the top district and the rain arrive with the time ("Watson", "light"); the theme is sent on connecting; a theme chosen on one screen reaches the others and is kept in `settings.json`; an unknown theme is ignored; the 16 font faces and the woff2 files are served, cached for a day; the page allows fonts and styles from itself only, with no Google address left; nothing else is served from the fonts folder; the page from 127.0.0.1 carries `frame-ancestors file:`.
+
+**Seen in headless Chrome** at 390 × 844: the home screen in both themes against the prototype; Settings; the in-game window from its `file://` page with the shell in its screen, under the new frame rule. Found and fixed: Edgemodders turned the dock's Browser button red (it uses the yellow that the theme gives to attention), and the skyline's tower stayed red; the button is now always yellow and the tower follows the voice colour.
+
+*Unverified until the M3 test:* everything that reads the game (the district through `PreventionSystem`, its LocKey through `GetLocalizedText`, the rain through `WeatherSystem`: how REDnode returns their handles and enums is a guess, so the mod accepts several shapes and logs the first failure of each as "Status line: could not read …"), the window in REDnode (transparent, the drag edges, the drawer, Pin to HUD), the frame rule in REDnode's Electron, and the dock on the phone.
+
+### M3 test
+
+On the PC with the game, and the user's Android phone (already paired in M2). EDGEmobile 0.0.4 is deployed.
+
+| # | Step | Expect |
+|---|---|---|
+| 1 | Start the game. F10, open **EDGEmobile** from the launcher | A phone with a solid red frame at the right of the screen, the game showing around it. Its screen shows the home screen, with no dock |
+| 2 | Drag the phone by its red frame. Then try to drag from the screen | The frame moves the phone. The screen does not move it; **Settings** opens with a tap |
+| 3 | Compare the frame's red with the game's own menus (the inventory, the map) | Same red, or say how it differs |
+| 4 | Load a save | The status line shows the district ("Watson · …"), and "Light rain" or "Heavy rain" when it rains. Go back to the main menu: "No signal from Night City", the clock dimmed |
+| 5 | Travel to another district, and wait for rain if you can | The status line follows within a few seconds |
+| 6 | The small red tab on the frame's right: **Connect a phone**. **Start** | The drawer beside the phone, then the QR code |
+| 7 | On the phone, open the installed app, **Scan the code** | Back with no Allow. The home screen, with the dock |
+| 8 | The dock on the phone: **Phone**, **Messages**, **Camera**, **Browser** | The dialer, the messaging app, the camera (then "Photo taken. Nothing was sent to the game."), a browser tab |
+| 9 | On the phone: **Settings**, **Edgemodders** | Both screens turn yellow at once, with the house grid and the corner brackets on the clock. Switch back from the phone in the game |
+| 10 | Close the drawer. **Disconnect** is in it: open it again and **Disconnect** the phone, then scan again | The drawer opens by itself with the pairing code. **Allow** |
+| 11 | Mod Manager › EDGEmobile › **Pin to HUD**. F10 back to the game | The phone stays on screen while you play (it takes taps only with the overlay open) |
+| 12 | Hot reload on, save `mod.mjs` in the deployed folder | The phone in the game reconnects by itself; the real phone too |
+
+Send back: anything that did not match, and every line of `red4ext/logs/rednode-mods.log` starting `[edgemobile] Status line:` (the game calls that failed).
 
 ## Answered questions
 
