@@ -1,8 +1,10 @@
 <!doctype html>
 <!--
   The EDGEmobile loader (docs/design.md, "Installing on the phone", option D). It lives at a
-  fixed address so it can be installed, and shows the player's PC's page full screen in a
-  frame. Everything else comes from the PC. M1 spike version.
+  fixed address of its own, https://mobile.edgemodders.ai/ (NGINX on the user's server passes
+  requests on to these files on GitHub Pages), so it can be installed. It shows the player's
+  PC's page full screen in a frame, and keeps the phone's signing key. Everything else comes
+  from the PC.
 -->
 <html lang="en">
 <head>
@@ -22,11 +24,15 @@
     clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%); }
   .panel h1 { margin: 0 0 8px; font: 700 18px/1.2 "Chakra Petch", "Arial Narrow", sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #ff2a52; }
   .panel p { margin: 0 0 12px; }
+  .panel p.scan-error:empty { display: none; }
+  .scan-error { color: #fcee0a; }
   .eyebrow { font: 500 11px/14px "JetBrains Mono", Consolas, monospace; letter-spacing: .2em; text-transform: uppercase; color: #19f3ff; margin-bottom: 8px; }
   button { min-height: 48px; padding: 0 24px; border: 0; background: #ff2a52; color: #05070b; font: 600 15px "Chakra Petch", sans-serif; letter-spacing: .12em; text-transform: uppercase;
     clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%); }
   button.secondary { background: transparent; color: #19f3ff; box-shadow: inset 0 0 0 1px #19f3ff; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  #scanner { inset: max(env(safe-area-inset-top), 16px) 16px max(env(safe-area-inset-bottom), 24px); display: flex; flex-direction: column; gap: 12px; }
+  #scanner video { flex: 1; min-height: 0; width: 100%; object-fit: cover; background: #000; }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -36,7 +42,9 @@
 <section id="scan" class="panel" hidden>
   <div class="eyebrow">EDGEmobile</div>
   <h1>Connect to your game</h1>
-  <p>In Cyberpunk 2077, open <b>EDGEmobile</b> and scan the QR code it shows with your phone's camera.</p>
+  <p>In Cyberpunk 2077, open <b>EDGEmobile</b> and scan the QR code it shows.</p>
+  <p class="scan-error"></p>
+  <div class="row"><button class="scan-btn" hidden>Scan the code</button></div>
 </section>
 
 <section id="connecting" class="panel" hidden>
@@ -47,8 +55,16 @@
 <section id="offline" class="panel" hidden>
   <div class="eyebrow">EDGEmobile</div>
   <h1>Can't reach your game</h1>
-  <p>Is the game running, with EDGEmobile's tunnel started? After the game restarts, its address is new: scan the QR code it shows again.</p>
-  <div class="row"><button id="retry">Try again</button></div>
+  <p>Is the game running, with EDGEmobile's tunnel started? Each time the game starts, its address is new: scan the QR code it shows again.</p>
+  <p class="scan-error"></p>
+  <div class="row"><button class="scan-btn" hidden>Scan the code</button><button id="retry" class="secondary">Try again</button></div>
+</section>
+
+<section id="scanner" class="panel" hidden>
+  <div class="eyebrow">EDGEmobile</div>
+  <video id="video" playsinline muted></video>
+  <p id="scanNote"></p>
+  <div class="row"><button id="scanCancel" class="secondary">Cancel</button></div>
 </section>
 
 <section id="install" class="panel" hidden>
