@@ -151,6 +151,10 @@ child.stderr.on('data', read);
 child.on('error', (err) => end(`cloudflared did not start: ${err.message}`));
 child.on('exit', (code) => {
   log(`cloudflared ended with code ${code}`);
+  // Windows' words when a firewall blocks the connection, as on the user's first start.
+  if (!ending && /forbidden by its access permissions/i.test(seen)) {
+    end('Windows blocked cloudflared from connecting, most likely a firewall. If your firewall asked about cloudflared, allow it, then press Start again.');
+  }
   if (!ending) end(`cloudflared ended (code ${code})`);
   setTimeout(() => process.exit(0), 200);
 });

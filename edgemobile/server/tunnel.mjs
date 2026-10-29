@@ -150,6 +150,7 @@ export class Tunnel {
       sock.write(`${JSON.stringify({ t: 'hello', token })}\n`);
       let buf = '';
       let answered = false;
+      let ended = false; // the keeper said why it ended: keep its words
       return new Promise((resolve) => {
         const timer = setTimeout(() => resolve(answered), 2000);
         sock.on('data', (chunk) => {
@@ -163,7 +164,10 @@ export class Tunnel {
               clearTimeout(timer);
               resolve(true);
             }
-            if (msg.status === 'ended') rmSync(this.file, { force: true });
+            if (msg.status === 'ended') {
+              ended = true;
+              rmSync(this.file, { force: true });
+            }
             this.onState(msg);
           }
         });
@@ -173,7 +177,7 @@ export class Tunnel {
           if (!answered) {
             clearTimeout(timer);
             resolve(false);
-          } else this.onState({ status: 'ended', error: this.stopping ? null : 'The tunnel stopped.' });
+          } else if (!ended) this.onState({ status: 'ended', error: this.stopping ? null : 'The tunnel stopped.' });
         });
       });
     }

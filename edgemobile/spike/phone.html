@@ -84,9 +84,8 @@
     <img id="shot" class="shot" alt="" hidden>
     <video id="video" playsinline muted hidden></video>
     <p id="camNote" class="status"></p>
-    <p>Dialer and messages (each opens your phone's own app, with a made-up number)</p>
+    <p>Dialer and messages (each opens your phone's own app, with a made-up number). A link without a target fails inside the loader's frame (M1 test), so each one opens from the whole page.</p>
     <div class="row">
-      <a class="nc-btn nc-btn--ghost" href="tel:5550100">Dial</a>
       <a class="nc-btn nc-btn--ghost" href="tel:5550100" target="_top">Dial (top)</a>
       <a class="nc-btn nc-btn--ghost" href="tel:5550100" target="_blank" rel="noopener">Dial (new)</a>
       <a class="nc-btn nc-btn--ghost" href="sms:5550100" target="_top">Message</a>
