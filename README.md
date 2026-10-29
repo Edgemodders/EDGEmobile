@@ -19,7 +19,7 @@ Its home screen shows the mobile apps you install. Other modders can write them.
 3. Check the game shows the same code, and press **Allow**.
 4. Your phone shows EDGEmobile's home screen.
 
-Nothing gets in without that pairing, and you can disconnect a phone at any time.
+The tunnel gives your PC a private web address, and it is locked two ways. A phone gets in only if it scanned the QR code, whose one-time key works once and expires in a minute, **and** you pressed Allow in the game. Anyone else who reaches the address is refused. You can disconnect a phone at any time, and the address closes with the game.
 
 ## Repo layout
 

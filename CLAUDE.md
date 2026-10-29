@@ -18,7 +18,8 @@ The same as REDnode's:
 - **Git identity:** set per repo to `CyberbuildsAI` with the GitHub no-reply email. Never change the global identity.
 - **Writing style:** plain, short sentences, tables for comparisons. Mark anything unverified as unverified.
 - **Never commit game files** or data extracted from them, Cloudflare's `cloudflared` program, or a player's paired phones.
-- **Security:** a paired phone may use only what EDGEmobile and its mobile apps offer, never REDnode's `api`, its MCP server or files. The server listens on `127.0.0.1` only. Any change to pairing or the tunnel gets the rules in docs/design.md, "Pairing and security", checked again.
+- **Security:** a paired phone may use only what EDGEmobile and its mobile apps offer, never REDnode's `api`, its MCP server or files. The server listens on `127.0.0.1` only. Any change to pairing or the tunnel gets the rules in docs/design.md, "Pairing and security", checked again. A phone gets in only with both the QR link's one-time key and the approval of someone at the PC (the user's rule, 2026-10-29).
+- **Wording about the tunnel (the user's rule, 2026-10-29):** never "exposes" or "open to the internet". Say "a private web address" or "reachable from your phone", and always say in the same place how others are kept out (the two conditions), so it does not read as reckless.
 - **Changelog:** `docs/changelog.md`, the Edgemodders convention (a line under **Unreleased** with each change a player would notice).
 - **REDnode needs:** what EDGEmobile needs from REDnode goes to REDnode as a `request` issue, with the shape that would work (docs/design.md, "What it may ask of REDnode").
 

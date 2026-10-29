@@ -24,6 +24,8 @@ Agreed with the user on 2026-10-28 and 2026-10-29.
 | The two screens | A phone view in the game, on REDnode's overlay and HUD, and a real-life endpoint that a real phone opens and can install as a PWA |
 | How a real phone reaches the PC | A REDnode Node mod runs a web server on the PC, behind a free Cloudflare quick tunnel (`https://….trycloudflare.com`). EDGEmobile sets up the tunnel itself: the player never uses Cloudflare's command line and makes no Cloudflare account |
 | How a phone gets in | The game shows a QR code. The phone scans it and shows a pairing code. The game shows the same code with **Allow** and **Deny**, and the player allows it |
+| Who gets in | Only a phone that has the QR code's link with its one-time key **and** was approved by someone at the PC. Either alone gets nothing (see [Pairing and security](#pairing-and-security)) |
+| How players are told | That the tunnel gives the PC a private web address, always together with how the two conditions keep others out. Never "exposes" (see [What players are told](#what-players-are-told)) |
 | First screen after pairing | The EDGEmobile home screen, with no apps installed at first |
 | Mobile apps | Made by third-party modders and installed by players. They unpack into a folder inside EDGEmobile's REDnode folder, where EDGEmobile finds them |
 | Using apps | Tap an icon to open its app. Swipe left or right to cycle through the apps. There is an easy way back to the home screen |
@@ -72,23 +74,44 @@ After a game restart, the tunnel's address is new (see [The tunnel](#the-tunnel)
 
 ## Pairing and security
 
-The tunnel puts a server on the player's PC on the open internet. Anyone who finds the address can reach it, so nothing works without pairing.
+The tunnel gives the player's PC a web address on the internet, so their phone can reach the game from anywhere. The address alone lets no one in. A phone gets in only when **both** of these are true:
+
+| Condition | How it is checked | What it stops |
+|---|---|---|
+| **1. It has the QR code's link, with its one-time key** | The key is 128 random bits, carried after the `#` in the link. It works once, and only for about a minute | Anyone who finds or guesses the address, and anyone who tries keys: 128 bits cannot be guessed in any number of tries. An old QR code from a screenshot or a stream has already expired |
+| **2. Someone at the PC approved it** | The game shows the phone's pairing code with **Allow** and **Deny**. Nothing happens until the player presses Allow | A phone that got a valid link anyway, for example a viewer who saw the QR code on a stream and scanned it first: the player sees a code that does not match their phone and presses Deny |
+
+Neither condition is enough alone. A valid link without approval waits until it expires. Approval can only be given to a phone that brought a valid link.
+
+**What anyone else gets.** The tunnel serves no pages: the phone page comes from GitHub Pages (option A below). A request without a valid key or session gets the same short refusal every time, with no hint of what was wrong, and nothing reaches the game.
+
+The rules that keep it that way:
 
 | Rule | Why |
 |---|---|
-| The QR code carries a long random token. It works once, and only for about a minute | Knowing or guessing the address is not enough. An old QR code from a screenshot or a stream is useless |
-| The player confirms each new phone in the game, by a code shown on both screens | Stops a phone that got the token anyway, for example a viewer who saw the QR code on a stream |
-| One pairing waits at a time. Repeated tries from one address are answered more slowly | No one can flood the player with requests |
-| A paired phone gets a long random session key. The PC keeps only its hash | A copy of `phones.json` lets no one in |
+| One pairing waits at a time. Repeated tries from one address are answered more slowly | No one can flood the player with requests or approval dialogs |
+| A paired phone gets a 256-bit random session key. The PC keeps only its hash | A copy of `phones.json` lets no one in |
 | **Connected phones** lists each phone with **Disconnect**, which ends its key | The player can remove a phone at any time |
 | A phone can do only what EDGEmobile and its apps offer. It never reaches REDnode's `api`, the MCP server or files | A paired phone cannot run code in the game |
 | The server listens on `127.0.0.1` only | A phone reaches it only through the tunnel, never over the home network |
 | Only the phone page's own origin may open the WebSocket (its `Origin` header is checked) | Other websites the phone visits cannot use the session |
 | Closing EDGEmobile, or the game, stops the server and the tunnel | Nothing stays open after the game |
 
-**Cloudflare sees the traffic.** A quick tunnel ends HTTPS at Cloudflare's edge, so Cloudflare could read what passes. *Proposed, later:* encrypt the WebSocket's messages end to end with a key carried in the QR code's fragment, which Cloudflare never sees.
+**Cloudflare carries the traffic.** A quick tunnel ends HTTPS at Cloudflare's edge, so the traffic is decrypted there before it travels on to the PC. *Proposed, later:* encrypt the WebSocket's messages end to end with a key carried in the QR code's fragment, which Cloudflare never sees.
 
-**REDnode has no permission for this yet.** A Node mod can open the network and start programs without the player being told. EDGEmobile should say so plainly in its Connect window and on its Nexus page. A REDnode permission for it is on the [list for REDnode](#what-it-may-ask-of-rednode).
+### What players are told
+
+Players should know the tunnel is there, and in the same breath how it keeps others out, so it reads as what it is: a private, locked connection. Say "a private web address" or "reachable from your phone". Avoid words like "exposes" or "open to the internet", which suggest nothing guards it.
+
+*Proposed* text for the Connect window, shown before the first tunnel starts:
+
+> EDGEmobile gives your PC a private web address through Cloudflare, so your phone can reach the game from anywhere. Only a phone that scans this code, and that you allow here, can connect. You can disconnect it at any time, and the address closes when the game does.
+
+*Proposed* text for the Nexus page:
+
+> **How your phone connects, and how others are kept out.** EDGEmobile starts a free Cloudflare tunnel that gives your PC a private web address for your phone. A phone gets in only when both are true: it scanned the QR code shown in your game, whose one-time key works once and expires in a minute, and you pressed Allow in the game after checking its pairing code. Anyone else who reaches the address is refused. Connected phones can be removed at any time, and the address closes with the game.
+
+REDnode has no permission yet that tells the player a package starts a tunnel or another program, so EDGEmobile says it itself, as above. A REDnode permission for it is on the [list for REDnode](#what-it-may-ask-of-rednode).
 
 ## The tunnel
 
@@ -251,7 +274,7 @@ These are needs EDGEmobile may raise as `request` issues on REDnode, once a phas
 | Need | Why |
 |---|---|
 | A manifest setting that keeps a subfolder out of hot reload | Installing a mobile app should not restart EDGEmobile's server |
-| A permission that says a package opens the PC to the internet or starts programs | Players should be told, as they are for `admin` and `agent` |
+| A permission that tells the player a package starts a tunnel or another program | Players should be told, as they are for `admin` and `agent`, with how the package keeps others out |
 | A key that opens a package's window | Bring up the phone during play |
 | A zoom or scale for page windows | Fit a 390 × 844 phone on any screen |
 | A package call for a picture of the game | The in-game camera. Today only the MCP server's `game_image` takes one |
