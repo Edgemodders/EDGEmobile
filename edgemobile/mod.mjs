@@ -46,11 +46,19 @@ const view = {
   autoStart: !!settings.autoStart,
   qr: null,
   port,
-  run: randomBytes(4).toString('hex'), // the game's window asks for a new local session when this changes
   webError: null,
 };
 const conns = new Set(); // { ws, id, name, local, rtt: [] }
 let mainMenu = true;
+
+// For EDGEphone, the phone in the game (service.mjs): its screen is the shell from 127.0.0.1,
+// with a local session for this run of the mod. A restarted mod (hot reload) has a new run, and
+// the phone then asks for a new screen.
+export const RUN = randomBytes(4).toString('hex');
+export function screenUrl() {
+  if (view.webError) throw new Error(view.webError);
+  return `${localOrigin}/#s=${phones.localSession()}`;
+}
 
 const phones = new Phones({
   dataDir: pkg.dataDir,
@@ -334,7 +342,7 @@ channel.on(async (msg) => {
       post();
       break;
     case 'local':
-      channel.post({ type: 'local', url: `${localOrigin}/#s=${phones.localSession()}` });
+      channel.post({ type: 'local', url: screenUrl() });
       break;
   }
 });

@@ -1,0 +1,57 @@
+<!doctype html>
+<!--
+  EDGEphone, the phone in the game (docs/design.md, "M3 plan" and "EDGEphone"): a transparent,
+  borderless page with a phone frame in the game's UI red, and the OS inside: the shell from
+  EDGEmobile's server at 127.0.0.1, the same page the real phone shows. Only the frame drags it.
+  Pairing a real phone stays in EDGEmobile's own window.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EDGEphone</title>
+<script type="importmap">{ "imports": { "rednode": "rednode://sdk/index.js" } }</script>
+<style>
+  html, body { margin: 0; width: 352px; height: 720px; overflow: hidden; background: transparent; }
+  [hidden] { display: none !important; }
+
+  /* The phone: 336 x 704, a solid frame in the game's UI red (REDnode's hud theme, #ff6158),
+     cut at the top right and bottom left like the game's panels. The screen is the
+     390 x 845 shell at 0.8. */
+  :root { --frame: #ff6158; --frame-dark: #160708; }
+  .phone { position: absolute; left: 8px; top: 8px; width: 336px; height: 704px; }
+  .shape { position: absolute; inset: 0; clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px)); }
+  .outline { background: var(--frame); }
+  .speaker { position: absolute; top: 5px; left: 50%; width: 56px; height: 4px; margin-left: -28px; background: var(--frame-dark); }
+  .tick { position: absolute; background: var(--frame-dark); }
+  .tick.l { left: 5px; top: 120px; width: 2px; height: 48px; }
+  .tick.r { right: 5px; top: 200px; width: 2px; height: 72px; }
+  .tick.b { bottom: 6px; left: 50%; width: 96px; height: 2px; margin-left: -48px; }
+  .screen { position: absolute; left: 12px; top: 14px; width: 312px; height: 676px; overflow: hidden; background: #05070b; }
+  .screen iframe { width: 390px; height: 845px; border: 0; transform: scale(.8); transform-origin: 0 0; background: #05070b; }
+  .screen .wait { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; font: 500 15px/1.4 Rajdhani, "Segoe UI", sans-serif; color: #c97670; }
+  /* Drag handles: the four edges only. REDnode sends each handle to the game as a rectangle,
+     so one handle around the whole phone would cover the screen too. */
+  .drag { position: absolute; }
+  .drag.top { left: 0; right: 0; top: 0; height: 14px; }
+  .drag.bottom { left: 0; right: 0; bottom: 0; height: 14px; }
+  .drag.left { left: 0; top: 14px; bottom: 14px; width: 12px; }
+  .drag.right { right: 0; top: 14px; bottom: 14px; width: 12px; }
+</style>
+</head>
+<body>
+<div class="phone" aria-label="EDGEphone">
+  <div class="shape outline"></div>
+  <div class="speaker"></div>
+  <div class="tick l"></div><div class="tick r"></div><div class="tick b"></div>
+  <div class="screen">
+    <iframe id="screen" title="EDGEphone" hidden></iframe>
+    <div id="wait" class="wait">Starting…</div>
+  </div>
+  <div class="drag top" data-rednode-drag></div>
+  <div class="drag bottom" data-rednode-drag></div>
+  <div class="drag left" data-rednode-drag></div>
+  <div class="drag right" data-rednode-drag></div>
+</div>
+<script type="module" src="window.js"></script>
+</body>
+</html>
