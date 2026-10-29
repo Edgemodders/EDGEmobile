@@ -145,8 +145,19 @@ The OS is one web app, the shell, shown on both screens. Its first screen is the
 
 | Area | Content |
 |---|---|
-| Status line | District, temperature and weather, as `Watson · 24°C · Smog`. From the game where REDnode can read it; *proposed* to leave out what it cannot |
-| Clock | The time in large type, with a red rule and the date below, as `Friday, 28 October 2077`. *Proposed:* Night City's time while a save is loaded, otherwise the PC's clock with the year 2077 |
+| Status line | District and weather, from the game (the user's rule, 2026-10-29: the game's own values, left out where the game has none). The prototype's temperature is left out: the game has none |
+| Clock | Night City's time in large type, with a red rule and the date below, as `Friday, 28 October 2077`, on both screens (the user's rule, 2026-10-29) |
+
+What the game offers, read from REDnode's game API reference for 2.5 (*unverified* in the game until M3):
+
+| Value | In the game | Shown as |
+|---|---|---|
+| Time | `TimeSystem.GetGameTime()`: days, hours, minutes and seconds | The game's time |
+| Date | No calendar date. The game counts days since the playthrough began and shows no date | *Proposed:* a fixed start date in 2077 plus the game's day count, so the date turns with the game's nights |
+| Weather | The script `WeatherSystem` gives only rain (intensity and kind). The named weather (sunny, fog, smog, toxic rain, sandstorm) is not reachable from scripts | Rain now. The named weather if M3 finds a way to read it, possibly as a REDnode request |
+| Temperature | None (only vehicles' and audio's) | Left out |
+| District | `GetCurrentDistrict` exists | The district |
+| No save loaded | No game time at the main menu or with the game closed | *Open:* see [Open questions](#open-questions) |
 | App grid | Four columns. Each app is its icon (64 px, cut corner) with its name below, and a yellow badge for new items. More apps than fit go on further pages, swiped sideways, with page dots above the dock |
 | Empty state | With no apps installed: a panel saying no apps are installed yet and where they go. This is what every player sees first |
 | Dock | Phone, Messages, Camera, Browser |
@@ -267,7 +278,8 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 |---|---|
 | The loader's own origin (see [Installing on the phone](#installing-on-the-phone-pwa)) | GitHub Pages for the spike, an address with its own origin before M5 |
 | Where mobile apps are installed | Beside EDGEmobile's folder, in `red4ext/plugins/REDnode/mobile-apps/`, so installing one does not restart EDGEmobile under hot reload, and an EDGEmobile update never touches them |
-| The clock on the real phone | Night City's time while a save is loaded |
+| The date's start, since the game has no calendar date | A fixed day in 2077 plus the game's day count |
+| The clock with no save loaded (main menu, or the game closed) | The last game time read, frozen and dimmed, with "No signal from Night City" |
 | Should the two screens mirror each other's navigation? | No: shared data, separate navigation |
 | How to open the phone in the game | The launcher now, a key once REDnode has package keys |
 | The folder name `mobile-apps` | Keep it: it says what goes there, beside the REDnode word "apps" |
