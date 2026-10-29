@@ -156,10 +156,27 @@ function onSocket(ws, info) {
   ws.on('error', () => {});
 }
 
+// Whether V is in the world. Every call into the game's world systems waits for this: while
+// the game boots, mainMenu is still false, and calling GetWeatherSystem then crashed the game
+// (2026-10-29, the M3 test). REDnode's player.position rejects, safely, when there is no player.
+const WORLD_MS = 5000;
+let inWorld = false;
+let worldCheckedAt = 0;
+async function worldReady() {
+  if (mainMenu) return (inWorld = false);
+  if (inWorld || Date.now() - worldCheckedAt < WORLD_MS) return inWorld;
+  worldCheckedAt = Date.now();
+  inWorld = await game.player.position().then(
+    () => true,
+    () => false,
+  );
+  return inWorld;
+}
+
 // The game's time for each phone, once a second. At the main menu there is none.
 let timeSystem = null;
 async function gameSeconds() {
-  if (mainMenu) return null;
+  if (!(await worldReady())) return null;
   try {
     timeSystem ??= await api.GameInstance.GetTimeSystem(game.instance);
     return (await timeSystem.GetGameTime()).seconds;
@@ -169,6 +186,7 @@ async function gameSeconds() {
   }
 }
 game.on('PlayerPuppet.OnGameAttached', () => {
+  inWorld = true;
   timeSystem = null;
   place.at = 0;
 });
@@ -186,7 +204,7 @@ function failOnce(what, err) {
 }
 
 async function gamePlace() {
-  if (mainMenu) return { district: null, rain: null };
+  if (!(await worldReady())) return { district: null, rain: null };
   if (Date.now() - place.at < PLACE_MS) return place;
   place.at = Date.now();
   try {
@@ -234,21 +252,28 @@ function setTheme(theme) {
   for (const c of conns) if (c.ws.readyState === c.ws.OPEN) c.ws.send(JSON.stringify({ t: 'theme', theme }));
   console.log(`Theme: ${theme}`);
 }
-game.onState((s) => {
+function onGameState(s) {
   mainMenu = !s.connected || s.mainMenu;
-});
+  if (mainMenu) inWorld = false;
+}
+game.onState(onGameState);
 game
   .state()
-  .then((s) => {
-    mainMenu = !s.connected || s.mainMenu;
-  })
+  .then(onGameState)
   .catch(() => {});
+// One tick at a time: a call the game is slow to answer must not pile up behind the next.
+let ticking = false;
 setInterval(async () => {
-  if (!conns.size) return;
-  const seconds = await gameSeconds();
-  const { district, rain } = await gamePlace();
-  for (const c of conns) if (c.ws.readyState === c.ws.OPEN) c.ws.send(JSON.stringify({ t: 'tick', seconds, district, rain, at: performance.now() }));
-  post();
+  if (!conns.size || ticking) return;
+  ticking = true;
+  try {
+    const seconds = await gameSeconds();
+    const { district, rain } = await gamePlace();
+    for (const c of conns) if (c.ws.readyState === c.ws.OPEN) c.ws.send(JSON.stringify({ t: 'tick', seconds, district, rain, at: performance.now() }));
+    post();
+  } finally {
+    ticking = false;
+  }
 }, TICK_MS);
 
 channel.on(async (msg) => {

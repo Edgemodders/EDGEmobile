@@ -1,7 +1,7 @@
 {
   "id": "edgemobile",
   "name": "EDGEmobile",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "author": "Edgemodders",
   "description": "A phone for Night City, in the game and on your real phone. This build is M3: the phone in the game and its home screen, on both screens, with two themes. Your phone reaches the game through a private web address: only a phone that scans the QR code and that you allow can connect.",
   "entry": "game/window.html",
