@@ -21,6 +21,13 @@ $apps = Join-Path $GameDir 'red4ext\plugins\REDnode\apps'
 
 if (-not (Test-Path $apps)) { throw "REDnode's apps folder is not at $apps. Deploy REDnode first." }
 
+# The package's libraries (ws, qrcode-generator) ship in its node_modules.
+if (-not (Test-Path (Join-Path $package 'node_modules\ws'))) {
+    Push-Location $package
+    try { npm ci --omit=dev } finally { Pop-Location }
+    if ($LASTEXITCODE -ne 0) { throw "npm ci failed in $package." }
+}
+
 $target = Join-Path $apps 'edgemobile'
 # /XD keeps installed mobile apps: /MIR would delete folders the repo does not have.
 robocopy $package $target /MIR /NFL /NDL /NJH /NJS /NP /XF '*.bak' /XD (Join-Path $package 'mobile-apps') | Out-Null

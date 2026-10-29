@@ -1,8 +1,12 @@
 {
   "name": "edgemobile",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "EDGEmobile, a phone OS for Cyberpunk 2077 as a REDnode app",
   "type": "module",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "qrcode-generator": "2.0.4",
+    "ws": "8.22.0"
+  }
 }
