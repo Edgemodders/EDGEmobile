@@ -8,6 +8,7 @@
 #   docs/assets/brand/social.png   1280 x 640, upload in Settings > General > Social preview
 #   docs/assets/brand/badges/*.svg
 #   docs/assets/brand/icon.png           256 x 256, app and site icon
+#   docs/phone/icon-192.png, icon-512.png  the phone loader's install icons
 
 $ErrorActionPreference = 'Stop'
 
@@ -55,5 +56,18 @@ $ErrorActionPreference = 'Continue'
 $ErrorActionPreference = 'Stop'
 if (-not (Test-Path $icon)) { throw 'Render failed: icon.png' }
 Write-Output "Rendered $icon"
+
+# The phone loader's install icons, 192 and 512 px, from the same source.
+foreach ($size in 192, 512) {
+    $target = Join-Path $repo "docs\phone\icon-$size.png"
+    if (Test-Path $target) { Remove-Item $target }
+    $ErrorActionPreference = 'Continue'
+    & $chrome --headless=new --disable-gpu --hide-scrollbars --no-first-run "--user-data-dir=$profileDir" `
+        --window-size=256,256 "--force-device-scale-factor=$($size / 256)" --default-background-color=00000000 `
+        --virtual-time-budget=8000 "--screenshot=$target" $iconUrl 2>$null | Out-Null
+    $ErrorActionPreference = 'Stop'
+    if (-not (Test-Path $target)) { throw "Render failed: icon-$size.png" }
+    Write-Output "Rendered $target"
+}
 
 python -I (Join-Path $PSScriptRoot 'badges.py') (Join-Path $out 'badges')

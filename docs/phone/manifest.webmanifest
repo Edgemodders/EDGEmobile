@@ -1,0 +1,16 @@
+{
+  "name": "EDGEmobile",
+  "short_name": "EDGEmobile",
+  "description": "A phone for Night City: your Cyberpunk 2077 game's phone, on your real phone.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05070b",
+  "theme_color": "#05070b",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
