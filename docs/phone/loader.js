@@ -29,24 +29,37 @@ if (host && HOST_RE.test(host)) {
 
 let waiting = null;
 
+function offline() {
+  clearTimeout(waiting);
+  $('frame').hidden = true;
+  $('connecting').hidden = true;
+  $('offline').hidden = false;
+}
+
+// The frame stays hidden until the PC's page says it is up, so the browser's own error page
+// for an address that is gone (the game restarted) never shows.
 function open(withKey) {
   $('offline').hidden = true;
   if (!host) {
     $('scan').hidden = false;
     return;
   }
+  $('frame').hidden = true;
+  $('connecting').hidden = false;
   $('frame').src = `https://${host}/${withKey ? `#k=${encodeURIComponent(withKey)}` : ''}`;
-  $('frame').hidden = false;
   clearTimeout(waiting);
-  waiting = setTimeout(() => {
-    $('frame').hidden = true;
-    $('offline').hidden = false;
-  }, WAIT_MS);
+  waiting = setTimeout(offline, WAIT_MS);
+  // A name that no longer exists fails at once; anything that answers waits for the page.
+  fetch(`https://${host}/`, { mode: 'no-cors', cache: 'no-store' }).catch(offline);
 }
 
 // The PC's page says it is up. Only its own origin counts.
 window.addEventListener('message', (e) => {
-  if (host && e.origin === `https://${host}` && e.data?.edgemobile === 'ready') clearTimeout(waiting);
+  if (!host || e.origin !== `https://${host}` || e.data?.edgemobile !== 'ready') return;
+  clearTimeout(waiting);
+  $('connecting').hidden = true;
+  $('offline').hidden = true;
+  $('frame').hidden = false;
 });
 
 $('retry').addEventListener('click', () => open(null));

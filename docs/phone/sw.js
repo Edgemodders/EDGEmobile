@@ -2,7 +2,7 @@
 // a network, then shows its "Can't reach your game" screen. It never touches the PC's page,
 // which is on another origin.
 
-const CACHE = 'edgemobile-loader-1';
+const CACHE = 'edgemobile-loader-2';
 const FILES = ['./', 'index.html', 'loader.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
