@@ -43,7 +43,7 @@ EDGEmobile is one REDnode package, `edgemobile`, installed in `red4ext/plugins/R
 | Node mod | `edgemobile/mod.mjs` | Runs the web server and the WebSocket on `127.0.0.1`, starts and watches the tunnel, keeps paired phones and the phone's state, finds mobile apps, and answers both screens |
 | Phone window | `edgemobile/shell/` (*proposed*) | The OS, shown in a REDnode overlay window shaped like a phone. The same files are served to the real phone |
 | Connect window | `edgemobile/connect/` (*proposed*) | Onboarding in the game: the QR code, the pairing code with Allow and Deny, and the list of connected phones |
-| Mobile apps | `edgemobile/mobile-apps/<id>/` | One folder per installed app, with its own `mobile-app.json` |
+| Mobile apps | `red4ext/plugins/REDnode/mobile-apps/<id>/`, beside EDGEmobile's folder (from M4) | One folder per installed app, with its own `mobile-app.json` |
 | Tunnel program | `<pkg.dataDir>/cloudflared/<version>/cloudflared.exe` | Cloudflare's `cloudflared`, fetched on first use (see [The tunnel](#the-tunnel)) |
 | Paired phones | `<pkg.dataDir>/phones.json` | A hash of each phone's session token, its name and when it was last seen |
 
@@ -153,11 +153,11 @@ What the game offers, read from REDnode's game API reference for 2.5 (*unverifie
 | Value | In the game | Shown as |
 |---|---|---|
 | Time | `TimeSystem.GetGameTime()`: days, hours, minutes and seconds | The game's time |
-| Date | No calendar date. The game counts days since the playthrough began and shows no date | *Proposed:* a fixed start date in 2077 plus the game's day count, so the date turns with the game's nights |
+| Date | No calendar date. The game counts days since the playthrough began and shows no date | 1 January 2077 plus the game's day count, so the date turns with the game's nights |
 | Weather | The script `WeatherSystem` gives only rain (intensity and kind). The named weather (sunny, fog, smog, toxic rain, sandstorm) is not reachable from scripts | Rain now. The named weather if M3 finds a way to read it, possibly as a REDnode request |
 | Temperature | None (only vehicles' and audio's) | Left out |
 | District | `GetCurrentDistrict` exists | The district |
-| No save loaded | No game time at the main menu or with the game closed | *Open:* see [Open questions](#open-questions) |
+| No save loaded | No game time at the main menu | The last game time read, frozen and dimmed, with "No signal from Night City" |
 | App grid | Four columns. Each app is its icon (64 px, cut corner) with its name below, and a yellow badge for new items. More apps than fit go on further pages, swiped sideways, with page dots above the dock |
 | Empty state | With no apps installed: a panel saying no apps are installed yet and where they go. This is what every player sees first |
 | Dock | Phone, Messages, Camera, Browser |
@@ -199,7 +199,7 @@ Photos from either camera go into one gallery on the PC, so an app like Chooms! 
 
 ## Mobile apps
 
-A mobile app is a folder in `edgemobile/mobile-apps/<id>/`. It is plain web files, shown inside the shell.
+A mobile app is a folder in `red4ext/plugins/REDnode/mobile-apps/<id>/`, beside EDGEmobile's own folder. It is plain web files, shown inside the shell.
 
 *Proposed* `mobile-app.json`:
 
@@ -224,7 +224,7 @@ A mobile app is a folder in `edgemobile/mobile-apps/<id>/`. It is plain web file
 | How its files reach the real phone | Through the tunnel, behind the session key, cached by the phone page. How a sandboxed frame loads them is a spike item in M4 |
 | Installing | A mod manager unpacks the app's zip into `mobile-apps/`. EDGEmobile finds it at start, and while it runs when the folder changes |
 
-**A catch with the folder.** While REDnode's hot reload is on (it is for developers, not for players), any change inside a package's folder restarts its mod. An app installed into `mobile-apps/` while the game runs would restart EDGEmobile's server, and the tunnel's address could change. Two ways out: the reuse of a running tunnel above, or a REDnode manifest setting that keeps a subfolder out of hot reload (see below).
+**Why beside, not inside.** While REDnode's hot reload is on (it is for developers, not for players), any change inside a package's folder restarts its mod. An app installed inside EDGEmobile's folder while the game runs would restart EDGEmobile's server, and the tunnel's address could change. In a folder of its own beside it, it does not, and an update of EDGEmobile never touches the apps a player installed.
 
 ## Installing on the phone (PWA)
 
@@ -272,17 +272,19 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 | M6 Chooms! | To be designed with the user | Not started |
 | Release | The zip, `requires` for REDnode, the Nexus page, the changelog | Not started |
 
-## Open questions
+## Answered questions
 
-| Question | Recommendation |
+Agreed with the user on 2026-10-29, as recommended.
+
+| Question | Answer |
 |---|---|
 | The loader's own origin (see [Installing on the phone](#installing-on-the-phone-pwa)) | GitHub Pages for the spike, an address with its own origin before M5 |
-| Where mobile apps are installed | Beside EDGEmobile's folder, in `red4ext/plugins/REDnode/mobile-apps/`, so installing one does not restart EDGEmobile under hot reload, and an EDGEmobile update never touches them |
-| The date's start, since the game has no calendar date | A fixed day in 2077 plus the game's day count |
-| The clock with no save loaded (main menu, or the game closed) | The last game time read, frozen and dimmed, with "No signal from Night City" |
+| Where mobile apps are installed | Beside EDGEmobile's folder, in `red4ext/plugins/REDnode/mobile-apps/`, so installing one does not restart EDGEmobile under hot reload, and an EDGEmobile update never touches them. The folder moves in M4 |
+| The date's start, since the game has no calendar date | 1 January 2077 plus the game's day count |
+| The clock with no save loaded (main menu) | The last game time read, frozen and dimmed, with "No signal from Night City". With the game closed the tunnel is closed too, and the loader shows its offline screen |
 | Should the two screens mirror each other's navigation? | No: shared data, separate navigation |
 | How to open the phone in the game | The launcher now, a key once REDnode has package keys |
-| The folder name `mobile-apps` | Keep it: it says what goes there, beside the REDnode word "apps" |
+| The folder name `mobile-apps` | Kept: it says what goes there, beside the REDnode word "apps" |
 | Encrypt end to end, so Cloudflare cannot read the traffic | Later, after M5 |
 | Fetch `cloudflared` at first use, or ship it in the zip | Fetch it, as REDagent fetches the Agent SDK |
 
@@ -292,7 +294,6 @@ These are needs EDGEmobile may raise as `request` issues on REDnode, once a phas
 
 | Need | Why |
 |---|---|
-| A manifest setting that keeps a subfolder out of hot reload | Installing a mobile app should not restart EDGEmobile's server |
 | A permission that tells the player a package starts a tunnel or another program | Players should be told, as they are for `admin` and `agent`, with how the package keeps others out |
 | A key that opens a package's window | Bring up the phone during play |
 | A zoom or scale for page windows | Fit a 390 × 844 phone on any screen |
