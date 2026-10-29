@@ -266,7 +266,7 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 |---|---|---|
 | M0 Repo and design | The repo's scaffolding and this page | Done 2026-10-29 |
 | M1 Tunnel spike | Fetch and check `cloudflared`, start a quick tunnel to a server in a REDnode mod, open a page on a real phone, a WebSocket both ways and its delay. Tested on the user's Android phone; iPhones stay *unverified* until someone tests one. Also: the loader (option D) installed on a real phone, showing the PC's page full screen in a frame, with the camera and a `tel:` link from inside it; reusing a running tunnel after a mod restart; `cloudflared` ending with the game; a REDnode page window reaching `127.0.0.1` | Done 2026-10-29: built, tested on Android, four fixes, retested ([M1 test](#m1-test)) |
-| M2 Onboarding | The Connect window: the first fetch, the QR code, the pairing code with Allow and Deny, phones that prove themselves by signature, Paired phones with Disconnect, reconnecting by scan after a restart, the loader at its own address | Built 2026-10-29, awaiting the test ([M2 test](#m2-test)) |
+| M2 Onboarding | The Connect window: the first fetch, the QR code, the pairing code with Allow and Deny, phones that prove themselves by signature, Paired phones with Disconnect, reconnecting by scan after a restart, the loader at its own address | Done 2026-10-29: built, tested on Android ([M2 test](#m2-test)) |
 | M3 The OS | The shell on both screens: the home screen (status line, clock, empty app grid, dock), the dock's actions on each screen, the phone window in the game with Pin to HUD | Not started |
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Not started |
 | M5 Install on the phone | The loader as a PWA: manifest, service worker, icons, the Scan button, offline screen, and its own origin | Not started |
@@ -392,7 +392,7 @@ The spike's files (`edgemobile/spike/`) are gone.
 
 **Found:** Windows Firewall allows a program by its path, so a copy of `cloudflared` in another folder is blocked again: the harness's copy was, and the window's firewall message showed, as built in M1. Players are not affected, since EDGEmobile keeps one folder per `cloudflared` version; a new pinned version means one new firewall prompt.
 
-*Unverified until the M2 test:* **Scan the code** (Chrome's barcode reader on Android), the installed app sharing the loader's key with Chrome after a scan with the camera app (both on the same origin; expected on Android), and the Connect window in the game.
+Left to the M2 test, and confirmed there: **Scan the code** (Chrome's barcode reader on Android), the installed app sharing the loader's key with Chrome after a scan with the camera app, and the Connect window in the game.
 
 ### M2 test
 
@@ -414,6 +414,8 @@ On the PC with the game, and the user's Android phone. Deploy first: `.\tools\de
 | 12 | Quit the game | Task Manager shows no `cloudflared.exe` |
 
 Send back: anything that did not match, and if the tunnel misbehaved, `tunnel.log` from `%APPDATA%\@rednode\overlay\packages\edgemobile\` and the mod's lines in `red4ext/logs/rednode-mods.log`.
+
+**Result** (2026-10-29, the user's Android phone): all 12 steps as expected. A paired phone came back after each game restart with one scan, by **Scan the code** in the installed app and by the camera app, with no pairing code and no Allow; the setting started the tunnel with the game; Disconnect and Deny refused; `cloudflared` ended with the game.
 
 ## Answered questions
 
