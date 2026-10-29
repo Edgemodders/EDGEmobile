@@ -1,0 +1,38 @@
+/* EDGEmobile's colour themes (docs/design.md, "M3 plan"). Load after tokens.css and nc.css.
+
+   Night City is the design system as it is (tokens.css), and the default. Edgemodders is this
+   repo's house style (tools/brand/brand.html, docs/assets/css/hud.css): yellow is the voice,
+   cyan stays interaction, green success, red attention.
+
+   nc.css names its colours by their Night City role: --red is the voice (titles, the primary
+   button, the active tab), --yellow attention (badges, prices, the focus ring). A theme swaps
+   the values, not the names, so every component follows. */
+
+:root[data-theme="edgemodders"] {
+  --red: #fcee0a;
+  --red-hi: #fff45e;
+  --red-dim: #3f3b06;
+  --yellow: #ff2a52;
+  --glow-red: 0 0 12px rgba(252, 238, 10, 0.5);
+  --grid-line: rgba(25, 243, 255, 0.06);
+  --grid-size: 32px;
+  --bracket: #fcee0a;
+}
+
+/* The house grid is 32 px, with a soft yellow glow from the bottom left, as in the banner. */
+:root[data-theme="edgemodders"] .nc-grid {
+  background-image:
+    radial-gradient(ellipse at 15% 110%, rgba(252, 238, 10, 0.10), transparent 55%),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: auto, var(--grid-size) var(--grid-size), var(--grid-size) var(--grid-size);
+}
+
+/* Corner brackets on hero areas: top left and bottom right, as on the banner. Edgemodders only. */
+.em-brackets { position: relative; }
+:root[data-theme="edgemodders"] .em-brackets::before,
+:root[data-theme="edgemodders"] .em-brackets::after {
+  content: ""; position: absolute; width: 18px; height: 18px; border: 2px solid var(--bracket); pointer-events: none;
+}
+:root[data-theme="edgemodders"] .em-brackets::before { top: -10px; left: -10px; border-right: 0; border-bottom: 0; }
+:root[data-theme="edgemodders"] .em-brackets::after { bottom: -10px; right: -10px; border-left: 0; border-top: 0; }

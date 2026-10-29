@@ -1,18 +1,20 @@
 {
   "id": "edgemobile",
   "name": "EDGEmobile",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "Edgemodders",
-  "description": "A phone for Night City, in the game and on your real phone. This build is M2, onboarding: it connects a real phone to the game through a private web address, for testing. Only a phone that scans the QR code and that you allow can connect.",
-  "entry": "connect/window.html",
+  "description": "A phone for Night City, in the game and on your real phone. This build is M3: the phone in the game and its home screen, on both screens, with two themes. Your phone reaches the game through a private web address: only a phone that scans the QR code and that you allow can connect.",
+  "entry": "game/window.html",
   "main": "mod.mjs",
   "isolation": "process",
-  "requires": { "rednode": ">=0.41.0" },
+  "requires": {
+    "rednode": ">=0.41.0"
+  },
   "kind": "window",
-  "width": 440,
-  "height": 820,
+  "width": 760,
+  "height": 720,
   "anchor": "right",
-  "x": -24,
+  "x": -16,
   "y": 0,
   "open": false
 }

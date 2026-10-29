@@ -1,5 +1,6 @@
-// EDGEmobile's phone page, served by the player's PC (docs/design.md, "M2 plan"): pairing, then
-// a connected screen with Night City's clock. The home screen comes in M3.
+// EDGEmobile's phone OS, served by the player's PC (docs/design.md, "The OS" and "M3 plan"):
+// pairing, the home screen and Settings. The same page runs on the real phone (through the
+// tunnel, inside the loader) and in the game's phone window (from 127.0.0.1).
 //
 // The phone proves itself by signing the PC's challenge for each connection. Inside the loader,
 // the loader signs, with a key it keeps on its own origin and will not give out. Opened
@@ -8,6 +9,7 @@
 
 const $ = (id) => document.getElementById(id);
 const LOADER_ORIGIN = 'https://mobile.edgemodders.ai';
+const THEMES = ['nightcity', 'edgemodders'];
 const framed = window.parent !== window;
 
 // The key or session arrives after the #, which never leaves the phone. Take it out of the
@@ -16,9 +18,18 @@ const hash = new URLSearchParams(location.hash.slice(1));
 let key = hash.get('k');
 const session = hash.get('s');
 if (location.hash) history.replaceState(null, '', location.pathname);
+const inGame = !!session; // the game's own phone window: no dock
+document.body.classList.toggle('in-game', inGame);
+
+// The last theme seen, until the PC says which: no flash of the wrong colours.
+try {
+  applyTheme(localStorage.getItem('edgemobile.theme'));
+} catch {
+  // storage blocked
+}
 
 // Tell the loader the page is up, so it shows the frame.
-if (framed) window.parent.postMessage({ edgemobile: 'ready' }, LOADER_ORIGIN);
+if (framed && !inGame) window.parent.postMessage({ edgemobile: 'ready' }, LOADER_ORIGIN);
 
 const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const signedText = (origin, challenge) => new TextEncoder().encode(`edgemobile-auth\n${origin}\n${challenge}`);
@@ -113,15 +124,44 @@ async function pickSigner() {
   return ownSigner;
 }
 
+// --- Screens -----------------------------------------------------------------------------------
+
+function screen(id) {
+  for (const s of ['gate', 'home', 'settings']) $(s).hidden = s !== id;
+}
 function status(text, tone = '') {
   $('status').textContent = text;
   $('status').className = `status ${tone}`;
 }
-function show(...ids) {
-  for (const id of ['pairing', 'refused', 'connected']) $(id).hidden = !ids.includes(id);
+function gate(panel) {
+  screen('gate');
+  for (const p of ['pairing', 'refused']) $(p).hidden = p !== panel;
 }
 
+let toastTimer = null;
+function toast(head, text) {
+  $('toastHead').textContent = head;
+  $('toastText').textContent = text;
+  $('toast').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => ($('toast').hidden = true), 4000);
+}
+
+function applyTheme(theme) {
+  if (!THEMES.includes(theme)) return;
+  document.documentElement.dataset.theme = theme;
+  for (const b of document.querySelectorAll('[data-theme-choice]')) b.setAttribute('aria-checked', String(b.dataset.themeChoice === theme));
+  try {
+    localStorage.setItem('edgemobile.theme', theme);
+  } catch {
+    // storage blocked
+  }
+}
+
+// --- The connection ---------------------------------------------------------------------------
+
 let ws = null;
+let send = () => {};
 let wasIn = false;
 let refused = false;
 let wait = 1000;
@@ -129,25 +169,27 @@ let wait = 1000;
 function connect() {
   status('Connecting to your game…');
   ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
-  const send = (m) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(m));
+  const socket = ws;
+  send = (m) => socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify(m));
   ws.onmessage = (e) => {
     const m = JSON.parse(e.data);
     if (m.t === 'challenge') {
-      hello(m.challenge, send).catch((err) => {
+      hello(m.challenge).catch((err) => {
         status(`Could not sign in: ${err.message}`, 'bad');
-        ws.close();
+        socket.close();
       });
-    } else handle(m, send);
+    } else handle(m);
   };
   ws.onclose = () => {
     if (refused || !wasIn) return;
-    status(`Lost the connection. Trying again in ${Math.round(wait / 1000)} s…`, 'bad');
+    gate(null);
+    status(`Lost the connection to your game. Trying again in ${Math.round(wait / 1000)} s…`, 'bad');
     setTimeout(connect, wait);
     wait = Math.min(wait * 2, 10000);
   };
 }
 
-async function hello(challenge, send) {
+async function hello(challenge) {
   if (session) return send({ t: 'hello', session });
   signer ??= await pickSigner();
   const [pub, sig] = await Promise.all([signer.pub(), signer.sign(challenge)]);
@@ -155,37 +197,44 @@ async function hello(challenge, send) {
   key = null; // used once, whatever happens
 }
 
-function handle(m, send) {
+function handle(m) {
   switch (m.t) {
     case 'code':
-      show('pairing');
+      gate('pairing');
       $('code').textContent = `${m.code.slice(0, 3)} ${m.code.slice(3)}`;
       status('Waiting for the game to allow this phone…');
       break;
     case 'refused':
       refused = true;
-      show('refused');
+      gate('refused');
       status('Not connected', 'bad');
       break;
     case 'in':
       wasIn = true;
       wait = 1000;
-      show('connected');
-      status(`Connected as ${m.name}`, 'ok');
+      if ($('settings').hidden) screen('home');
+      break;
+    case 'theme':
+      applyTheme(m.theme);
       break;
     case 'tick':
       send({ t: 'tock', at: m.at });
-      clock(m.seconds);
+      home(m);
       break;
   }
 }
 
+// --- The home screen -------------------------------------------------------------------------
+
+const RAIN = { light: 'Light rain', heavy: 'Heavy rain' };
 let lastSeconds = null;
-function clock(seconds) {
+
+/** Draws Night City's clock, date, district and rain. No game time: the main menu. */
+function home({ seconds, district, rain }) {
   const live = typeof seconds === 'number';
   if (live) lastSeconds = seconds;
-  $('signal').textContent = live ? 'live' : 'No signal from Night City';
-  $('clockbox').classList.toggle('dim', !live);
+  $('time').classList.toggle('dim', !live);
+  $('where').textContent = live ? [district, RAIN[rain]].filter(Boolean).join(' · ') || 'Night City' : 'No signal from Night City';
   if (lastSeconds === null) return;
   const days = Math.floor(lastSeconds / 86400);
   const h = Math.floor((lastSeconds % 86400) / 3600);
@@ -195,5 +244,28 @@ function clock(seconds) {
   const date = new Date(Date.UTC(2077, 0, 1 + days));
   $('date').textContent = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
+
+// --- Settings, and the dock -------------------------------------------------------------------
+
+$('openSettings').addEventListener('click', () => screen('settings'));
+$('closeSettings').addEventListener('click', () => screen('home'));
+for (const b of document.querySelectorAll('[data-theme-choice]')) {
+  b.addEventListener('click', () => {
+    applyTheme(b.dataset.themeChoice);
+    send({ t: 'theme', theme: b.dataset.themeChoice });
+  });
+}
+
+// Camera: the phone's own camera. The photo stays on the phone; nothing is sent.
+$('cam').addEventListener('change', () => {
+  if ($('cam').files.length) toast('Camera', 'Photo taken. Nothing was sent to the game.');
+  $('cam').value = '';
+});
+document.querySelector('label[for="cam"]').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    $('cam').click();
+  }
+});
 
 connect();

@@ -4,7 +4,7 @@
 // connect/window.html; it talks to this mod over the package channel.
 
 import { api, channel, game, pkg } from 'rednode';
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { join } from 'node:path';
@@ -17,6 +17,7 @@ import { startWeb } from './server/web.mjs';
 const LOADER_ORIGIN = 'https://mobile.edgemodders.ai';
 const LOADER = `${LOADER_ORIGIN}/`;
 const TICK_MS = 1000;
+const THEMES = ['nightcity', 'edgemodders'];
 
 mkdirSync(pkg.dataDir, { recursive: true });
 
@@ -32,6 +33,7 @@ if (!settings.port) {
   settings.port = await pickPort();
   writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
 }
+if (!THEMES.includes(settings.theme)) settings.theme = 'nightcity';
 const port = settings.port;
 const localOrigin = `http://127.0.0.1:${port}`;
 const saveSettings = () => writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
@@ -44,6 +46,8 @@ const view = {
   autoStart: !!settings.autoStart,
   qr: null,
   port,
+  run: randomBytes(4).toString('hex'), // the game's window asks for a new local session when this changes
+  webError: null,
 };
 const conns = new Set(); // { ws, id, name, local, rtt: [] }
 let mainMenu = true;
@@ -128,11 +132,13 @@ function onSocket(ws, info) {
       conn = { ws, ...who, rtt: [] };
       conns.add(conn);
       send({ t: 'in', name: who.name, local: who.local, id: who.id });
+      send({ t: 'theme', theme: settings.theme });
       console.log(`Phone in: ${who.name}${who.local ? '' : ' (through the tunnel)'}`);
       post();
       return;
     }
-    if (msg.t === 'ping') send({ t: 'pong', at: msg.at });
+    if (msg.t === 'theme' && THEMES.includes(msg.theme)) setTheme(msg.theme);
+    else if (msg.t === 'ping') send({ t: 'pong', at: msg.at });
     else if (msg.t === 'tock' && typeof msg.at === 'number') {
       conn.rtt.push(Math.round(performance.now() - msg.at));
       if (conn.rtt.length > 30) conn.rtt.shift();
@@ -164,7 +170,70 @@ async function gameSeconds() {
 }
 game.on('PlayerPuppet.OnGameAttached', () => {
   timeSystem = null;
+  place.at = 0;
 });
+
+// Where V is, for the status line: the top district's name, and the rain. Read every few
+// seconds. The game's script API gives only rain, not the named weather (docs/design.md, "M3 plan").
+const PLACE_MS = 5000;
+const RAIN = { LightRain: 'light', HeavyRain: 'heavy', 1: 'light', 2: 'heavy' };
+const place = { district: null, rain: null, at: 0 };
+const failed = new Set();
+function failOnce(what, err) {
+  if (failed.has(what)) return;
+  failed.add(what);
+  console.log(`Status line: could not read the ${what}: ${err?.message ?? err}`);
+}
+
+async function gamePlace() {
+  if (mainMenu) return { district: null, rain: null };
+  if (Date.now() - place.at < PLACE_MS) return place;
+  place.at = Date.now();
+  try {
+    const container = await api.GameInstance.GetScriptableSystemsContainer(game.instance);
+    const prevention = await container.Get('PreventionSystem');
+    const district = await prevention.GetCurrentDistrict();
+    let record = district ? await district.GetDistrictRecord() : null;
+    // A sub-district (Little China) has a parent (Watson): the status line names the top one.
+    for (let i = 0; record && i < 4; i++) {
+      const parent = await record.ParentDistrict();
+      if (!parent) break;
+      record = parent;
+    }
+    place.district = record ? await districtName(record) : null;
+  } catch (err) {
+    place.district = null;
+    failOnce('district', err);
+  }
+  try {
+    const weather = await api.GameInstance.GetWeatherSystem(game.instance);
+    const type = await weather.GetRainIntensityType();
+    place.rain = RAIN[type?.value ?? type?.name ?? type] ?? null;
+  } catch (err) {
+    place.rain = null;
+    failOnce('rain', err);
+  }
+  return place;
+}
+
+/** The district's name in the player's language, else its record's name ("CityCenter": "City Center"). */
+async function districtName(record) {
+  const loc = await record.LocalizedName();
+  if (typeof loc === 'string' && loc.startsWith('LocKey#')) {
+    const text = await api.GetLocalizedText(loc).catch((err) => failOnce('district name', err));
+    if (typeof text === 'string' && text && text !== loc) return text;
+  } else if (typeof loc === 'string' && loc) return loc;
+  const name = await record.EnumName();
+  return typeof name === 'string' && name ? name.replace(/([a-z])([A-Z])/g, '$1 $2') : null;
+}
+
+// One theme for both screens, kept on the PC: every connected screen switches at once.
+function setTheme(theme) {
+  settings.theme = theme;
+  saveSettings();
+  for (const c of conns) if (c.ws.readyState === c.ws.OPEN) c.ws.send(JSON.stringify({ t: 'theme', theme }));
+  console.log(`Theme: ${theme}`);
+}
 game.onState((s) => {
   mainMenu = !s.connected || s.mainMenu;
 });
@@ -177,7 +246,8 @@ game
 setInterval(async () => {
   if (!conns.size) return;
   const seconds = await gameSeconds();
-  for (const c of conns) if (c.ws.readyState === c.ws.OPEN) c.ws.send(JSON.stringify({ t: 'tick', seconds, at: performance.now() }));
+  const { district, rain } = await gamePlace();
+  for (const c of conns) if (c.ws.readyState === c.ws.OPEN) c.ws.send(JSON.stringify({ t: 'tick', seconds, district, rain, at: performance.now() }));
   post();
 }, TICK_MS);
 
@@ -259,7 +329,7 @@ try {
   webUp = true;
   console.log(`EDGEmobile: web server on ${localOrigin}`);
 } catch (err) {
-  view.error = `The web server could not start on port ${port}: ${err.message}`;
+  view.error = view.webError = `The web server could not start on port ${port}: ${err.message}`;
   console.log(view.error);
 }
 // A tunnel left running by the last start of this mod (hot reload) is used again. Otherwise,

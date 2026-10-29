@@ -1,60 +1,170 @@
 <!doctype html>
-<!-- EDGEmobile's phone page, served by the player's PC through the tunnel. M2: pairing and a connected screen; the home screen comes in M3. -->
-<html lang="en">
+<!--
+  EDGEmobile's phone OS, served by the player's PC (docs/design.md, "The OS"): on the real phone
+  through the tunnel and the loader, and in the game's phone window from 127.0.0.1. M3: pairing,
+  the home screen from the Chooms! prototype's Home screen artboard, and Settings.
+-->
+<html lang="en" data-theme="nightcity">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#05070b">
+<meta name="color-scheme" content="dark">
 <title>EDGEmobile</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=JetBrains+Mono:wght@500&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/theme/tokens.css">
 <link rel="stylesheet" href="/theme/nc.css">
+<link rel="stylesheet" href="/theme/themes.css">
 <style>
-  html, body { margin: 0; min-height: 100%; background: var(--bg-000); }
-  body { padding: max(env(safe-area-inset-top), 16px) 16px max(env(safe-area-inset-bottom), 24px); }
-  main { display: grid; gap: 16px; max-width: 480px; margin: 0 auto; }
-  h1 { margin: 0; font-family: var(--font-display); font-size: 22px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
-  h1 span { color: var(--yellow); }
+  html, body { margin: 0; height: 100%; background: var(--bg-000); }
+  body { overflow: hidden; touch-action: manipulation; }
+  [hidden] { display: none !important; }
+  .layer { position: absolute; inset: 0; }
+  #sky { position: fixed; inset: 0; z-index: 0; }
+  #sky svg { width: 100%; height: 100%; display: block; }
+  :root[data-theme="edgemodders"] #sky { opacity: .55; }
+  .screen { position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; padding: max(env(safe-area-inset-top), 24px) 20px max(env(safe-area-inset-bottom), 20px); overflow-y: auto; }
+
+  /* Pairing and refusals */
+  .center { margin: auto 0; display: grid; gap: 16px; }
+  h1.brand { margin: 0; font-family: var(--font-display); font-size: 22px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+  h1.brand span { color: var(--red); }
   .status { font-family: var(--font-mono); font-size: 13px; color: var(--ink-dim); }
   .status.ok { color: var(--green); }
-  .status.bad { color: var(--red); }
+  .status.bad { color: var(--yellow); }
   .code { font-family: var(--font-mono); font-size: 44px; line-height: 1.1; letter-spacing: .12em; color: var(--yellow); text-align: center; margin: 8px 0; }
-  .clock { font-family: var(--font-display); font-size: 64px; line-height: 1; font-weight: 700; color: var(--ink); }
-  .rule { height: 2px; width: 64px; background: var(--red); margin: 12px 0 8px; }
-  .date { color: var(--ink-dim); }
-  .dim { opacity: .45; }
-  [hidden] { display: none !important; }
+
+  /* Home: the prototype's layout */
+  #home { padding-top: max(env(safe-area-inset-top), 64px); }
+  .clock { font-family: var(--font-display); font-size: 88px; line-height: 88px; font-weight: 700; letter-spacing: .02em; color: var(--ink); }
+  .rule { width: 40px; height: 2px; background: var(--red); margin: 4px 0; }
+  .date { font-family: var(--font-display); font-size: 15px; line-height: 20px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-dim); }
+  .time.dim .clock, .time.dim .date { opacity: .45; }
+  .time { display: flex; flex-direction: column; gap: 4px; align-self: flex-start; }
+  .apps { margin-top: 48px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 8px; }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0; border: 0; background: none; color: var(--ink); cursor: pointer; text-decoration: none; }
+  .app:focus-visible { outline: 2px solid var(--yellow); outline-offset: 4px; }
+  .app .icon { display: block; width: 64px; height: 64px; }
+  .app .label { font-family: var(--font-display); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hint { margin: 16px 0 0; font-size: 14px; line-height: 20px; color: var(--ink-dim); }
+  .spacer { flex: 1; min-height: 24px; }
+  .dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 16px; }
+  .dots span { width: 16px; height: 4px; background: var(--red); }
+  .dock { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px; justify-items: center; }
+  .dock-btn { width: 56px; height: 56px; display: grid; place-items: center; padding: 0; border: 0; background: var(--bg-300); cursor: pointer; text-decoration: none; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%); }
+  .dock-btn:focus-visible { outline: 2px solid var(--yellow); outline-offset: -2px; }
+  .dock-btn svg { width: 26px; height: 26px; }
+  .in-game .dock, .in-game .dots { display: none; }
+  #cam { display: none; }
+
+  /* Settings */
+  .bar { display: flex; align-items: center; gap: 8px; margin: -8px -8px 16px; }
+  .bar h2 { margin: 0; font-family: var(--font-display); font-size: 20px; line-height: 24px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--red); }
+  .back { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--ink); cursor: pointer; }
+  .back svg { width: 24px; height: 24px; }
+  .choice { width: 100%; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; min-height: 64px; padding: 12px 16px; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--ink); text-align: left; cursor: pointer; font: inherit; }
+  .choice[aria-checked="true"] { background: var(--select-fill); }
+  .choice[aria-checked="true"] .choice-name { color: var(--cyan); }
+  .choice:focus-visible { outline: 2px solid var(--yellow); outline-offset: -2px; }
+  .choice-name { font-family: var(--font-display); font-size: 16px; line-height: 20px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .choice-meta { font-size: 14px; line-height: 20px; color: var(--ink-dim); }
+  .swatch { display: flex; gap: 4px; }
+  .swatch i { width: 12px; height: 24px; }
+  .toast { position: fixed; left: 16px; right: 16px; top: max(env(safe-area-inset-top), 16px); z-index: 5; }
 </style>
 </head>
-<body class="nc nc-grid">
-<main>
-  <header>
-    <h1>EDGE<span>mobile</span></h1>
+<body class="nc">
+
+<!-- The skyline from the prototype, behind every screen. -->
+<div id="sky" aria-hidden="true">
+<svg viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
+<rect width="390" height="844" fill="#05070b"></rect>
+<circle cx="300" cy="300" r="70" fill="#0b4a52"></circle>
+<g fill="#0b0d13"><rect x="0" y="420" width="60" height="424"></rect><rect x="64" y="360" width="44" height="484"></rect><rect x="112" y="450" width="56" height="394"></rect><rect x="172" y="330" width="40" height="514"></rect><rect x="216" y="400" width="70" height="444"></rect><rect x="290" y="380" width="46" height="464"></rect><rect x="340" y="440" width="50" height="404"></rect></g>
+<g fill="#10131b"><rect x="0" y="560" width="80" height="284"></rect><rect x="86" y="520" width="52" height="324"></rect><rect x="144" y="590" width="70" height="254"></rect><rect x="220" y="540" width="48" height="304"></rect><rect x="274" y="600" width="60" height="244"></rect><rect x="340" y="550" width="50" height="294"></rect></g>
+<rect x="184" y="350" width="16" height="120" style="fill: var(--red)"></rect>
+<g fill="#05070b"><rect x="188" y="360" width="8" height="8"></rect><rect x="188" y="380" width="8" height="8"></rect><rect x="188" y="400" width="8" height="8"></rect><rect x="188" y="420" width="8" height="8"></rect><rect x="188" y="440" width="8" height="8"></rect></g>
+<g fill="#fcee0a" opacity="0.7"><rect x="76" y="380" width="4" height="6"></rect><rect x="88" y="400" width="4" height="6"></rect><rect x="76" y="430" width="4" height="6"></rect><rect x="230" y="420" width="4" height="6"></rect><rect x="250" y="450" width="4" height="6"></rect><rect x="96" y="540" width="4" height="6"></rect></g>
+<g fill="#19f3ff" opacity="0.6"><rect x="300" y="400" width="4" height="6"></rect><rect x="312" y="420" width="4" height="6"></rect><rect x="20" y="440" width="4" height="6"></rect><rect x="230" y="560" width="4" height="6"></rect><rect x="356" y="470" width="4" height="6"></rect><rect x="160" y="610" width="4" height="6"></rect></g>
+</svg>
+<div class="nc-grid layer"></div>
+</div>
+
+<!-- Pairing, and every way of not being connected. -->
+<main id="gate" class="screen">
+  <div class="center">
+    <h1 class="brand">EDGE<span>mobile</span></h1>
     <div id="status" class="status">Starting…</div>
-  </header>
+    <section id="pairing" class="nc-panel nc-panel--hero" hidden>
+      <div class="nc-panel__head"><h2 class="nc-panel__title">Pairing code</h2></div>
+      <div id="code" class="code"></div>
+      <p>Check that the game shows the same code, then press <b>Allow</b> there.</p>
+    </section>
+    <section id="refused" class="nc-panel" hidden>
+      <div class="nc-panel__head"><h2 class="nc-panel__title">Not connected</h2></div>
+      <p>This phone is not paired with this game, or its code ran out. In the game, open <b>EDGEmobile</b> and scan the QR code it shows.</p>
+    </section>
+  </div>
+</main>
 
-  <section id="pairing" class="nc-panel nc-panel--hero" hidden>
-    <div class="nc-panel__head"><h2 class="nc-panel__title">Pairing code</h2></div>
-    <div id="code" class="code"></div>
-    <p>Check that the game shows the same code, then press <b>Allow</b> there.</p>
+<!-- The home screen. -->
+<main id="home" class="screen" hidden>
+  <section aria-label="Clock" id="time" class="time em-brackets">
+    <div id="where" class="nc-eyebrow"></div>
+    <div id="clock" class="clock">--:--</div>
+    <div class="rule"></div>
+    <div id="date" class="date"></div>
   </section>
 
-  <section id="refused" class="nc-panel" hidden>
-    <div class="nc-panel__head"><h2 class="nc-panel__title">Not connected</h2></div>
-    <p>This phone is not paired with this game, or its code ran out. In the game, open <b>EDGEmobile</b> and scan the QR code it shows.</p>
-  </section>
+  <nav aria-label="Apps" class="apps">
+    <button type="button" class="app" id="openSettings" aria-label="Settings">
+      <svg class="icon" viewBox="0 0 64 64" aria-hidden="true">
+        <polygon points="0,0 50,0 64,14 64,64 0,64" style="fill: var(--bg-300)"></polygon>
+        <g fill="none" stroke-width="3" stroke-linecap="square" style="stroke: var(--cyan)">
+          <path d="M16 22h32M16 32h32M16 42h32"></path>
+        </g>
+        <g stroke-width="3" style="fill: var(--bg-300); stroke: var(--cyan)"><rect x="22" y="18" width="7" height="8"></rect><rect x="37" y="28" width="7" height="8"></rect><rect x="26" y="38" width="7" height="8"></rect></g>
+        <rect x="12" y="54" width="18" height="3" style="fill: var(--red)"></rect>
+      </svg>
+      <span class="label">Settings</span>
+    </button>
+  </nav>
+  <p class="hint">Mobile apps you install show here.</p>
 
-  <section id="connected" class="nc-panel" hidden>
-    <div class="nc-panel__head"><h2 class="nc-panel__title">Night City</h2><span id="signal" class="nc-panel__meta"></span></div>
-    <div id="clockbox">
-      <div id="clock" class="clock">--:--</div>
-      <div class="rule"></div>
-      <div id="date" class="date"></div>
+  <div class="spacer"></div>
+  <div class="dots" aria-hidden="true"><span></span></div>
+  <nav class="nc-panel dock" aria-label="Dock">
+    <a class="dock-btn" href="tel:" target="_top" aria-label="Phone" style="color: var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M5 4h4l2 5-3 2a11 11 0 0 0 5 5l2-3 5 2v4l-2 1C10 20 4 14 4 6z"></path></svg></a>
+    <a class="dock-btn" href="sms:" target="_top" aria-label="Messages" style="color: var(--cyan)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M4 5h16v11H9l-5 4zM8 9h8M8 12h5"></path></svg></a>
+    <label class="dock-btn" for="cam" role="button" tabindex="0" aria-label="Camera" style="color: var(--ink)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M3 7h4l2-3h6l2 3h4v13H3zM12 10a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"></path></svg></label>
+    <a class="dock-btn" href="https://www.google.com/" target="_blank" rel="noopener noreferrer" aria-label="Browser" style="color: #fcee0a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c-3 3-3 15 0 18M12 3c3 3 3 15 0 18"></path></svg></a>
+  </nav>
+  <input id="cam" type="file" accept="image/*" capture="environment">
+</main>
+
+<!-- Settings. -->
+<main id="settings" class="screen" hidden>
+  <div class="bar">
+    <button type="button" class="back" id="closeSettings" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+    <h2>Settings</h2>
+  </div>
+  <section class="nc-panel">
+    <div class="nc-panel__head"><h3 class="nc-panel__title">Theme</h3><span class="nc-panel__meta">both screens</span></div>
+    <div role="radiogroup" aria-label="Theme">
+      <button type="button" class="choice" role="radio" data-theme-choice="nightcity">
+        <span><span class="choice-name">Night City</span><br><span class="choice-meta">Red titles, cyan selection. The default.</span></span>
+        <span class="swatch" aria-hidden="true"><i style="background:#ff2a52"></i><i style="background:#19f3ff"></i><i style="background:#fcee0a"></i></span>
+      </button>
+      <button type="button" class="choice" role="radio" data-theme-choice="edgemodders">
+        <span><span class="choice-name">Edgemodders</span><br><span class="choice-meta">Yellow titles, cyan selection, the house grid.</span></span>
+        <span class="swatch" aria-hidden="true"><i style="background:#fcee0a"></i><i style="background:#19f3ff"></i><i style="background:#5dffa1"></i></span>
+      </button>
     </div>
   </section>
 </main>
+
+<div id="toast" class="nc-toast toast" role="status" hidden><div class="nc-toast__eyebrow" id="toastHead"></div><div class="nc-toast__text" id="toastText"></div></div>
+
 <script src="/phone.js"></script>
 </body>
 </html>
