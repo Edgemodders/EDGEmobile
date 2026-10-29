@@ -35,9 +35,10 @@ The tunnel gives your PC a private web address, and it is locked two ways. A pho
 
 | Folder | What |
 |---|---|
-| `edgemobile/` | The REDnode package: the Node mod (`mod.mjs`), the OS shell and its theme (`shell/`), installed mobile apps (`mobile-apps/`) |
+| `edgemobile/` | The EDGEmobile REDnode package: the Node mod (`mod.mjs`), its service for EDGEphone (`service.mjs`), the window for connecting a phone (`connect/`), the OS shell, its themes and fonts (`shell/`), installed mobile apps (`mobile-apps/`) |
+| `edgephone/` | The EDGEphone REDnode package: the phone in the game, with the OS from EDGEmobile inside |
 | `docs/` | The docs site, published at https://edgemodders.github.io/EDGEmobile/ |
-| `tools/` | `deploy.ps1` copies the package into the game. `brand/render.ps1` renders the banner, icon and badges |
+| `tools/` | `deploy.ps1` copies both packages into the game. `brand/render.ps1` renders the banner, icon and badges |
 
 ## Install (developers)
 

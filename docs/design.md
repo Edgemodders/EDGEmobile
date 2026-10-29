@@ -33,18 +33,20 @@ Agreed with the user on 2026-10-28 and 2026-10-29.
 | Dock buttons | Phone, Messages, Camera and Browser, from the prototype. On a real phone they open the phone's own dialer, messages, camera and a browser tab. In the game there is no dock for now (the user, 2026-10-29) |
 | Look | The **Chooms! prototype** design canvas (the user's artifact; its Home screen is the basis for the OS), with the **Night City Mobile UI** design system |
 | Themes | **Night City** (the design system) by default, and **Edgemodders** (this repo's house style: yellow, cyan, green, the grid). One theme for both screens, kept on the PC (the user, 2026-10-29) |
-| The phone in the game | A transparent, borderless window: a phone frame in the game's own UI red with the OS inside. Only the frame drags it around the screen; it can be pinned to the HUD (the user, 2026-10-29) |
+| The phone in the game | **EDGEphone**, a REDnode app of its own, in this repo, so it is pinned and switched apart from EDGEmobile: a transparent, borderless window, a phone frame in the game's own UI red with the OS inside. Only the frame drags it around the screen; it can be pinned to the HUD. EDGEmobile keeps its own window for connecting a phone (the user, 2026-10-29) |
 | The first app | Chooms!, the social media app, discussed once the OS is built |
 
 ## How it fits REDnode
 
-EDGEmobile is one REDnode package, `edgemobile`, installed in `red4ext/plugins/REDnode/apps/edgemobile/`.
+This repo holds two REDnode packages: `edgemobile`, installed in `red4ext/plugins/REDnode/apps/edgemobile/`, and `edgephone`, the phone in the game, in `apps/edgephone/` (from 0.0.6; the user, 2026-10-29).
 
 | Part | Where | What it does |
 |---|---|---|
 | Node mod | `edgemobile/mod.mjs` | Runs the web server and the WebSocket on `127.0.0.1`, starts and watches the tunnel, keeps paired phones and the phone's state, finds mobile apps, and answers both screens |
-| Phone window | `edgemobile/shell/` (pairing and the clock from M2; the OS from M3) | The OS, shown in a REDnode overlay window shaped like a phone. The same files are served to the real phone |
-| Connect window | `edgemobile/connect/` (from M2) | Onboarding in the game: the QR code, the pairing code with Allow and Deny, and the list of paired phones |
+| The OS (the shell) | `edgemobile/shell/` (pairing and the clock from M2; the OS from M3) | The OS, served by the mod to the real phone and to EDGEphone |
+| EDGEphone | `edgephone/` (from 0.0.6), its own package | The phone in the game: the frame, with the shell from 127.0.0.1 in its screen. It asks EDGEmobile's service for the screen's address |
+| Service | `edgemobile/service.mjs` (from 0.0.6) | Gives EDGEphone, and only EDGEphone, its screen's address with a local session, and the mod's run (it changes when the mod restarts) |
+| Connect window | `edgemobile/connect/` (from M2; the drawer in 0.0.4 and 0.0.5) | Onboarding in the game: the QR code, the pairing code with Allow and Deny, and the list of paired phones |
 | Mobile apps | `red4ext/plugins/REDnode/mobile-apps/<id>/`, beside EDGEmobile's folder (from M4) | One folder per installed app, with its own `mobile-app.json` |
 | Tunnel program | `<pkg.dataDir>/cloudflared/<version>/cloudflared.exe` | Cloudflare's `cloudflared`, fetched on first use (see [The tunnel](#the-tunnel)) |
 | Paired phones | `<pkg.dataDir>/phones.json` | Each phone's public key, its name and when it was last seen. Nothing in it is secret |
@@ -464,6 +466,33 @@ Built on 2026-10-29, as EDGEmobile 0.0.4.
 *Unverified until the M3 test:* everything that reads the game (the district through `PreventionSystem`, its LocKey through `GetLocalizedText`, the rain through `WeatherSystem`: how REDnode returns their handles and enums is a guess, so the mod accepts several shapes and logs the first failure of each as "Status line: could not read …"), the window in REDnode (transparent, the drag edges, the drawer, Pin to HUD), the frame rule in REDnode's Electron, and the dock on the phone.
 
 **Found at the first launch** (2026-10-29): the game crashed twice on launch, an access violation reading `0x280`. REDnode's log, a second before each crash: "rtti.call: GetWeatherSystem crashed inside the game". The phone window now opens with the game, so the in-game screen connects while the game boots; `mainMenu` is still false then, so the mod asked for the weather system before the world existed. Fixed in 0.0.5: no call into the game's world systems (time, district, rain) unless V is in the world, checked with REDnode's `game.player.position()` (which rejects safely with no player) before each round of calls, about once a second, since loading another save from the pause menu takes the world away without passing the main menu; and one tick at a time, so a slow answer does not pile calls up. Checked with a `boot` mode in the harness: the in-game screen connected with no player, 6 ticks went by with no time, no place and no world call, then V arrived and the time, district and rain followed within 5 s; when V went away again without the main menu, no world call was made. All 41 checks passed again. Rule from this: **never call into the game's world before V exists.**
+
+### EDGEphone: the phone as its own app
+
+Asked for by the user on 2026-10-29, after the first M3 run in the game: the phone in the game becomes **EDGEphone**, a REDnode app of its own, kept in this repo (`edgephone/`) and installed beside EDGEmobile, so each is pinned and switched on its own. EDGEmobile keeps its M2 window for connecting a phone (`edgemobile/connect/`), and the drawer and the tab on the frame go. Built as 0.0.6.
+
+| Part | How |
+|---|---|
+| EDGEphone | A window only, no Node mod: `window.html` (the frame, the four drag edges, the screen) and `window.js`. `requires` EDGEmobile 0.0.6 or later |
+| Its screen | `service.connect('edgemobile')`, then `screen()`: the shell's address at 127.0.0.1 with a local session. Every 3 s it asks `run()`; a new run (EDGEmobile restarted) gets a new screen. EDGEmobile off: "EDGEphone needs EDGEmobile: switch it on in the Mod Manager" |
+| EDGEmobile's service | `service.mjs`, beside `mod.mjs` in the same worker (REDnode imports both by their plain file addresses, so they share one module). `screen()` and `run()` refuse every caller but `edgephone`: other packages, assistants and calls with no caller |
+| Deploy | `tools/deploy.ps1` copies both packages |
+
+**Checked outside the game:** the harness's `boot` mode (8 checks, all passed) adds: EDGEphone gets its screen and the run from the service; the screen's session is in at 127.0.0.1; another package, an assistant or no caller is refused, for both functions. The 41 earlier checks all passed again.
+
+**The first M3 run in the game** (2026-10-29, 0.0.5): it launched without a crash, the phone showed in the game, and the theme switched both screens. The district's name came from the record's own name ("Watson"): the game's `GetLocalizedText` takes a `script_ref<String>`, which REDnode cannot pass yet ("script_ref parameters are not supported yet"), so names are the game's English record names for now.
+
+**EDGEphone test** (0.0.6; the M3 test below still holds, with EDGEphone for the phone and EDGEmobile's window for connecting):
+
+| # | Step | Expect |
+|---|---|---|
+| 1 | Start the game. F10, the **Mod Manager** | **EDGEphone** and **EDGEmobile** listed apart. Switch both on; pin each to the launcher as you like |
+| 2 | Open EDGEphone | The phone, with no tab on its frame, its screen showing the home screen |
+| 3 | Open EDGEmobile | Its M2 window: the tunnel, the QR code, Allow and Deny, Paired phones |
+| 4 | **Pin to HUD** for EDGEphone only, then F10 back to the game | The phone stays on screen; EDGEmobile's window does not |
+| 5 | Pair or scan from EDGEmobile's window; change the theme on the real phone | Both screens follow, as in M3 |
+| 6 | Hot reload on, save `mod.mjs` in the deployed `edgemobile` folder | EDGEphone's screen is back within a few seconds |
+| 7 | Switch EDGEmobile off in the Mod Manager, then on | EDGEphone says it needs EDGEmobile, then shows its screen again |
 
 ### M3 test
 
