@@ -170,13 +170,27 @@ function onSocket(ws, info) {
 // on objects a mod holds, so nothing from the world is kept between ticks.
 let inWorld = false;
 
+// A load can start between two calls of one round, before onState tells the mod: REDnode then
+// refuses the next call (2026-10-30, the 0.0.7 test). That refusal is the world going away, not
+// a failure: the round stops there, and onState brings V back.
+const NO_WORLD = /not in the world yet/i;
+function worldGone(err) {
+  if (!NO_WORLD.test(err?.message ?? '')) return false;
+  inWorld = false;
+  place.district = null;
+  place.rain = null;
+  place.at = 0;
+  return true;
+}
+
 // The game's time for each phone, once a second. Outside the world there is none.
 async function gameSeconds() {
   if (!inWorld) return null;
   try {
     const timeSystem = await api.GameInstance.GetTimeSystem(game.instance);
     return (await timeSystem.GetGameTime()).seconds;
-  } catch {
+  } catch (err) {
+    worldGone(err);
     return null;
   }
 }
@@ -210,6 +224,7 @@ async function gamePlace() {
     }
     place.district = record ? await districtName(record) : null;
   } catch (err) {
+    if (worldGone(err)) return place;
     place.district = null;
     failOnce('district', err);
   }
@@ -218,6 +233,7 @@ async function gamePlace() {
     const type = await weather.GetRainIntensityType();
     place.rain = RAIN[type?.value ?? type?.name ?? type] ?? null;
   } catch (err) {
+    if (worldGone(err)) return place;
     place.rain = null;
     failOnce('rain', err);
   }
@@ -258,8 +274,9 @@ setInterval(async () => {
   if (!conns.size || ticking) return;
   ticking = true;
   try {
-    const seconds = await gameSeconds();
+    let seconds = await gameSeconds();
     const { district, rain } = await gamePlace();
+    if (!inWorld) seconds = null; // the world went away during this round
     for (const c of conns) if (c.ws.readyState === c.ws.OPEN) c.ws.send(JSON.stringify({ t: 'tick', seconds, district, rain, at: performance.now() }));
     post();
   } finally {
