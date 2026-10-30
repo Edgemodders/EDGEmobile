@@ -35,10 +35,11 @@ The tunnel gives your PC a private web address, and it is locked two ways. A pho
 
 | Folder | What |
 |---|---|
-| `edgemobile/` | The EDGEmobile REDnode package: the Node mod (`mod.mjs`), its service for EDGEphone (`service.mjs`), the window for connecting a phone (`connect/`), the OS shell, its themes and fonts (`shell/`), installed mobile apps (`mobile-apps/`) |
+| `edgemobile/` | The EDGEmobile REDnode package: the Node mod (`mod.mjs`), its service for EDGEphone (`service.mjs`), the window for connecting a phone (`connect/`), the OS shell, its themes and fonts and the `mobile` library for apps (`shell/`), the mobile apps and their bridge (`server/apps.mjs`, `server/bridge.mjs`) |
 | `edgephone/` | The EDGEphone REDnode package: the phone in the game, with the OS from EDGEmobile inside |
+| `chooms/` | **Chooms!**, Night City's social feed, the first mobile app: its REDnode package (`chooms/rednode/`: the feed for each playthrough, the settings window) and the mobile app itself (`chooms/mobile/`). Released on its own |
 | `docs/` | The docs site, published at https://edgemodders.github.io/EDGEmobile/ |
-| `tools/` | `deploy.ps1` copies both packages into the game. `brand/render.ps1` renders the banner, icon and badges |
+| `tools/` | `deploy.ps1` copies the packages and Chooms!'s mobile app into the game. `brand/render.ps1` renders the banner, icon and badges |
 
 ## Install (developers)
 

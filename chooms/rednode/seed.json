@@ -1,0 +1,55 @@
+{
+  "_about": "Hand-written test data for C1 (docs/design.md, C1 plan), written once into each new playthrough's history so every screen can be tried before posts are generated (C3). `ago` is game seconds before the playthrough was first seen.",
+  "relations": {
+    "judy": { "follows": true, "followsV": true, "request": "pending" },
+    "jackie": { "follows": true, "followsV": true, "request": "accepted" },
+    "panam": { "follows": false, "followsV": false },
+    "river": { "follows": false, "followsV": true },
+    "kerry": { "follows": false, "followsV": false }
+  },
+  "posts": [
+    {
+      "by": "judy", "ago": 720, "likes": 1184,
+      "text": "Night dive at Laguna Bend. Water's still, city's loud. Some places you just gotta see with your own eyes.",
+      "comments": [
+        { "by": "panam", "ago": 540, "likes": 64, "text": "Pretty. Still prefer real stars over neon, though." },
+        { "by": "jackie", "ago": 480, "likes": 41, "text": "Judy, you gotta take me out there sometime. V too, hermano." },
+        { "by": "river", "ago": 360, "likes": 18, "text": "Quiet spot. Good place to think." },
+        { "by": "kerry", "ago": 180, "likes": 112, "text": "This is giving me lyrics. Mind if I steal the view?" }
+      ]
+    },
+    {
+      "by": "jackie", "ago": 5400, "likes": 342,
+      "text": "Mama Welles made pozole. If you're not at El Coyote Cojo in twenty minutes, it's gone. That's not a threat, it's a promise.",
+      "comments": [
+        { "by": "judy", "ago": 5100, "likes": 12, "text": "Save me a bowl?" }
+      ]
+    },
+    {
+      "by": "militech", "ago": 7200, "likes": 2210,
+      "text": "Militech. Peace through strength. Ask about our new line of personal defense systems at any authorized dealer."
+    },
+    {
+      "by": "panam", "ago": 10800, "likes": 879,
+      "text": "Badlands sunset from the ridge. You city types don't know what you're missing.",
+      "comments": [
+        { "by": "river", "ago": 9000, "likes": 9, "text": "Not all of us are city types." }
+      ]
+    },
+    {
+      "by": "kerry", "ago": 18000, "likes": 5320,
+      "text": "Sound check went long. New track's almost there. Almost."
+    },
+    {
+      "by": "arasaka", "ago": 21600, "likes": 1504,
+      "text": "Arasaka. Security for a safer tomorrow. Our city, protected."
+    }
+  ],
+  "dms": {
+    "jackie": [
+      { "from": "jackie", "ago": 1800, "text": "V! Misty says Vik's got a new toy in for you. Swing by when you're done?", "read": true },
+      { "from": "v", "ago": 1500, "text": "On my way after this gig." },
+      { "from": "jackie", "ago": 600, "text": "Bring an appetite. Mama's cooking tonight.", "read": false }
+    ]
+  }
+}

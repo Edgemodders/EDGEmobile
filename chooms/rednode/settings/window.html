@@ -1,0 +1,116 @@
+<!doctype html>
+<!-- Chooms!'s settings, on the PC (docs/design.md, "Chooms!": Settings): how often people and corporations post, and each person's portrait and places for their photos. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chooms! settings</title>
+<script src="rednode://ui/rednode-ui.js"></script>
+<script type="importmap">{ "imports": { "rednode": "rednode://sdk/index.js" } }</script>
+<style>
+  html, body { margin: 0; width: 560px; height: 760px; overflow: hidden; background: transparent; }
+  rn-window { position: absolute; inset: 0; }
+  [hidden] { display: none !important; }
+  .stack { display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.45; }
+  .stack p { margin: 0; }
+  .fine { color: var(--rn-dim); font-size: 12px; }
+  .error { color: var(--rn-danger, #ff5a5a); }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .field { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
+  .field select, .field input, textarea { font: 13px var(--rn-mono); color: inherit; background: var(--rn-panel); border: 1px solid var(--rn-line); padding: 4px 6px; }
+  .field input { width: 90px; }
+  textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertical; }
+  .people { display: grid; grid-template-columns: 180px 1fr; gap: 12px; min-height: 560px; }
+  .people rn-list { max-height: 600px; overflow-y: auto; }
+  .detail { display: flex; flex-direction: column; gap: 10px; max-height: 600px; overflow-y: auto; padding-right: 4px; }
+  .portrait { width: 96px; height: 96px; object-fit: cover; background: var(--rn-panel); border: 1px solid var(--rn-line); }
+  .place { display: grid; grid-template-columns: 120px 1fr; gap: 8px; padding: 8px; background: var(--rn-panel); border-left: 2px solid var(--rn-line); }
+  .place img { width: 120px; height: 120px; object-fit: cover; }
+  .place .stack { gap: 6px; }
+  .place input { width: 100%; box-sizing: border-box; font: 13px var(--rn-mono); color: inherit; background: transparent; border: 1px solid var(--rn-line); padding: 4px 6px; }
+  .pick { display: inline-flex; }
+  .pick input { display: none; }
+  .note { color: var(--rn-accent); }
+</style>
+</head>
+<body>
+<rn-window id="win" title="Chooms! // Settings" draggable closable>
+  <div class="stack">
+    <p id="msg" class="fine" hidden></p>
+    <rn-tabs>
+      <rn-tab label="Posting">
+        <div class="stack">
+          <p class="fine">People and corporations start posting by themselves in a later version of Chooms! (C3). Until then the feed has a few hand-written posts, and you can try a photo post from the People tab.</p>
+          <rn-toggle id="on" label="Chooms! on"></rn-toggle>
+          <rn-slider id="everyMinutes" label="Check for new posts every" min="1" max="120" value="10" unit=" min"></rn-slider>
+          <rn-slider id="peopleChance" label="Chance a person posts, per check" min="0" max="100" value="30" unit="%"></rn-slider>
+          <rn-slider id="corpChance" label="Chance a corporation in V's district posts" min="0" max="100" value="20" unit="%"></rn-slider>
+          <rn-slider id="maxPerCheck" label="Most posts per check" min="0" max="10" value="2"></rn-slider>
+          <rn-panel title="What people post">
+            <div class="stack">
+              <rn-slider id="weightText" label="Text" min="0" max="100" value="40"></rn-slider>
+              <rn-slider id="weightSelfie" label="Selfie, with one of their places behind" min="0" max="100" value="45"></rn-slider>
+              <rn-slider id="weightActivity" label="Photo of them doing something at one of their places" min="0" max="100" value="15"></rn-slider>
+              <p class="fine">A photo needs that person's Post images on, a portrait and a place. Without them the post is text.</p>
+            </div>
+          </rn-panel>
+          <rn-panel title="AI">
+            <div class="stack">
+              <div class="field"><span>Model for posts</span><select id="postModel"><option value="haiku">Haiku</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option></select></div>
+              <div class="field"><span>Model for messages</span><select id="dmModel"><option value="haiku">Haiku</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option></select></div>
+              <div class="field"><span>Most to spend per day (US$)</span><input id="dailyCapUsd" type="number" min="0" max="100" step="0.5"></div>
+              <p class="fine">Posts and messages are written by REDagent with your Anthropic key, photos by Google's image model with your Gemini key. Used from later versions of Chooms! on.</p>
+            </div>
+          </rn-panel>
+        </div>
+      </rn-tab>
+      <rn-tab label="People">
+        <div class="people">
+          <rn-list id="peopleList"></rn-list>
+          <div id="detail" class="detail">
+            <p class="fine">Pick a person.</p>
+          </div>
+        </div>
+      </rn-tab>
+    </rn-tabs>
+  </div>
+</rn-window>
+
+<template id="personTpl">
+  <h3 class="name" style="margin:0"></h3>
+  <rn-toggle class="pOn" label="Posts on Chooms!"></rn-toggle>
+  <rn-toggle class="pImages" label="Post images"></rn-toggle>
+  <rn-panel title="Portrait">
+    <div class="row">
+      <img class="portrait" alt="">
+      <div class="stack">
+        <p class="fine">A clear picture of their face. It is their picture in the app, and the image model puts them into their places with it.</p>
+        <div class="row">
+          <span class="pick"><input class="pickPortrait" type="file" accept="image/png,image/jpeg,image/webp"><rn-button class="choosePortrait">Choose image</rn-button></span>
+          <rn-button class="removePortrait" variant="ghost">Remove</rn-button>
+        </div>
+      </div>
+    </div>
+  </rn-panel>
+  <rn-panel title="Places">
+    <div class="stack">
+      <p class="fine">Where they might be when they post: an image of the place, a line describing it, and what they might be doing there, one per line. Most photos are selfies with a place behind them.</p>
+      <div class="places stack"></div>
+      <div class="row"><span class="pick"><input class="pickPlace" type="file" accept="image/png,image/jpeg,image/webp"><rn-button class="choosePlace">Add a place</rn-button></span></div>
+    </div>
+  </rn-panel>
+</template>
+
+<template id="placeTpl">
+  <div class="place">
+    <img alt="">
+    <div class="stack">
+      <input class="desc" type="text" maxlength="200" placeholder="The place, in one line: the Aldecaldos camp at night">
+      <textarea class="acts" placeholder="What they might do there, one per line:&#10;working on her car&#10;around the campfire"></textarea>
+      <div class="row"><rn-button class="try" variant="ghost">Try a post with it</rn-button><rn-button class="remove" variant="ghost">Remove</rn-button></div>
+    </div>
+  </div>
+</template>
+
+<script type="module" src="window.js"></script>
+</body>
+</html>

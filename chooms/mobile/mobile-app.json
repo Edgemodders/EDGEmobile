@@ -1,0 +1,11 @@
+{
+  "id": "chooms",
+  "name": "Chooms!",
+  "version": "0.1.0",
+  "author": "Edgemodders",
+  "description": "Night City's social feed.",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "package": "chooms",
+  "requires": { "edgemobile": ">=0.1.0" }
+}

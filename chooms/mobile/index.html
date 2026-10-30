@@ -1,0 +1,61 @@
+<!doctype html>
+<!--
+  Chooms!, Night City's social feed (docs/design.md, "Chooms!" and "C1 plan"). A mobile app for
+  EDGEmobile: it runs in a sandboxed frame inside the phone's shell, on both screens, and gets
+  everything from its REDnode package on the PC through /mobile.js. The look is the user's
+  Chooms! prototype canvas in the Night City Mobile UI design system.
+-->
+<html lang="en" data-theme="nightcity">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chooms!</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/theme/tokens.css">
+<link rel="stylesheet" href="/theme/nc.css">
+<link rel="stylesheet" href="/theme/themes.css">
+<link rel="stylesheet" href="app.css">
+<script src="/mobile.js"></script>
+<script src="app.js" defer></script>
+</head>
+<body class="nc">
+
+<!-- The loading screen: the prototype's Loading screen artboard. -->
+<div id="loading" class="loading" role="status" aria-live="polite">
+  <div class="loading-text">
+    <h1 class="loading-title">Chooms!</h1>
+    <div class="loading-tag">// Night City's social feed</div>
+    <div class="loading-bar" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <div id="loadingStatus" class="loading-tag">Loading feed</div>
+  </div>
+  <img class="loading-crew" src="chooms.png" alt="Silhouettes of the crew standing together">
+</div>
+
+<!-- The app. -->
+<div id="app" class="app" hidden>
+  <header class="nc-appbar">
+    <button type="button" id="back" class="nc-iconbtn" aria-label="Back" style="visibility: hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+    <div class="nc-appbar__titles"><div id="eyebrow" class="nc-eyebrow">Night City</div><h1 id="title" class="nc-appbar__title nc-glitch">Chooms!</h1></div>
+    <button type="button" id="home" class="nc-iconbtn" aria-label="Home screen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4z"></path></svg></button>
+  </header>
+
+  <main id="view" class="view nc-grid" tabindex="-1"></main>
+
+  <form id="composer" class="composer" hidden>
+    <label for="draft" class="sr">Write</label>
+    <input id="draft" type="text" maxlength="500" autocomplete="off">
+    <button class="nc-btn nc-btn--primary" type="submit" id="sendBtn">Send</button>
+  </form>
+
+  <nav class="nc-tabbar" aria-label="Main">
+    <button type="button" class="nc-tab" data-tab="feed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M4 4h16v16H4zM4 10h16M10 10v10"></path></svg>Feed</button>
+    <button type="button" class="nc-tab" data-tab="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M10 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12zM15 15l5 5"></path></svg>Search</button>
+    <button type="button" class="nc-tab" data-tab="compose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M4 4h12l4 4v12H4zM12 9v8M8 13h8"></path></svg>Post</button>
+    <button type="button" class="nc-tab" data-tab="dms"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M4 5h16v11H9l-5 4zM8 9h8M8 12h5"></path></svg>DMs<span id="dmBadge" class="nc-tab__badge" hidden></span></button>
+    <button type="button" class="nc-tab" data-tab="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M12 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM5 20c1-4 3.5-6 7-6s6 2 7 6"></path></svg>Me</button>
+  </nav>
+</div>
+
+<div id="toast" class="nc-toast toast" role="status" hidden><div class="nc-toast__text" id="toastText"></div></div>
+</body>
+</html>
