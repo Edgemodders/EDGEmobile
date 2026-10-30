@@ -328,7 +328,7 @@ Chooms! lives in this repo beside EDGEphone (the user's choice, 2026-10-30), wit
 
 ### C1 plan
 
-*Proposed 2026-10-30, awaiting the user's approval.* The app with hand-written posts, and the parts of the OS it needs. EDGEmobile becomes 0.1.0, Chooms! starts at 0.1.0.
+*Agreed with the user on 2026-10-30.* The app with hand-written posts, and the parts of the OS it needs. EDGEmobile becomes 0.1.0, Chooms! starts at 0.1.0.
 
 **The OS (EDGEmobile 0.1.0):**
 
@@ -355,6 +355,62 @@ Chooms! lives in this repo beside EDGEphone (the user's choice, 2026-10-30), wit
 **Checked outside the game:** the harness grows a second package and an app: an app reaches its own package and nothing else, a frame cannot reach the shell's session, a media address works only for its image and only for a while, the history follows the playthrough and drops a later branch.
 
 **Test:** in the game and on the phone: every screen, follow, accept, a DM, the settings window with a portrait and a setting image, and an older save loaded back.
+
+### C1: built
+
+Built on 2026-10-30: EDGEmobile 0.1.0 (with EDGEphone 0.1.0) and Chooms! 0.1.0. Deployed with `tools/deploy.ps1`, which now copies Chooms!'s package to `apps/chooms` and its mobile app to `mobile-apps/chooms`.
+
+| Part | Where | How it came out |
+|---|---|---|
+| Finding apps | `edgemobile/server/apps.mjs` | Each folder of `red4ext/plugins/REDnode/mobile-apps/` with a `mobile-app.json` whose `id` is the folder's name, an `entry` that exists and optionally an `icon` and a `package`. Watched: an app unpacked or removed while the game runs shows or goes within a second. A broken one is named once in the log. The old `mobile-apps/` inside EDGEmobile's folder is gone |
+| Serving apps | `edgemobile/server/web.mjs` | `/apps/<id>/<file>`, only inside that app's folder and only known file types. Each app page comes with its own rules: `sandbox allow-scripts allow-forms` (no `allow-same-origin`), `connect-src 'none'`, scripts, styles, fonts and images from the server only, framed only by the shell. Fonts carry `Access-Control-Allow-Origin: *`, since a sandboxed page's origin is opaque and fonts load with CORS |
+| The `mobile` library | `edgemobile/shell/mobile.js`, served at `/mobile.js` | `mobile.ready`, `mobile.call(name, ...args)`, `mobile.on(event, handler)`, `mobile.screen`, `mobile.theme` (the page's `data-theme` follows the shell), `mobile.home()`. Badges come from the package, not the page |
+| The shell | `edgemobile/shell/index.html`, `phone.js` | Installed apps on the home screen before Settings, with their badge. An app opens full screen in a sandboxed frame, with a bar at the bottom to go home. Messages from the frame are taken only from the frame of the app that is open |
+| The bridge | `edgemobile/server/bridge.mjs` | A screen's `app-call` goes to the app's package as `mobile({ app, screen, call, args })`, the only function a phone reaches. The package's `mobile` events go to the screens with the app open; a `badge` event also updates the home screen. At most 16 calls at once per screen, 15 s each |
+| Images | the bridge | A package marks an image `{ $media: 'path' }` inside its own data folder; the screen gets `{ url: '/media/<random>' }`, good for an hour. A path that leaves the package's folder gives nothing, and no file path reaches a screen. It assumes REDnode keeps each package's data folder beside EDGEmobile's (`packages/<id>`), as its logs show (*unverified* as something REDnode promises) |
+| Chooms!'s package | `chooms/rednode/`: `mod.mjs`, `store.mjs`, `service.mjs`, `roster.json`, `seed.json` | 22 accounts: 7 main cast, Delamain, 8 story figures, 6 corporations (their districts are a first guess, for C2 to check). The service answers EDGEmobile only, for the Chooms! app only: state, feed, post, profile, me, threads, thread, search, follow, accept, like, likeComment, comment, newPost, send |
+| Playthroughs | `chooms/rednode/mod.mjs`, `store.mjs` | Once V is in the world, the fact `chooms_playthrough` holds the playthrough's id (set the first time). One history file per playthrough. Every follow, accept, like, post, comment and message keeps its game time; a follow or a like that changed back and forth keeps each change, so going back finds the value it had then |
+| Test data | `chooms/rednode/seed.json` | Five accounts V has met (Judy, Panam, Jackie, River, Kerry): Jackie a choom with an unread message, Judy following V with a Choom Request, six posts with comments, two of them corporations' |
+| The app | `chooms/mobile/` | The prototype's screens: the loading screen, Feed (Chooms and You Might Already Know strips), Post and comments, Profile (Follow, Accept choom, Message), DMs (Choom requests, threads), a thread, Search, Post (V writes), Me. All text is set as text. The silhouettes are the user's own image; Teko 700 ships with the app (Fontsource 5.3.0, OFL) |
+| The settings window | `chooms/rednode/settings/` | Posting (on or off, the check interval, the chances, the most per check, the weights of text, selfie and activity posts, the models, a daily cap) and People (on or off, Post images, the portrait, places with a description and activities). Images reach the mod in 192 KB pieces over the package channel and are checked to be PNG, JPEG or WebP, up to 12 MB. **Try a post with it** makes a hand-written post with that place's image |
+
+**Changed from the plan:** V can write posts of their own (the prototype's Post tab). Chooms! keeps the last playthrough's feed at the main menu rather than showing nothing. A refusal "V is not in the world yet" ends Chooms!'s round of reads, as in EDGEmobile 0.0.8.
+
+**Checked outside the game:** the harness's new `apps` mode (52 checks, all passed) runs Chooms!'s package beside EDGEmobile's mod with a stand-in `rednode` that gives each package its own identity, services between them and quest facts:
+
+- the apps list with Chooms!'s icon and page; the app's page with its sandbox, `connect-src 'none'` and its frame rule; its font for an opaque origin; `/mobile.js`;
+- nothing outside an app's folder (`..` in several spellings), no unknown app, no unknown media address, no app through the tunnel with no tunnel;
+- a call for an app not installed, a call with a bad name, and Chooms! answering anyone but EDGEmobile or for another app: all refused;
+- at the main menu "load a save"; once V is in the world, a playthrough id in a fact and the open app told; the feed, its order, the chooms and You Might Already Know; search and profiles only for who V knows of; Accept, then messages; no accept without a request; follow; likes, comments, an empty comment refused; unread messages and the badge on the home screen and in the app; V's own post;
+- a portrait and a place sent in pieces, not-an-image refused, a test post whose image and portrait come as media addresses that give the image, with no file path on the screen;
+- an older save: what came after it gone, what came before it kept; an even older one: the accept, the posts and the likes gone too; a new playthrough with its own history, then each playthrough's own again;
+- a media path leaving the package's folder gives nothing, a media address ends;
+- an app unpacked while the game runs shows, and goes when removed;
+- in headless Chrome: the shell opens Chooms! in its sandboxed frame, the app's scripts run and call its package, the shell cannot reach into the frame, the loading screen says what is missing when the package is off, and once a save is loaded the feed shows; clicked through to a profile, the DMs and a thread; and inside EDGEphone's window, at its 0.8 scale.
+
+The 61 earlier checks (full, relink, auto, boot) passed again.
+
+*Unverified until the C1 test:* that REDnode's quest facts are kept in the game's saves (the playthrough id rests on it); the file picker in an overlay window in the game; the sandboxed frame in REDnode's Electron and in Chrome on Android; images through the tunnel; and that REDnode's services carry the bridge's calls and events as the stand-in does.
+
+**C1 test** (EDGEmobile and EDGEphone 0.1.0, Chooms! 0.1.0, REDnode 0.47.2 or later):
+
+| # | Step | Expect |
+|---|---|---|
+| 1 | Start the game. F10, the **Mod Manager** | **Chooms!** listed beside EDGEmobile and EDGEphone. Switch all three on |
+| 2 | At the main menu, open EDGEphone | The home screen shows the **Chooms!** icon, yellow, before Settings |
+| 3 | Tap **Chooms!** | The yellow loading screen with the crew, then "Load a save: your feed belongs to the playthrough you play" |
+| 4 | Load a save | Within a few seconds the Feed: Jackie under Chooms, Panam, River and Kerry under You might already know, then Judy's post, Jackie's, Militech's, Arasaka's |
+| 5 | Tap Judy's name. **Accept choom**, then **Message**, write and send | "You and Judy Alvarez are chooms now", then the message in the thread |
+| 6 | Back to the Feed. Tap Panam, **Follow** | Her sunset post joins the feed |
+| 7 | Like Judy's post, open it, write a comment | The count goes up by one; the comment is the last one |
+| 8 | **DMs**: open Jackie's thread | The badge on the DMs tab, and on the home screen's icon, drops by one |
+| 9 | **Post**: write something, **Post** | It is first in the feed |
+| 10 | Open **Chooms!**'s window from the launcher. **People**, **Judy Alvarez**: **Choose image** for the portrait, then **Add a place**, a line about it and two activities, **Try a post with it** | The file picker opens over the game (say if it does not). On the phone, Judy's new post with the place's image, and her portrait as her picture |
+| 11 | On your Android phone, open the installed app, **Chooms!** | The same feed, the image too |
+| 12 | Save the game. Follow Kerry. Load the save you just made | Kerry is not followed again |
+| 13 | On the phone, **Settings**, **Edgemodders** | Chooms! turns to the Edgemodders colours; its loading screen stays yellow |
+
+Send back: anything that did not match, and the lines of `red4ext/logs/rednode-mods.log` with `[edgemobile]` or `[chooms]` in them.
 
 ## Installing on the phone (PWA)
 
@@ -399,7 +455,7 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 | M3 The OS | The shell on both screens: the home screen (status line, clock, app grid, dock), the dock on the real phone, the phone in the game (a borderless red frame, Pin to HUD), the two themes, the fonts shipped | Done 2026-10-30: built, tested in the game and on Android, with EDGEphone as its own app ([EDGEphone](#edgephone-the-phone-as-its-own-app), [0.0.7](#007-rednodes-world-flag-and-the-games-text)) |
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Not started |
 | M5 Install on the phone | The loader as a PWA: manifest, service worker, icons, the Scan button, offline screen, and its own origin | Not started |
-| M6 Chooms! | C1 to C5 in [Chooms!](#chooms), built before M4's general parts (the user's choice, 2026-10-30) | Agreed 2026-10-30; C1 plan awaiting approval |
+| M6 Chooms! | C1 to C5 in [Chooms!](#chooms), built before M4's general parts (the user's choice, 2026-10-30) | C1 built 2026-10-30, awaiting the user's test ([C1: built](#c1-built)) |
 | Release | The zip, `requires` for REDnode, the Nexus page, the changelog | Not started |
 
 ### M1: built

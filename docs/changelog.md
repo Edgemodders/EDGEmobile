@@ -12,6 +12,7 @@ How to keep it (the Edgemodders convention):
 
 ### New
 
+- Mobile apps on the phone's home screen, with their badges: an app opens full screen, and the bar at the bottom goes home. Each app runs walled off from the phone's sign-in and from other apps, and reaches only its own part on your PC. Apps go in `red4ext/plugins/REDnode/mobile-apps/`, and one unpacked while the game runs shows at once.
 - EDGEphone, the phone in the game, is its own app: pin it to the HUD on its own. Connecting a phone stays in EDGEmobile's window.
 - District names on the phone are in the game's language.
 
