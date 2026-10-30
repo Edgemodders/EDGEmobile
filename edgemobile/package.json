@@ -1,6 +1,6 @@
 {
   "name": "edgemobile",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "private": true,
   "description": "EDGEmobile, a phone OS for Cyberpunk 2077 as a REDnode app",
   "type": "module",

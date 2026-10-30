@@ -1,14 +1,14 @@
 {
   "id": "edgemobile",
   "name": "EDGEmobile",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "author": "Edgemodders",
   "description": "EDGEmobile connects your real phone to the game. It gives your PC a private web address through Cloudflare: only a phone that scans the QR code shown here, and that you allow here, can connect. The phone in the game is EDGEphone, a separate app.",
   "entry": "connect/window.html",
   "main": "mod.mjs",
   "isolation": "process",
   "requires": {
-    "rednode": ">=0.44.0"
+    "rednode": ">=0.47.2"
   },
   "kind": "window",
   "width": 440,

@@ -3,7 +3,7 @@
 // themselves by signature, and the game's time sent to each phone. The Connect window is
 // connect/window.html; it talks to this mod over the package channel.
 
-import { api, channel, game, pkg } from 'rednode';
+import { api, channel, game, loc, pkg } from 'rednode';
 import { randomBytes, randomInt } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
@@ -49,7 +49,6 @@ const view = {
   webError: null,
 };
 const conns = new Set(); // { ws, id, name, local, rtt: [] }
-let mainMenu = true;
 
 // For EDGEphone, the phone in the game (service.mjs): its screen is the shell from 127.0.0.1,
 // with a local session for this run of the mod. A restarted mod (hot reload) has a new run, and
@@ -164,43 +163,23 @@ function onSocket(ws, info) {
   ws.on('error', () => {});
 }
 
-// Whether V is in the world. Every call into the game's world systems waits for this: while
-// the game boots, mainMenu is still false, and calling GetWeatherSystem then crashed the game
-// (2026-10-29, the M3 test). REDnode's player.position rejects, safely, when there is no player.
-// Checked again before each round of calls, not trusted once: loading another save from the
-// pause menu takes the world away without passing the main menu.
-const WORLD_MS = 900;
+// Whether V is in the world: REDnode's game.state().world (REDnode #25), false while the game
+// starts, at the main menu and from the start of every load. Every call into the game's world
+// systems waits for it: calling GetWeatherSystem while the game booted crashed it (2026-10-29).
+// REDnode also refuses those calls while it is false, but only the GameInstance ones, not methods
+// on objects a mod holds, so nothing from the world is kept between ticks.
 let inWorld = false;
-let worldCheckedAt = 0;
-async function worldReady() {
-  if (mainMenu) return (inWorld = false);
-  if (Date.now() - worldCheckedAt < WORLD_MS) return inWorld;
-  worldCheckedAt = Date.now();
-  inWorld = await game.player.position().then(
-    () => true,
-    () => false,
-  );
-  return inWorld;
-}
 
-// The game's time for each phone, once a second. At the main menu there is none.
-let timeSystem = null;
+// The game's time for each phone, once a second. Outside the world there is none.
 async function gameSeconds() {
-  if (!(await worldReady())) return null;
+  if (!inWorld) return null;
   try {
-    timeSystem ??= await api.GameInstance.GetTimeSystem(game.instance);
+    const timeSystem = await api.GameInstance.GetTimeSystem(game.instance);
     return (await timeSystem.GetGameTime()).seconds;
   } catch {
-    timeSystem = null;
     return null;
   }
 }
-game.on('PlayerPuppet.OnGameAttached', () => {
-  inWorld = true;
-  worldCheckedAt = Date.now();
-  timeSystem = null;
-  place.at = 0;
-});
 
 // Where V is, for the status line: the top district's name, and the rain. Read every few
 // seconds. The game's script API gives only rain, not the named weather (docs/design.md, "M3 plan").
@@ -215,7 +194,7 @@ function failOnce(what, err) {
 }
 
 async function gamePlace() {
-  if (!(await worldReady())) return { district: null, rain: null };
+  if (!inWorld) return { district: null, rain: null };
   if (Date.now() - place.at < PLACE_MS) return place;
   place.at = Date.now();
   try {
@@ -245,13 +224,13 @@ async function gamePlace() {
   return place;
 }
 
-/** The district's name in the player's language, else its record's name ("CityCenter": "City Center"). */
+/** The district's name in the player's language (REDnode's loc.text, #26), else its record's name ("CityCenter": "City Center"). */
 async function districtName(record) {
-  const loc = await record.LocalizedName();
-  if (typeof loc === 'string' && loc.startsWith('LocKey#')) {
-    const text = await api.GetLocalizedText(loc).catch((err) => failOnce('district name', err));
-    if (typeof text === 'string' && text && text !== loc) return text;
-  } else if (typeof loc === 'string' && loc) return loc;
+  const key = await record.LocalizedName();
+  if (typeof key === 'string' && key.startsWith('LocKey#')) {
+    const text = await loc.text(key).catch((err) => failOnce('district name', err));
+    if (typeof text === 'string' && text) return text;
+  } else if (typeof key === 'string' && key) return key;
   const name = await record.EnumName();
   return typeof name === 'string' && name ? name.replace(/([a-z])([A-Z])/g, '$1 $2') : null;
 }
@@ -264,8 +243,9 @@ function setTheme(theme) {
   console.log(`Theme: ${theme}`);
 }
 function onGameState(s) {
-  mainMenu = !s.connected || s.mainMenu;
-  if (mainMenu) inWorld = false;
+  const now = !!(s.connected && s.world);
+  if (now !== inWorld) place.at = 0; // read the place again as soon as V is back
+  inWorld = now;
 }
 game.onState(onGameState);
 game

@@ -1,12 +1,12 @@
 {
   "id": "edgephone",
   "name": "EDGEphone",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "author": "Edgemodders",
   "description": "The phone in the game: a phone in the game's red, with the EDGEmobile OS inside. Drag it by its frame. Needs EDGEmobile.",
   "entry": "window.html",
   "requires": {
-    "rednode": ">=0.44.0",
+    "rednode": ">=0.47.2",
     "edgemobile": ">=0.0.6"
   },
   "kind": "window",
