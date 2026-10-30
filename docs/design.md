@@ -519,6 +519,11 @@ REDnode 0.47.2 shipped both requests from the first M3 run (REDnode [#25](https:
 
 Send back: anything that did not match, and the lines of `red4ext/logs/rednode-mods.log` with `[edgemobile]` in them.
 
+**Results** (2026-10-30, on the PC, REDnode 0.48.1): the EDGEphone test (done earlier) and the 0.0.7 test **passed**. The log showed EDGEmobile's service ready and EDGEphone connected at once, no district name error (the names come through `loc.text`), and no crash. Two notes:
+
+- At the start of the load from the pause menu, a round of reads already under way had its last calls refused by REDnode: "Status line: could not read the district (the rain): V is not in the world yet". `sound-test` hit the same in the same second: the world goes away between one call and the next, before the mod hears of it. Harmless, since REDnode refused the calls, but it reads as a failure and uses up the one line per kind of failure that a run logs. Fix proposed: treat that refusal as the end of the world, not a failure.
+- EDGEmobile was off when the game started and was switched on after the main menu, so a start with it on was not seen in this run. REDnode's own test checked its guard while the game starts.
+
 ### M3 test
 
 On the PC with the game, and the user's Android phone (already paired in M2). EDGEmobile 0.0.5 is deployed.

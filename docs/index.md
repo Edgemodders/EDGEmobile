@@ -17,7 +17,7 @@ As of 2026-10-29. Nothing is released yet. Each phase ends with a test by the us
 | M0 Repo and design | Done 2026-10-29 |
 | M1 Tunnel spike | Done 2026-10-29, tested on an Android phone |
 | M2 Onboarding | Done 2026-10-29, tested on an Android phone |
-| M3 The OS | Built 2026-10-29, awaiting the test in the game and on an Android phone |
+| M3 The OS | Done 2026-10-30: passed in the game and on an Android phone, with EDGEphone as its own app |
 | M4 Mobile apps | Not started |
 | M5 Install on the phone | Not started |
 | M6 Chooms! | Not started |
