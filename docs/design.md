@@ -494,6 +494,31 @@ Asked for by the user on 2026-10-29, after the first M3 run in the game: the pho
 | 6 | Hot reload on, save `mod.mjs` in the deployed `edgemobile` folder | EDGEphone's screen is back within a few seconds |
 | 7 | Switch EDGEmobile off in the Mod Manager, then on | EDGEphone says it needs EDGEmobile, then shows its screen again |
 
+### 0.0.7: REDnode's world flag and the game's text
+
+REDnode 0.47.2 shipped both requests from the first M3 run (REDnode [#25](https://github.com/Edgemodders/REDnode/issues/25) and [#26](https://github.com/Edgemodders/REDnode/issues/26), both passed in the game on 2026-10-30). EDGEmobile and EDGEphone 0.0.7 require it.
+
+| Part | Before (0.0.5 to 0.0.6) | Now (0.0.7) |
+|---|---|---|
+| When to read the world | `worldReady()`: `game.player.position()` before each round of calls, at most once every 900 ms | `game.state().world`, then each change through `game.onState`. False while the game starts, at the main menu and from the start of every load, the pause menu's too |
+| The time system | Kept between ticks | Asked for on each tick. REDnode refuses `GameInstance` calls while V is out of the world, but not methods on objects a mod holds, so nothing from the world is kept |
+| Back in the world | The place was read within 5 s | The place is read on the next tick |
+| The district's name | The record's English name (`EnumName`), since `GetLocalizedText` could not be called | `loc.text` on its LocKey, in the player's language. The record's name stays as the fallback |
+
+**Checked outside the game:** the harness's stand-in `rednode` now follows 0.47.2: `world` and its events, `GameInstance` calls refused while it is false, `loc.text` in two languages, and every call into the world counted, held objects too. The `boot` mode (13 checks) goes through the game starting (REDnode's main menu, then the plugin's "not the main menu" with no V yet, when the old mod crashed the game), V arriving, a load from the pause menu, V back in another language, a key with no text, and the main menu: no call into the world while V was out of it, the place back within a second. With full, relink and auto, 54 checks, all passed.
+
+**0.0.7 test** (with the EDGEphone test above, if it is not done yet). REDnode 0.47.2 or later in the game.
+
+| # | Step | Expect |
+|---|---|---|
+| 1 | Start the game with EDGEphone pinned to the HUD, or open it at the main menu | No crash. Its screen shows the clock dimmed, "No signal from Night City" |
+| 2 | Load a save | The district and the rain within a second or two of V showing |
+| 3 | From the pause menu, load another save | The status line goes to "No signal" during the load, and is back after it |
+| 4 | Exit to the main menu | "No signal from Night City" |
+| 5 | If you play in another language: the district's name | In that language |
+
+Send back: anything that did not match, and the lines of `red4ext/logs/rednode-mods.log` with `[edgemobile]` in them.
+
 ### M3 test
 
 On the PC with the game, and the user's Android phone (already paired in M2). EDGEmobile 0.0.5 is deployed.

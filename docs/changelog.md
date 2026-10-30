@@ -9,3 +9,17 @@ How to keep it (the Edgemodders convention):
 - Links are full URLs, since the same text goes to GitHub and Nexus.
 
 ## Unreleased
+
+### New
+
+- EDGEphone, the phone in the game, is its own app: pin it to the HUD on its own. Connecting a phone stays in EDGEmobile's window.
+- District names on the phone are in the game's language.
+
+### Changed
+
+- Needs REDnode 0.47.2 or later.
+- The phone's status line comes back as soon as V is in the world after a load.
+
+### Fixed
+
+- The game no longer crashes on launch when the phone is open while the game starts.
