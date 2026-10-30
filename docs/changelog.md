@@ -23,3 +23,4 @@ How to keep it (the Edgemodders convention):
 ### Fixed
 
 - The game no longer crashes on launch when the phone is open while the game starts.
+- A load that starts while the phone reads the game no longer shows in the log as a failure, and no longer hides a real one.
