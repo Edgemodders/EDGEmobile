@@ -542,4 +542,11 @@ These are needs EDGEmobile may raise as `request` issues on REDnode, once a phas
 | A zoom or scale for page windows | Fit a 390 × 844 phone on any screen |
 | A package call for a picture of the game | The in-game camera. Today only the MCP server's `game_image` takes one |
 
+Raised on 2026-10-30, from the first M3 run in the game:
+
+| Issue | Need |
+|---|---|
+| [REDnode #25](https://github.com/Edgemodders/REDnode/issues/25) | A "V is in the world" flag in `game.state()`, so mods never call world systems too early (the launch crash) |
+| [REDnode #26](https://github.com/Edgemodders/REDnode/issues/26) | Localized text for Node mods: a LocKey to text in the player's language (district names) |
+
 EDGEmobile is not affiliated with CD Projekt RED or Cloudflare.
