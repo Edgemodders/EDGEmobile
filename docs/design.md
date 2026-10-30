@@ -231,6 +231,130 @@ A mobile app is a folder in `red4ext/plugins/REDnode/mobile-apps/<id>/`, beside 
 
 **Why beside, not inside.** While REDnode's hot reload is on (it is for developers, not for players), any change inside a package's folder restarts its mod. An app installed inside EDGEmobile's folder while the game runs would restart EDGEmobile's server, and the tunnel's address could change. In a folder of its own beside it, it does not, and an update of EDGEmobile never touches the apps a player installed.
 
+## Chooms!
+
+*Agreed with the user on 2026-10-30.* Night City's social feed, the first mobile app. The look is the **Chooms! prototype** canvas (Feed, Post and comments, Profile) in the Night City Mobile UI design system. The user chose to build Chooms! before the general M4 work, since it may change what the OS needs: C1 builds the parts of M4 it uses, and M4 then makes them general for other modders.
+
+| Part | Where it runs |
+|---|---|
+| The app: Feed, Post and comments, Profile, DMs, Search, Me, **You Might Already Know** | A mobile app, on both screens |
+| The accounts, the post cycle, the stored history | A Chooms! REDnode package on the PC |
+| Posts, comments and replies in character | REDagent (`agent.ask`, the player's Anthropic key): **Sonnet** for posts, **Opus** for DMs (the user's choice) |
+| Images | **Nano Banana Pro** (Google's image model, through the player's Gemini key in REDnode's shared keys, permission `keys:gemini`). The model's exact name and how it is called: *unverified*, the user will say more |
+| Settings | A REDnode window from the Chooms! package, on the PC |
+
+### Accounts
+
+| Kind | Who (examples) | Shows in the app | Follow | Choom Request and DMs |
+|---|---|---|---|---|
+| Main cast | Judy, Panam, Jackie, River, Kerry | Once V has met them in the game; then in **You Might Already Know** until V follows | V may follow them | They may follow V and send V a Choom Request. V cannot send one, only accept theirs. Once V accepts, they and V can DM each other |
+| Story figures | Kurt Hansen, Hanako, the fixers | In Search once V has become aware of them through the game, never before | V may follow them; they post only if V follows them | No |
+| Delamain | The cab company's AI | Once V has met him | V may follow him | DMs, yes (the user's choice). Proposed: like the main cast, he sends V a Choom Request |
+| Corporations | Militech, Arasaka, Kang Tao and others | Their posts in the feed | V may follow them | Never: no Choom Request, no DMs |
+
+An NPC who is dead in V's playthrough stops posting.
+
+### The post cycle
+
+Every **N minutes** (a setting), only while V is in the world (`game.state().world`):
+
+1. Read the game: the district, the time, the story points V has passed, who is alive, the state of each relationship.
+2. **Corporations:** each one present in V's current district posts with the **corporation chance** (a setting). Which corporations are in which district is a table in the package.
+3. **People:** each account that may post (main cast V has met, story figures V follows; enabled in the settings; alive) posts with the people's chance, at most a set number of posts per cycle.
+4. **Social moves:** a main cast member V has met may follow V, or send a Choom Request, as the relationship allows.
+
+A person's post is one of three kinds:
+
+| Kind | Needs | What it is |
+|---|---|---|
+| Text | Nothing | The fallback, always possible |
+| Selfie (the most common image post) | **Post images** on for that NPC, their portrait, at least one setting image | The NPC up close (smiling, laughing, whatever fits), the background from one of their setting images, no activity |
+| Activity | The same, and an activity for that setting | The NPC placed in the setting doing one of its activities ("working on her car") |
+
+Images being allowed does not mean every post has one, and setting images being present does not mean they are always used: the weights of the three kinds are settings. For an image post, the app picks the setting and the activity (or none for a selfie), Sonnet writes the caption knowing the scene, and the app builds the image prompt from a template: the portrait and the setting image go to the image model with it. With no images, the post is text.
+
+### Settings (a REDnode window, on the PC)
+
+| Section | Settings |
+|---|---|
+| General | Chooms! on or off; check for posts every N minutes; the people's chance to post per check; the corporation chance; the most posts per check; the weights of text, selfie and activity posts; the models (Sonnet posts, Opus DMs); spending caps per day (proposed) |
+| Each person (not corporations; Delamain included) | On or off; **Post images**; a **portrait** image; any number of **setting images**, each with a one-line description and its activities, one per line (Panam: the Aldecaldos camp; "working on her car", "around the campfire", "polishing her rifle") |
+| Keys | Whether REDagent's Anthropic key and the shared Gemini key are set; where to set them |
+
+The images are the player's own, kept in the package's data folder. None ship with the mod, and they reach Google only as part of an image request, which the window says.
+
+### Playthroughs
+
+History belongs to a playthrough (the user's choice). Proposed: on first seeing a playthrough, Chooms! writes a random id into a game fact (`quests.setFact`), which the game keeps in its saves, so every save of that playthrough reads the same id back (*unverified*: that REDnode's facts are saved with the game is for the C2 spike). Each post and message keeps the game time it was made at. Loading an older save of the same playthrough drops what was made after that save's game time, as that branch of the story did not happen.
+
+### What each NPC knows: no spoilers
+
+| Layer | How |
+|---|---|
+| Story points | A list of story points, each a quest state or a fact; a knowledge card per NPC per story point. A prompt carries only the cards for points V has passed |
+| Met, alive, relationship | Facts and journal states (to be found in the C2 spike) |
+| Texts with V in the game | Asked of REDnode: the journal's phone conversations between V and each contact (*unverified* whether the game keeps them readable) |
+| The model's own knowledge | The model knows the whole story from its training. Each prompt says plainly that nothing past V's story points has happened, and a cheap check pass reads each post against the story points not reached before it is shown. That lowers leaks; it cannot rule them out |
+
+The knowledge cards are content work, about 15 to 25 story points per main NPC: drafted by Claude, checked by someone who knows the game.
+
+### In this repo, and released on its own
+
+Chooms! lives in this repo beside EDGEphone (the user's choice, 2026-10-30), with its own version, changelog, release zip (a file of its own in each EDGEmobile release) and Nexus Mods page. Other phone apps will follow, from Edgemodders and from other modders, and every one unpacks into the same folders in the game:
+
+| In the repo | In the game | What |
+|---|---|---|
+| `chooms/rednode/` | `red4ext/plugins/REDnode/apps/chooms/` | The REDnode package: the post cycle, the history, the settings window |
+| `chooms/mobile/` | `red4ext/plugins/REDnode/mobile-apps/chooms/` | The mobile app, shown in the phone |
+| `docs/chooms/changelog.md` | | Its changelog, for its releases and its Nexus page |
+
+### What it needs from REDnode and REDagent
+
+| Need | Why |
+|---|---|
+| A model choice in `agent.ask` (such as `model: 'sonnet'`) | Sonnet for posts, Opus for DMs. Today the assistant picks its own model |
+| The texts between V and a contact, and V's contacts, from the journal | NPCs aware of their history with V; "met" for the main cast. After the C2 spike shows what the game holds |
+
+### Phases
+
+| Phase | What |
+|---|---|
+| C1 The app | The M4 parts it needs: `mobile-app.json`, the app in a sandboxed frame, the `mobile` library, the bridge from the app to its package through EDGEmobile. The screens from the prototype with stored data: Feed, Post and comments, Profile, DMs, Search, Me, You Might Already Know; follow, Choom Request and accept. The playthrough id. The settings window, with the images. Hand-written posts, no AI yet, to test the app |
+| C2 The game's story | A spike: facts, journal, texts, contacts, who is alive, whether facts are saved. Then the story points and cards for the first cast, who V is aware of, and the corporations by district |
+| C3 Posts | The cycle with Sonnet, entities by district, NPCs commenting and liking, follows and Choom Requests, the spoiler check, the caps |
+| C4 Images | Nano Banana Pro: selfies and activities, cached on the PC, 1080 × 1080 |
+| C5 DMs | Conversations with Opus, remembering earlier ones |
+| M4 Mobile apps | The C1 parts made general for other modders: a sample app and a guide |
+
+### C1 plan
+
+*Proposed 2026-10-30, awaiting the user's approval.* The app with hand-written posts, and the parts of the OS it needs. EDGEmobile becomes 0.1.0, Chooms! starts at 0.1.0.
+
+**The OS (EDGEmobile 0.1.0):**
+
+| Part | How |
+|---|---|
+| Finding apps | Each folder in `red4ext/plugins/REDnode/mobile-apps/` with a `mobile-app.json` (see [Mobile apps](#mobile-apps)), plus `"package": "chooms"`: the REDnode package that is its back end. Read at start and when the folder changes. The folder moves there from inside EDGEmobile's own |
+| The home screen | The app grid shows each app's icon, name and badge. A tap opens the app full screen; a bar at the bottom goes home |
+| The app's frame | `<iframe sandbox="allow-scripts allow-forms">`, without `allow-same-origin`, so the app runs in an origin of its own: it cannot read the shell's session, the loader's key or another app. Its files come from `/apps/<id>/` on the same server. Its page may not fetch anything itself (`connect-src 'none'`): everything goes through the shell. That a sandboxed frame loads its scripts and styles under that rule is a spike item (*unverified*) |
+| The `mobile` library | `/mobile.js`, for apps: `mobile.call(name, ...args)` calls its package; `mobile.on(event, handler)` gets its package's events; `mobile.screen` (`'game'` or `'phone'`); the theme, which follows the shell; `mobile.badge(n)`; `mobile.home()` |
+| The bridge | The app posts a message to the shell; the shell checks it comes from the frame of the app it opened and sends it over its signed-in WebSocket; EDGEmobile's mod calls that app's package through REDnode's services, naming the app and the screen. The package's events come back the same way to the screens that have the app open. A phone reaches only the package its app names, never REDnode's `api` |
+| Images | The package hands out a short-lived address for each image (`/media/<random>`), served by EDGEmobile. No image is reachable without one |
+
+**Chooms! 0.1.0:**
+
+| Part | How |
+|---|---|
+| The screens | From the prototype, in plain HTML and the shell's Night City styles: Feed (with the chooms online strip), Post and comments, Profile, DMs, Search, Me, You Might Already Know. On a profile, **Follow**, and **Accept** when that NPC has sent a Choom Request; **Message** once they are chooms |
+| The accounts | `roster.json` in the package: each account's id, name, handle, kind, initials and colour, bio, and (corporations) the districts they post in. For C1, a few accounts with hand-written posts, comments and one Choom Request, so every screen can be tried. Who V has met and is aware of comes in C2; until then the test accounts all count as met |
+| History | Per playthrough, in the package's data folder: posts, comments, likes, follows, requests, DMs, each with the game time it was made. The playthrough's id goes into a game fact; loading an older save drops what came after it (see [Playthroughs](#playthroughs)) |
+| DMs | V can write to a choom. Replies come in C5; until then the message just stays sent |
+| The settings window | General (the settings above, saved, used from C3 on) and each person: on or off, Post images, the portrait, setting images with a description and activities. Images picked from the PC, kept in the package's data folder. A hand-written post can use a setting image, to try images on both screens before C4 |
+
+**Checked outside the game:** the harness grows a second package and an app: an app reaches its own package and nothing else, a frame cannot reach the shell's session, a media address works only for its image and only for a while, the history follows the playthrough and drops a later branch.
+
+**Test:** in the game and on the phone: every screen, follow, accept, a DM, the settings window with a portrait and a setting image, and an older save loaded back.
+
 ## Installing on the phone (PWA)
 
 A web app installs on a phone's home screen when it is served over HTTPS with a manifest and a service worker. The tunnel gives HTTPS. But an installed app is tied to the address it came from, and a quick tunnel's address changes each start, so an installed app served from the tunnel would break after every restart.
@@ -271,10 +395,10 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 | M0 Repo and design | The repo's scaffolding and this page | Done 2026-10-29 |
 | M1 Tunnel spike | Fetch and check `cloudflared`, start a quick tunnel to a server in a REDnode mod, open a page on a real phone, a WebSocket both ways and its delay. Tested on the user's Android phone; iPhones stay *unverified* until someone tests one. Also: the loader (option D) installed on a real phone, showing the PC's page full screen in a frame, with the camera and a `tel:` link from inside it; reusing a running tunnel after a mod restart; `cloudflared` ending with the game; a REDnode page window reaching `127.0.0.1` | Done 2026-10-29: built, tested on Android, four fixes, retested ([M1 test](#m1-test)) |
 | M2 Onboarding | The Connect window: the first fetch, the QR code, the pairing code with Allow and Deny, phones that prove themselves by signature, Paired phones with Disconnect, reconnecting by scan after a restart, the loader at its own address | Done 2026-10-29: built, tested on Android ([M2 test](#m2-test)) |
-| M3 The OS | The shell on both screens: the home screen (status line, clock, app grid, dock), the dock on the real phone, the phone in the game (a borderless red frame, Pin to HUD), the two themes, the fonts shipped | Built 2026-10-29, awaiting the test ([M3 test](#m3-test)) |
+| M3 The OS | The shell on both screens: the home screen (status line, clock, app grid, dock), the dock on the real phone, the phone in the game (a borderless red frame, Pin to HUD), the two themes, the fonts shipped | Done 2026-10-30: built, tested in the game and on Android, with EDGEphone as its own app ([EDGEphone](#edgephone-the-phone-as-its-own-app), [0.0.7](#007-rednodes-world-flag-and-the-games-text)) |
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Not started |
 | M5 Install on the phone | The loader as a PWA: manifest, service worker, icons, the Scan button, offline screen, and its own origin | Not started |
-| M6 Chooms! | To be designed with the user | Not started |
+| M6 Chooms! | C1 to C5 in [Chooms!](#chooms), built before M4's general parts (the user's choice, 2026-10-30) | Agreed 2026-10-30; C1 plan awaiting approval |
 | Release | The zip, `requires` for REDnode, the Nexus page, the changelog | Not started |
 
 ### M1: built
