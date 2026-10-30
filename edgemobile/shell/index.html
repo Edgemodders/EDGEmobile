@@ -71,6 +71,17 @@
   .swatch { display: flex; gap: 4px; }
   .swatch i { width: 12px; height: 24px; }
   .toast { position: fixed; left: 16px; right: 16px; top: max(env(safe-area-inset-top), 16px); z-index: 5; }
+
+  /* Installed apps, and an open app: full screen, with the bar home below it */
+  .app { position: relative; }
+  .app img.icon { object-fit: contain; }
+  .app .badge { position: absolute; top: -6px; left: calc(50% + 20px); min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; display: grid; place-items: center; background: var(--red); color: var(--on-accent); font-family: var(--font-mono); font-size: 11px; font-weight: 500; line-height: 1; }
+  .appview { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; background: var(--bg-000); }
+  .appview iframe { flex: 1; min-height: 0; width: 100%; border: 0; display: block; background: var(--bg-000); }
+  .homebar { flex: none; height: calc(24px + env(safe-area-inset-bottom)); padding: 0 0 env(safe-area-inset-bottom); display: grid; place-items: center; border: 0; background: var(--bg-000); cursor: pointer; }
+  .homebar span { width: 120px; height: 4px; background: var(--ink-dim); }
+  .homebar:focus-visible { outline: 2px solid var(--yellow); outline-offset: -2px; }
+  .apperr { position: absolute; left: 16px; right: 16px; bottom: 40px; z-index: 3; }
 </style>
 </head>
 <body class="nc">
@@ -116,7 +127,7 @@
     <div id="date" class="date"></div>
   </section>
 
-  <nav aria-label="Apps" class="apps">
+  <nav aria-label="Apps" class="apps" id="apps">
     <button type="button" class="app" id="openSettings" aria-label="Settings">
       <svg class="icon" viewBox="0 0 64 64" aria-hidden="true">
         <polygon points="0,0 50,0 64,14 64,64 0,64" style="fill: var(--bg-300)"></polygon>
@@ -129,7 +140,7 @@
       <span class="label">Settings</span>
     </button>
   </nav>
-  <p class="hint">Mobile apps you install show here.</p>
+  <p class="hint" id="appsHint">Mobile apps you install show here.</p>
 
   <div class="spacer"></div>
   <div class="dots" aria-hidden="true"><span></span></div>
@@ -162,6 +173,12 @@
     </div>
   </section>
 </main>
+
+<!-- An open app: its page in a sandboxed frame (docs/design.md, "C1 plan"), and the bar home. -->
+<div id="app" class="appview" hidden>
+  <iframe id="appFrame" title="App" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer"></iframe>
+  <button type="button" class="homebar" id="homeBar" aria-label="Home"><span></span></button>
+</div>
 
 <div id="toast" class="nc-toast toast" role="status" hidden><div class="nc-toast__eyebrow" id="toastHead"></div><div class="nc-toast__text" id="toastText"></div></div>
 

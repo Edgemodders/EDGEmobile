@@ -3,12 +3,14 @@
 // themselves by signature, and the game's time sent to each phone. The Connect window is
 // connect/window.html; it talks to this mod over the package channel.
 
-import { api, channel, game, loc, pkg } from 'rednode';
+import { api, channel, game, loc, pkg, service } from 'rednode';
 import { randomBytes, randomInt } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { join } from 'node:path';
 import qrcode from 'qrcode-generator';
+import { Apps } from './server/apps.mjs';
+import { Bridge } from './server/bridge.mjs';
 import { Phones } from './server/phones.mjs';
 import { CLOUDFLARED, Tunnel, fetchCloudflared, findCloudflared } from './server/tunnel.mjs';
 import { startWeb } from './server/web.mjs';
@@ -78,6 +80,21 @@ const tunnel = new Tunnel({
   },
 });
 
+// The mobile apps, in red4ext/plugins/REDnode/mobile-apps/ beside REDnode's apps folder
+// (EDGEMOBILE_APPS_DIR names another folder, for tests outside the game), and the bridge from
+// each app to its package.
+const appsDir = process.env.EDGEMOBILE_APPS_DIR || join(pkg.dir, '..', '..', 'mobile-apps');
+const sendTo = (c, msg) => c.ws.readyState === c.ws.OPEN && c.ws.send(JSON.stringify(msg));
+const apps = new Apps({
+  dir: appsDir,
+  onChange: () => {
+    console.log(`Mobile apps: ${apps.list.map((a) => a.name).join(', ') || 'none'}`);
+    for (const c of conns) sendTo(c, { t: 'apps', apps: bridge.list() });
+    bridge.start();
+  },
+});
+const bridge = new Bridge({ apps, service, dataDir: pkg.dataDir, send: sendTo, screens: () => conns });
+
 function post() {
   const online = new Map();
   for (const c of conns) online.set(c.id, c);
@@ -140,11 +157,15 @@ function onSocket(ws, info) {
       conns.add(conn);
       send({ t: 'in', name: who.name, local: who.local, id: who.id });
       send({ t: 'theme', theme: settings.theme });
+      send({ t: 'apps', apps: bridge.list() });
       console.log(`Phone in: ${who.name}${who.local ? '' : ' (through the tunnel)'}`);
       post();
       return;
     }
-    if (msg.t === 'theme' && THEMES.includes(msg.theme)) setTheme(msg.theme);
+    if (msg.t === 'app-call') bridge.call(conn, msg);
+    else if (msg.t === 'app-open') conn.openApp = apps.get(msg.app) ? msg.app : null;
+    else if (msg.t === 'app-close') conn.openApp = null;
+    else if (msg.t === 'theme' && THEMES.includes(msg.theme)) setTheme(msg.theme);
     else if (msg.t === 'ping') send({ t: 'pong', at: msg.at });
     else if (msg.t === 'tock' && typeof msg.at === 'number') {
       conn.rtt.push(Math.round(performance.now() - msg.at));
@@ -358,9 +379,21 @@ async function pickPort() {
 
 let webUp = false;
 try {
-  await startWeb({ dir: pkg.dir, port, loaderOrigin: LOADER_ORIGIN, originOk, onSocket });
+  await startWeb({
+    dir: pkg.dir,
+    port,
+    loaderOrigin: LOADER_ORIGIN,
+    originOk,
+    onSocket,
+    appsDir,
+    appIds: () => apps.list.map((a) => a.id),
+    tunnelOrigin: () => (view.tunnel.url ? new URL(view.tunnel.url).origin : null),
+    media: (token) => bridge.media(token),
+  });
   webUp = true;
   console.log(`EDGEmobile: web server on ${localOrigin}`);
+  console.log(`Mobile apps: ${apps.list.map((a) => a.name).join(', ') || 'none'}`);
+  bridge.start().catch(() => {});
 } catch (err) {
   view.error = view.webError = `The web server could not start on port ${port}: ${err.message}`;
   console.log(view.error);

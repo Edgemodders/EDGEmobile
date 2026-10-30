@@ -11,6 +11,8 @@ const $ = (id) => document.getElementById(id);
 const LOADER_ORIGIN = 'https://mobile.edgemodders.ai';
 const THEMES = ['nightcity', 'edgemodders'];
 const framed = window.parent !== window;
+let apps = []; // the installed mobile apps, as the PC lists them
+let openApp = null; // the app open full screen, if any
 
 // The key or session arrives after the #, which never leaves the phone. Take it out of the
 // address bar at once.
@@ -150,6 +152,7 @@ function toast(head, text) {
 function applyTheme(theme) {
   if (!THEMES.includes(theme)) return;
   document.documentElement.dataset.theme = theme;
+  toApp({ op: 'theme', theme });
   for (const b of document.querySelectorAll('[data-theme-choice]')) b.setAttribute('aria-checked', String(b.dataset.themeChoice === theme));
   try {
     localStorage.setItem('edgemobile.theme', theme);
@@ -181,6 +184,7 @@ function connect() {
     } else handle(m);
   };
   ws.onclose = () => {
+    failCalls('Lost the connection to your game.');
     if (refused || !wasIn) return;
     gate(null);
     status(`Lost the connection to your game. Trying again in ${Math.round(wait / 1000)} s…`, 'bad');
@@ -213,6 +217,20 @@ function handle(m) {
       wasIn = true;
       wait = 1000;
       if ($('settings').hidden) screen('home');
+      if (openApp) send({ t: 'app-open', app: openApp.id });
+      break;
+    case 'apps':
+      renderApps(m.apps);
+      break;
+    case 'app-result': {
+      const call = calls.get(m.id);
+      if (!call) break;
+      calls.delete(m.id);
+      if (openApp && call.app === openApp.id) toApp({ op: 'result', id: call.appId, ok: m.ok, value: m.value, error: m.error });
+      break;
+    }
+    case 'app-event':
+      if (openApp && m.app === openApp.id) toApp({ op: 'event', event: m.event, data: m.data });
       break;
     case 'theme':
       applyTheme(m.theme);
@@ -244,6 +262,99 @@ function home({ seconds, district, rain }) {
   const date = new Date(Date.UTC(2077, 0, 1 + days));
   $('date').textContent = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
+
+// --- Mobile apps -----------------------------------------------------------------------------
+// Each app runs in a sandboxed frame (docs/design.md, "C1 plan"): an origin of its own, so it
+// cannot read this page's session or the loader's key. It talks to this page by messages only
+// (/mobile.js), and this page passes its calls to its package on the PC over the WebSocket.
+
+const calls = new Map(); // WebSocket call id -> { app, appId }
+let nextCall = 1;
+
+function renderApps(list) {
+  apps = Array.isArray(list) ? list : [];
+  for (const el of document.querySelectorAll('#apps .app[data-app]')) el.remove();
+  const settingsBtn = $('openSettings');
+  for (const a of apps) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'app';
+    btn.dataset.app = a.id;
+    btn.setAttribute('aria-label', a.badge ? `${a.name}, ${a.badge} new` : a.name);
+    const icon = document.createElement('img');
+    icon.className = 'icon';
+    icon.alt = '';
+    if (a.icon) icon.src = a.icon;
+    const label = document.createElement('span');
+    label.className = 'label';
+    label.textContent = a.name;
+    btn.append(icon, label);
+    if (a.badge) {
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.setAttribute('aria-hidden', 'true');
+      badge.textContent = a.badge > 99 ? '99+' : String(a.badge);
+      btn.append(badge);
+    }
+    btn.addEventListener('click', () => openAppById(a.id));
+    settingsBtn.before(btn);
+  }
+  $('appsHint').hidden = apps.length > 0;
+  // An app that was removed while open closes.
+  if (openApp && !apps.some((a) => a.id === openApp.id)) closeApp();
+}
+
+function openAppById(id) {
+  const a = apps.find((x) => x.id === id);
+  if (!a) return;
+  openApp = a;
+  $('appFrame').title = a.name;
+  $('appFrame').src = a.entry;
+  $('app').hidden = false;
+  send({ t: 'app-open', app: a.id });
+}
+
+function closeApp() {
+  if (!openApp) return;
+  send({ t: 'app-close', app: openApp.id });
+  for (const [id, c] of calls) if (c.app === openApp.id) calls.delete(id);
+  openApp = null;
+  $('app').hidden = true;
+  $('appFrame').removeAttribute('src');
+  $('appFrame').src = 'about:blank';
+}
+
+function toApp(msg) {
+  const frame = $('appFrame');
+  if (!openApp || !frame?.contentWindow) return;
+  // The frame's origin is opaque, so it cannot be named: '*' goes to that one frame only.
+  frame.contentWindow.postMessage({ mobile: 1, ...msg }, '*');
+}
+
+function failCalls(error) {
+  for (const [id, c] of calls) {
+    if (openApp && c.app === openApp.id) toApp({ op: 'result', id: c.appId, ok: false, error });
+    calls.delete(id);
+  }
+}
+
+window.addEventListener('message', (e) => {
+  if (!openApp || e.source !== $('appFrame').contentWindow) return;
+  const m = e.data;
+  if (!m || m.mobile !== 1) return;
+  if (m.op === 'hello') {
+    toApp({ op: 'init', screen: inGame ? 'game' : 'phone', theme: document.documentElement.dataset.theme });
+  } else if (m.op === 'home') {
+    closeApp();
+  } else if (m.op === 'call' && typeof m.call === 'string') {
+    const id = nextCall++;
+    calls.set(id, { app: openApp.id, appId: m.id });
+    if (ws?.readyState !== WebSocket.OPEN) return failCalls('Not connected to your game.');
+    send({ t: 'app-call', id, app: openApp.id, call: m.call, args: Array.isArray(m.args) ? m.args : [] });
+  }
+});
+
+$('homeBar').addEventListener('click', closeApp);
 
 // --- Settings, and the dock -------------------------------------------------------------------
 
