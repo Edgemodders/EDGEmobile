@@ -14,5 +14,5 @@ How to keep it (the Edgemodders convention):
 
 - Chooms!, Night City's social feed, on EDGEmobile's phone: the feed, posts and comments, likes, profiles, Follow, Choom Requests to accept, messages with your chooms, search, and posts of your own.
 - Your feed belongs to the playthrough you play. Loading an older save of it takes the feed back to that point.
-- A settings window on the PC: how often people and corporations post, and each person's portrait and the places where their photos are taken.
+- A settings window on the PC: how often people and corporations post, and each person's portrait and the places where their photos are taken. Images are chosen in the window itself, from your Steam screenshots, Pictures or any folder, so nothing opens behind the game.
 - For now the feed has a few hand-written posts to try it with. People start posting by themselves in a later version.

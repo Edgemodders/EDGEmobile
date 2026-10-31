@@ -1,10 +1,10 @@
 // Chooms!'s settings window. The mod (mod.mjs) keeps the settings and the images; this page
-// draws them and sends changes back over the package channel. Images go to the mod in pieces,
-// since the page has no file access; previews come back as data addresses.
+// draws them and sends changes back over the package channel. Images are chosen in a picker
+// drawn here, from folders the mod lists, since the system's file picker opens behind the game;
+// previews come back as data addresses.
 
 const { channel } = await import('rednode');
 const $ = (id) => document.getElementById(id);
-const CHUNK = 192 * 1024;
 const SLIDERS = ['everyMinutes', 'peopleChance', 'corpChance', 'maxPerCheck', 'weightText', 'weightSelfie', 'weightActivity'];
 
 let people = [];
@@ -22,6 +22,8 @@ function message(text, tone = 'fine') {
 channel.on((m) => {
   if (m.type === 'state') drawGeneral(m);
   else if (m.type === 'person' && m.id === current) drawPerson(m);
+  else if (m.type === 'browse') drawBrowse(m);
+  else if (m.type === 'peek') drawPeek(m);
   else if (m.type === 'error') message(m.text, 'error');
   else if (m.type === 'note') message(m.text, 'note');
 });
@@ -97,13 +99,12 @@ function drawPerson(p) {
   q('.pOn').addEventListener('change', (e) => channel.post({ type: 'person-set', person: p.id, on: !!e.detail?.checked }));
   q('.pImages').addEventListener('change', (e) => channel.post({ type: 'person-set', person: p.id, images: !!e.detail?.checked }));
 
-  const img = q('.portrait');
-  if (p.portrait) img.src = p.portrait;
-  else img.removeAttribute('src');
+  // With no portrait, an empty picture: an img without a source shows a broken image.
+  q('.portrait').src = p.portrait || BLANK;
   q('.removePortrait').hidden = !p.portrait;
   q('.removePortrait').addEventListener('click', () => channel.post({ type: 'portrait-remove', person: p.id }));
-  wirePick(q('.choosePortrait'), q('.pickPortrait'), p.id, 'portrait');
-  wirePick(q('.choosePlace'), q('.pickPlace'), p.id, 'setting');
+  q('.choosePortrait').addEventListener('click', () => openPicker(p.id, 'portrait'));
+  q('.choosePlace').addEventListener('click', () => openPicker(p.id, 'setting'));
 
   const places = q('.places');
   p.settings.forEach((s, index) => {
@@ -128,26 +129,110 @@ function drawPerson(p) {
   $('detail').replaceChildren(frag);
 }
 
-// A button that opens the file picker, and sends the picked image to the mod in pieces.
-function wirePick(button, input, personId, kind) {
-  button.addEventListener('click', () => input.click());
-  input.addEventListener('change', async () => {
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-    if (file.size > 12 * 1024 * 1024) return message('That image is over 12 MB.', 'error');
-    message(`Sending ${file.name}…`);
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const upload = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const n = Math.max(1, Math.ceil(bytes.length / CHUNK));
-    for (let i = 0; i < n; i++) {
-      const part = bytes.subarray(i * CHUNK, (i + 1) * CHUNK);
-      let bin = '';
-      for (let j = 0; j < part.length; j += 0x8000) bin += String.fromCharCode(...part.subarray(j, j + 0x8000));
-      channel.post({ type: 'upload', upload, person: personId, kind, i, n, chunk: btoa(bin) });
-    }
-    message(`${file.name} added.`, 'note');
-  });
+// --- Choosing an image ------------------------------------------------------------------------
+// The system's file picker opens on the desktop, behind the game, and holds the cursor until it
+// is found and closed. This picker is drawn in the window instead: the mod lists a folder's
+// subfolders and images, sends a preview of the one selected and copies the one picked.
+
+const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+let picking = null; // { person, kind, path, parent, name }
+
+const fine = (text, cls = 'fine') => Object.assign(document.createElement('p'), { className: cls, textContent: text });
+const size = (n) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+const day = (ms) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
+function openPicker(personId, kind) {
+  const name = people.find((x) => x.id === personId)?.name ?? personId;
+  picking = { person: personId, kind, path: null, parent: null, name: null };
+  $('pickTitle').textContent = kind === 'portrait' ? `A portrait of ${name}` : `A place for ${name}`;
+  $('pickList').replaceChildren(fine('Loading…'));
+  select(null);
+  $('tabs').hidden = true;
+  $('picker').hidden = false;
+  channel.post({ type: 'browse' });
 }
+
+function closePicker() {
+  picking = null;
+  $('picker').hidden = true;
+  $('tabs').hidden = false;
+}
+
+function browse(path, into) {
+  $('pickList').replaceChildren(fine('Loading…'));
+  select(null);
+  channel.post({ type: 'browse', path, into });
+}
+
+function select(name) {
+  if (picking) picking.name = name;
+  $('pickPreview').src = BLANK;
+  $('pickUse').hidden = !name;
+  $('pickName').textContent = name ? `${name}: loading…` : 'Select an image to see it here. PNG, JPEG or WebP, up to 12 MB.';
+  for (const el of $('pickList').querySelectorAll('.entry.file')) el.classList.toggle('on', el.dataset.name === name);
+  if (name) channel.post({ type: 'peek', path: picking.path, name });
+}
+
+function entry(cls, name, meta, onClick) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = `entry ${cls}`;
+  b.dataset.name = name;
+  const n = Object.assign(document.createElement('span'), { className: 'name', textContent: name });
+  const m = Object.assign(document.createElement('span'), { className: 'meta', textContent: meta });
+  b.append(n, m);
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+function drawBrowse(m) {
+  if (!picking) return;
+  picking.path = m.path;
+  picking.parent = m.parent;
+  $('pickPath').textContent = m.path;
+  $('pickPath').title = m.path;
+  $('pickUp').hidden = !m.parent;
+  $('pickPlaces').replaceChildren(
+    ...m.places.map((pl) => {
+      const b = Object.assign(document.createElement('button'), { type: 'button', className: `chip${pl.path === m.path ? ' on' : ''}`, textContent: pl.name, title: pl.path });
+      b.addEventListener('click', () => browse(pl.path));
+      return b;
+    }),
+  );
+  const rows = [];
+  if (m.error) rows.push(fine(m.error, 'fine error'));
+  for (const d of m.dirs) rows.push(entry('dir', d, '', () => browse(m.path, d)));
+  for (const f of m.files) {
+    const row = entry('file', f.name, `${day(f.at)} · ${size(f.size)}`, () => select(f.name));
+    row.addEventListener('dblclick', use);
+    rows.push(row);
+  }
+  if (!m.error && !m.dirs.length && !m.files.length) rows.push(fine('No folders or images here.'));
+  if (m.more) rows.push(fine('Only the first 1000 are shown.'));
+  $('pickList').replaceChildren(...rows);
+  $('pickList').scrollTop = 0;
+}
+
+function drawPeek(m) {
+  if (!picking || m.path !== picking.path || m.name !== picking.name) return;
+  if (m.error) {
+    $('pickName').textContent = `${m.name}: ${m.error}`;
+    $('pickUse').hidden = true;
+    return;
+  }
+  $('pickPreview').src = m.data;
+  $('pickName').textContent = m.name;
+}
+
+function use() {
+  if (!picking?.name) return;
+  channel.post({ type: 'pick', person: picking.person, kind: picking.kind, path: picking.path, name: picking.name });
+  message(`Adding ${picking.name}…`);
+  closePicker();
+}
+
+$('pickCancel').addEventListener('click', closePicker);
+$('pickUp').addEventListener('click', () => picking?.parent && browse(picking.parent));
+$('pickUse').addEventListener('click', use);
 
 channel.post({ type: 'hello' });

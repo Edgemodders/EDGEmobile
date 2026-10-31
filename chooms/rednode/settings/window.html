@@ -27,16 +27,34 @@
   .place img { width: 120px; height: 120px; object-fit: cover; }
   .place .stack { gap: 6px; }
   .place input { width: 100%; box-sizing: border-box; font: 13px var(--rn-mono); color: inherit; background: transparent; border: 1px solid var(--rn-line); padding: 4px 6px; }
-  .pick { display: inline-flex; }
-  .pick input { display: none; }
   .note { color: var(--rn-accent); }
+  /* The picker: drawn in the window, since the system's file picker opens behind the game. */
+  .picker { display: flex; flex-direction: column; gap: 8px; height: 640px; }
+  .picker .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .picker .head strong { font-size: 15px; }
+  .places-row { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { font: 12px var(--rn-mono); color: inherit; background: var(--rn-panel); border: 1px solid var(--rn-line); padding: 3px 8px; cursor: pointer; }
+  .chip.on { border-color: var(--rn-accent); color: var(--rn-accent); }
+  .path { font: 12px var(--rn-mono); color: var(--rn-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; flex: 1; min-width: 0; }
+  .pick-body { display: grid; grid-template-columns: 1fr 200px; gap: 10px; flex: 1; min-height: 0; }
+  .entries { overflow-y: auto; border: 1px solid var(--rn-line); display: flex; flex-direction: column; }
+  .entry { display: grid; grid-template-columns: 1fr auto; gap: 8px; text-align: left; font: 13px var(--rn-mono); color: inherit; background: none; border: 0; border-bottom: 1px solid var(--rn-line); padding: 5px 8px; cursor: pointer; }
+  .entry:hover { background: var(--rn-panel); }
+  .entry.on { background: var(--rn-panel); color: var(--rn-accent); }
+  .entry .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entry .meta { color: var(--rn-dim); font-size: 11px; }
+  .entry.dir .name::before { content: '▸ '; color: var(--rn-dim); }
+  .entries .fine { padding: 8px; }
+  .side { display: flex; flex-direction: column; gap: 8px; }
+  .side img { width: 200px; height: 200px; object-fit: contain; background: var(--rn-panel); border: 1px solid var(--rn-line); }
+  .side .fine { word-break: break-all; }
 </style>
 </head>
 <body>
 <rn-window id="win" title="Chooms! // Settings" draggable closable>
   <div class="stack">
     <p id="msg" class="fine" hidden></p>
-    <rn-tabs>
+    <rn-tabs id="tabs">
       <rn-tab label="Posting">
         <div class="stack">
           <p class="fine">People and corporations start posting by themselves in a later version of Chooms! (C3). Until then the feed has a few hand-written posts, and you can try a photo post from the People tab.</p>
@@ -72,6 +90,19 @@
         </div>
       </rn-tab>
     </rn-tabs>
+    <div id="picker" class="picker" hidden>
+      <div class="head"><strong id="pickTitle">Choose an image</strong><rn-button id="pickCancel" variant="ghost">Cancel</rn-button></div>
+      <div id="pickPlaces" class="places-row"></div>
+      <div class="row"><rn-button id="pickUp" variant="ghost">Up</rn-button><span id="pickPath" class="path"></span></div>
+      <div class="pick-body">
+        <div id="pickList" class="entries"></div>
+        <div class="side">
+          <img id="pickPreview" alt="">
+          <p id="pickName" class="fine">Select an image to see it here. PNG, JPEG or WebP, up to 12 MB.</p>
+          <rn-button id="pickUse" hidden>Use this image</rn-button>
+        </div>
+      </div>
+    </div>
   </div>
 </rn-window>
 
@@ -85,7 +116,7 @@
       <div class="stack">
         <p class="fine">A clear picture of their face. It is their picture in the app, and the image model puts them into their places with it.</p>
         <div class="row">
-          <span class="pick"><input class="pickPortrait" type="file" accept="image/png,image/jpeg,image/webp"><rn-button class="choosePortrait">Choose image</rn-button></span>
+          <rn-button class="choosePortrait">Choose image</rn-button>
           <rn-button class="removePortrait" variant="ghost">Remove</rn-button>
         </div>
       </div>
@@ -95,7 +126,7 @@
     <div class="stack">
       <p class="fine">Where they might be when they post: an image of the place, a line describing it, and what they might be doing there, one per line. Most photos are selfies with a place behind them.</p>
       <div class="places stack"></div>
-      <div class="row"><span class="pick"><input class="pickPlace" type="file" accept="image/png,image/jpeg,image/webp"><rn-button class="choosePlace">Add a place</rn-button></span></div>
+      <div class="row"><rn-button class="choosePlace">Add a place</rn-button></div>
     </div>
   </rn-panel>
 </template>

@@ -4,8 +4,9 @@
 
 import { api, channel, game, pkg, quests, service } from 'rednode';
 import { randomBytes, randomInt } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { dirname, extname, join, resolve } from 'node:path';
 import { Store } from './store.mjs';
 
 const roster = JSON.parse(readFileSync(join(pkg.dir, 'roster.json'), 'utf8')).accounts;
@@ -37,7 +38,7 @@ const DEFAULTS = {
 let settings = { general: { ...DEFAULTS }, people: {} };
 try {
   const s = JSON.parse(readFileSync(settingsFile, 'utf8'));
-  settings = { general: { ...DEFAULTS, ...s.general }, people: s.people ?? {} };
+  settings = { general: { ...DEFAULTS, ...s.general }, people: s.people ?? {}, folder: typeof s.folder === 'string' ? s.folder : null };
 } catch {
   // first start
 }
@@ -289,11 +290,111 @@ export function answer(call, args) {
 }
 
 // --- The settings window ----------------------------------------------------------------------
-// The window is a page in the overlay with no file access: images come to the mod in pieces
-// over the package channel, and go back as small data addresses for its previews.
+// The window is a page in the overlay with no file access. The system's file picker opens on the
+// desktop, behind the game (the user's C1 test, 2026-10-31), so the window draws a picker of its
+// own: the mod lists the PC's folders and their images, sends a preview of the one selected,
+// and copies the one picked. Images go back as data addresses for the window's previews. Only
+// this package's own window on the PC reaches the channel; a phone never does.
 
 const IMAGE_MAX = 12 * 1024 * 1024;
+const IMAGE_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp']);
+const LIST_MAX = 1000;
 const uploads = new Map(); // upload id -> { person, kind, chunks: [], got: 0, n }
+
+const isDir = (path) => {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+};
+
+// Where pictures usually are: the game's Steam screenshots (F12; the game's Steam id is
+// 1091500), photo mode's folder (*unverified* as the game's), the user's folders, the drives.
+function places() {
+  const home = homedir();
+  const found = [];
+  const add = (name, path) => isDir(path) && !found.some((p) => p.path === path) && found.push({ name, path });
+  const steam = join(process.env['ProgramFiles(x86)'] ?? 'C:\\Program Files (x86)', 'Steam', 'userdata');
+  try {
+    for (const user of readdirSync(steam)) add('Steam screenshots', join(steam, user, '760', 'remote', '1091500', 'screenshots'));
+  } catch {
+    // no Steam there
+  }
+  add('Photo mode', join(home, 'Pictures', 'Cyberpunk 2077'));
+  add('Pictures', join(home, 'Pictures'));
+  add('Pictures', join(home, 'OneDrive', 'Pictures'));
+  add('Downloads', join(home, 'Downloads'));
+  add('Desktop', join(home, 'Desktop'));
+  add('Documents', join(home, 'Documents'));
+  for (const d of 'CDEFGHIJKLMNOPQRSTUVWXYZ') add(`${d}:`, `${d}:\\`);
+  return found;
+}
+
+// A folder's subfolders and images, newest images first.
+function browse(m) {
+  const all = places();
+  let dir = typeof m.path === 'string' && m.path ? resolve(m.path) : null;
+  if (dir && typeof m.into === 'string' && m.into && !/[\\/]/.test(m.into) && m.into !== '..') dir = join(dir, m.into);
+  if (!dir || !isDir(dir)) dir = settings.folder && isDir(settings.folder) ? settings.folder : (all[0]?.path ?? homedir());
+  const parent = dirname(dir) === dir ? null : dirname(dir);
+  const dirs = [];
+  const files = [];
+  try {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name.startsWith('.') || e.name.startsWith('$')) continue;
+      if (e.isDirectory()) dirs.push(e.name);
+      else if (e.isFile() && IMAGE_EXT.has(extname(e.name).toLowerCase())) {
+        try {
+          const s = statSync(join(dir, e.name));
+          files.push({ name: e.name, size: s.size, at: s.mtimeMs });
+        } catch {
+          // gone, or not ours to read
+        }
+      }
+    }
+  } catch (err) {
+    return { type: 'browse', path: dir, parent, places: all, dirs: [], files: [], error: `That folder cannot be read (${err.code ?? err.message}).` };
+  }
+  dirs.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
+  files.sort((a, b) => b.at - a.at);
+  return { type: 'browse', path: dir, parent, places: all, dirs: dirs.slice(0, LIST_MAX), files: files.slice(0, LIST_MAX), more: dirs.length + files.length > 2 * LIST_MAX };
+}
+
+// The image file the window names, read and checked, or an error to show.
+function readPicked(m) {
+  if (typeof m.path !== 'string' || typeof m.name !== 'string' || /[\\/]/.test(m.name)) return { error: 'Pick an image.' };
+  const file = join(resolve(m.path), m.name);
+  if (!IMAGE_EXT.has(extname(file).toLowerCase())) return { error: 'Only PNG, JPEG and WebP images.' };
+  let size;
+  try {
+    size = statSync(file).size;
+  } catch {
+    return { error: 'That image is gone.' };
+  }
+  if (size > IMAGE_MAX) return { error: 'That image is over 12 MB.' };
+  const buf = readFileSync(file);
+  const ext = imageKind(buf);
+  if (!ext) return { error: 'Only PNG, JPEG and WebP images.' };
+  return { buf, ext, file };
+}
+
+// Keeps an image as a person's portrait or as a new place.
+function addImage(id, p, kind, buf, ext) {
+  const rel = `people/${id}/${randomBytes(6).toString('hex')}.${ext}`;
+  mkdirSync(join(pkg.dataDir, 'people', id), { recursive: true });
+  writeFileSync(join(pkg.dataDir, rel), buf);
+  if (kind === 'portrait') {
+    removeFile(p.portrait);
+    p.portrait = rel;
+  } else {
+    p.settings.push({ file: rel, description: '', activities: [] });
+  }
+  saveSettings();
+  channel.post(personState(id));
+  channel.post(windowState());
+  if (kind === 'portrait') changed();
+}
 
 function imageKind(buf) {
   if (buf.length > 8 && buf[0] === 0x89 && buf.toString('ascii', 1, 4) === 'PNG') return 'png';
@@ -413,19 +514,30 @@ channel.on((m) => {
         channel.post({ type: 'error', text: 'Only PNG, JPEG and WebP images.' });
         break;
       }
-      const rel = `people/${id}/${randomBytes(6).toString('hex')}.${ext}`;
-      mkdirSync(join(pkg.dataDir, 'people', id), { recursive: true });
-      writeFileSync(join(pkg.dataDir, rel), buf);
-      if (u.kind === 'portrait') {
-        removeFile(p.portrait);
-        p.portrait = rel;
-      } else {
-        p.settings.push({ file: rel, description: '', activities: [] });
+      addImage(id, p, u.kind, buf, ext);
+      break;
+    }
+    case 'browse':
+      channel.post(browse(m));
+      break;
+    case 'peek': {
+      // { path, name }: a preview of the image selected in the window's picker.
+      const r = readPicked(m);
+      const type = r.ext === 'jpg' ? 'jpeg' : r.ext;
+      channel.post({ type: 'peek', path: m.path, name: m.name, ...(r.error ? { error: r.error } : { data: `data:image/${type};base64,${r.buf.toString('base64')}` }) });
+      break;
+    }
+    case 'pick': {
+      // { person, kind: 'portrait' | 'setting', path, name }: the image picked in the window.
+      if (!p || !['portrait', 'setting'].includes(m.kind)) break;
+      const r = readPicked(m);
+      if (r.error) {
+        channel.post({ type: 'error', text: r.error });
+        break;
       }
-      saveSettings();
-      channel.post(personState(id));
-      channel.post(windowState());
-      if (u.kind === 'portrait') changed();
+      settings.folder = dirname(r.file);
+      addImage(id, p, m.kind, r.buf, r.ext);
+      channel.post({ type: 'note', text: `${m.name} added.` });
       break;
     }
     case 'try-post': {
