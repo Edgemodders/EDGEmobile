@@ -76,7 +76,7 @@ function drawList() {
       item.textContent = p.name;
       const end = document.createElement('span');
       end.slot = 'end';
-      end.textContent = [p.portrait ? 'portrait' : '', p.settings ? `${p.settings} place${p.settings === 1 ? '' : 's'}` : '', KIND[p.kind]].filter(Boolean).join(' · ') || (p.on ? '' : 'off');
+      end.textContent = [p.portrait ? 'portrait' : '', p.body ? 'body' : '', p.settings ? `${p.settings} place${p.settings === 1 ? '' : 's'}` : '', KIND[p.kind]].filter(Boolean).join(' · ') || (p.on ? '' : 'off');
       item.append(end);
       return item;
     }),
@@ -99,11 +99,13 @@ function drawPerson(p) {
   q('.pOn').addEventListener('change', (e) => channel.post({ type: 'person-set', person: p.id, on: !!e.detail?.checked }));
   q('.pImages').addEventListener('change', (e) => channel.post({ type: 'person-set', person: p.id, images: !!e.detail?.checked }));
 
-  // With no portrait, an empty picture: an img without a source shows a broken image.
-  q('.portrait').src = p.portrait || BLANK;
-  q('.removePortrait').hidden = !p.portrait;
-  q('.removePortrait').addEventListener('click', () => channel.post({ type: 'portrait-remove', person: p.id }));
-  q('.choosePortrait').addEventListener('click', () => openPicker(p.id, 'portrait'));
+  // With no image, an empty picture: an img without a source shows a broken image.
+  for (const [kind, cls] of [['portrait', 'Portrait'], ['body', 'Body']]) {
+    q(`.${kind}`).src = p[kind] || BLANK;
+    q(`.remove${cls}`).hidden = !p[kind];
+    q(`.remove${cls}`).addEventListener('click', () => channel.post({ type: 'image-remove', person: p.id, kind }));
+    q(`.choose${cls}`).addEventListener('click', () => openPicker(p.id, kind));
+  }
   q('.choosePlace').addEventListener('click', () => openPicker(p.id, 'setting'));
 
   const places = q('.places');
@@ -144,7 +146,7 @@ const day = (ms) => new Date(ms).toLocaleDateString(undefined, { day: 'numeric',
 function openPicker(personId, kind) {
   const name = people.find((x) => x.id === personId)?.name ?? personId;
   picking = { person: personId, kind, path: null, parent: null, name: null };
-  $('pickTitle').textContent = kind === 'portrait' ? `A portrait of ${name}` : `A place for ${name}`;
+  $('pickTitle').textContent = { portrait: `A portrait of ${name}`, body: `${name}, head to toe` }[kind] ?? `A place for ${name}`;
   $('pickList').replaceChildren(fine('Loading…'));
   select(null);
   $('tabs').hidden = true;

@@ -23,6 +23,7 @@
   .people rn-list { max-height: 600px; overflow-y: auto; }
   .detail { display: flex; flex-direction: column; gap: 10px; max-height: 600px; overflow-y: auto; padding-right: 4px; }
   .portrait { width: 96px; height: 96px; object-fit: cover; background: var(--rn-panel); border: 1px solid var(--rn-line); }
+  .body { width: 96px; height: 144px; object-fit: contain; background: var(--rn-panel); border: 1px solid var(--rn-line); }
   .place { display: grid; grid-template-columns: 120px 1fr; gap: 8px; padding: 8px; background: var(--rn-panel); border-left: 2px solid var(--rn-line); }
   .place img { width: 120px; height: 120px; object-fit: cover; }
   .place .stack { gap: 6px; }
@@ -68,7 +69,7 @@
               <rn-slider id="weightText" label="Text" min="0" max="100" value="40"></rn-slider>
               <rn-slider id="weightSelfie" label="Selfie, with one of their places behind" min="0" max="100" value="45"></rn-slider>
               <rn-slider id="weightActivity" label="Photo of them doing something at one of their places" min="0" max="100" value="15"></rn-slider>
-              <p class="fine">A photo needs that person's Post images on, a portrait and a place. Without them the post is text.</p>
+              <p class="fine">A photo needs that person's Post images on, a portrait and a place, or the post is text. A photo of them doing something needs their body image too, or it becomes a selfie.</p>
             </div>
           </rn-panel>
           <rn-panel title="AI">
@@ -114,10 +115,22 @@
     <div class="row">
       <img class="portrait" alt="">
       <div class="stack">
-        <p class="fine">A clear picture of their face. It is their picture in the app, and the image model puts them into their places with it.</p>
+        <p class="fine">A clear picture of their face. It is their picture in the app, and the image model uses it for their selfies.</p>
         <div class="row">
           <rn-button class="choosePortrait">Choose image</rn-button>
           <rn-button class="removePortrait" variant="ghost">Remove</rn-button>
+        </div>
+      </div>
+    </div>
+  </rn-panel>
+  <rn-panel title="Body">
+    <div class="row">
+      <img class="body" alt="">
+      <div class="stack">
+        <p class="fine">Them from head to toe, as they look in the game. The image model uses it with the portrait to put them into one of their places doing something: Judy at her desk, Panam working on her car.</p>
+        <div class="row">
+          <rn-button class="chooseBody">Choose image</rn-button>
+          <rn-button class="removeBody" variant="ghost">Remove</rn-button>
         </div>
       </div>
     </div>

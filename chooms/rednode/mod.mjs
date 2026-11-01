@@ -42,7 +42,11 @@ try {
 } catch {
   // first start
 }
-const person = (id) => (settings.people[id] ??= { on: true, images: true, portrait: null, settings: [] });
+const person = (id) => (settings.people[id] ??= { on: true, images: true, portrait: null, body: null, settings: [] });
+// A person's one-of images: the portrait (their face, their picture in the app) and the body
+// (head to toe, for photos of them doing something at a place). Places are a list.
+const SINGLE = ['portrait', 'body'];
+const KINDS = [...SINGLE, 'setting'];
 function saveSettings() {
   writeFileSync(`${settingsFile}.tmp`, JSON.stringify(settings, null, 2));
   renameSync(`${settingsFile}.tmp`, settingsFile);
@@ -379,14 +383,14 @@ function readPicked(m) {
   return { buf, ext, file };
 }
 
-// Keeps an image as a person's portrait or as a new place.
+// Keeps an image as a person's portrait or body, or as a new place.
 function addImage(id, p, kind, buf, ext) {
   const rel = `people/${id}/${randomBytes(6).toString('hex')}.${ext}`;
   mkdirSync(join(pkg.dataDir, 'people', id), { recursive: true });
   writeFileSync(join(pkg.dataDir, rel), buf);
-  if (kind === 'portrait') {
-    removeFile(p.portrait);
-    p.portrait = rel;
+  if (SINGLE.includes(kind)) {
+    removeFile(p[kind]);
+    p[kind] = rel;
   } else {
     p.settings.push({ file: rel, description: '', activities: [] });
   }
@@ -416,7 +420,7 @@ function windowState() {
     general: settings.general,
     people: PEOPLE.map((a) => {
       const p = person(a.id);
-      return { id: a.id, name: a.name, kind: a.kind, tag: a.tag, on: p.on, images: p.images, portrait: !!p.portrait, settings: p.settings.length };
+      return { id: a.id, name: a.name, kind: a.kind, tag: a.tag, on: p.on, images: p.images, portrait: !!p.portrait, body: !!p.body, settings: p.settings.length };
     }),
     playthrough: store.id,
   };
@@ -430,6 +434,7 @@ function personState(id) {
     on: p.on,
     images: p.images,
     portrait: preview(p.portrait),
+    body: preview(p.body),
     settings: p.settings.map((s) => ({ description: s.description, activities: s.activities.join('\n'), image: preview(s.file) })),
   };
 }
@@ -485,18 +490,19 @@ channel.on((m) => {
       channel.post(personState(id));
       channel.post(windowState());
       break;
-    case 'portrait-remove':
-      if (!p) break;
-      removeFile(p.portrait);
-      p.portrait = null;
+    case 'image-remove':
+      // { person, kind: 'portrait' | 'body' }
+      if (!p || !SINGLE.includes(m.kind)) break;
+      removeFile(p[m.kind]);
+      p[m.kind] = null;
       saveSettings();
       channel.post(personState(id));
       channel.post(windowState());
-      changed();
+      if (m.kind === 'portrait') changed();
       break;
     case 'upload': {
-      // { upload, person, kind: 'portrait' | 'setting', i, n, chunk (base64) }
-      if (!p || !['portrait', 'setting'].includes(m.kind) || typeof m.chunk !== 'string') break;
+      // { upload, person, kind: 'portrait' | 'body' | 'setting', i, n, chunk (base64) }
+      if (!p || !KINDS.includes(m.kind) || typeof m.chunk !== 'string') break;
       let u = uploads.get(m.upload);
       if (!u) uploads.set(m.upload, (u = { person: id, kind: m.kind, chunks: [], got: 0, n: m.n }));
       u.chunks[m.i] = Buffer.from(m.chunk, 'base64');
@@ -528,8 +534,8 @@ channel.on((m) => {
       break;
     }
     case 'pick': {
-      // { person, kind: 'portrait' | 'setting', path, name }: the image picked in the window.
-      if (!p || !['portrait', 'setting'].includes(m.kind)) break;
+      // { person, kind: 'portrait' | 'body' | 'setting', path, name }: the image picked in the window.
+      if (!p || !KINDS.includes(m.kind)) break;
       const r = readPicked(m);
       if (r.error) {
         channel.post({ type: 'error', text: r.error });
