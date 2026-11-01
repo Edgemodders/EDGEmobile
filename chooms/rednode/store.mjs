@@ -89,21 +89,24 @@ export class Store {
         id: this.#next('p'),
         by: p.by,
         at: at(p.ago),
+        seed: true,
         text: p.text,
         image: null,
         likes: p.likes ?? 0,
         liked: false,
-        comments: (p.comments ?? []).map((c) => ({ id: this.#next('c'), by: c.by, at: at(c.ago), text: c.text, likes: c.likes ?? 0, liked: false })),
+        comments: (p.comments ?? []).map((c) => ({ id: this.#next('c'), by: c.by, at: at(c.ago), seed: true, text: c.text, likes: c.likes ?? 0, liked: false })),
       });
     }
     for (const [who, list] of Object.entries(seed.dms ?? {})) {
-      this.data.dms[who] = list.map((m) => ({ id: this.#next('m'), from: m.from, at: at(m.ago), text: m.text, read: m.from === 'v' || m.read !== false }));
+      this.data.dms[who] = list.map((m) => ({ id: this.#next('m'), from: m.from, at: at(m.ago), seed: true, text: m.text, read: m.from === 'v' || m.read !== false }));
     }
   }
 
   /**
    * The game time now. Earlier than what the history has seen means an older save of this
    * playthrough was loaded: everything after it is dropped. Returns whether anything was.
+   * What the seed wrote stands for the time before the history began, so it stays: its game
+   * times are only for the order of the feed, and an older save can be earlier than them.
    */
   setNow(now) {
     if (!this.data || typeof now !== 'number') return false;
@@ -112,14 +115,14 @@ export class Store {
     if (!back) return false;
     const d = this.data;
     const before = JSON.stringify(d);
-    d.posts = d.posts.filter((p) => p.at <= now);
+    d.posts = d.posts.filter((p) => p.seed || p.at <= now);
     for (const p of d.posts) {
-      p.comments = p.comments.filter((c) => c.at <= now);
+      p.comments = p.comments.filter((c) => c.seed || c.at <= now);
       rewind(p, 'liked', now);
       for (const c of p.comments) rewind(c, 'liked', now);
     }
     for (const [who, list] of Object.entries(d.dms)) {
-      d.dms[who] = list.filter((m) => m.at <= now);
+      d.dms[who] = list.filter((m) => m.seed || m.at <= now);
       if (!d.dms[who].length) delete d.dms[who];
     }
     for (const acc of [...Object.values(d.accounts), ...Object.values(d.corps ?? {})]) {
