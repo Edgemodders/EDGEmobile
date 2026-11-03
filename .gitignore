@@ -1,6 +1,6 @@
 node_modules/
 # tools/release zips
-release/
+/release/
 # Jekyll's output, when the docs are built locally
 docs/_site/
 docs/.jekyll-cache/
