@@ -39,12 +39,16 @@ The tunnel gives your PC a private web address, and it is locked two ways. A pho
 | `edgephone/` | The EDGEphone REDnode package: the phone in the game, with the OS from EDGEmobile inside |
 | `chooms/` | **Chooms!**, Night City's social feed, the first mobile app: its REDnode package (`chooms/rednode/`: the feed for each playthrough, the settings window) and the mobile app itself (`chooms/mobile/`). Released on its own |
 | `docs/` | The docs site, published at https://edgemodders.github.io/EDGEmobile/ |
-| `tools/` | `deploy.ps1` copies the packages and Chooms!'s mobile app into the game. `brand/render.ps1` renders the banner, icon and badges |
+| `tools/` | `deploy.ps1` copies the packages and Chooms!'s mobile app into the game. `release/zip.mjs` builds the release zips. `brand/render.ps1` renders the banner, icon and badges |
 
 ## Install (developers)
 
+There is nothing to compile: the packages are plain JavaScript, HTML and CSS that REDnode runs as they are.
+
 1. Deploy [REDnode](https://github.com/Edgemodders/REDnode) to the game.
-2. `.\tools\deploy.ps1 -GameDir '<your Cyberpunk 2077 folder>'`
+2. Close the game, then run `.\tools\deploy.ps1 -GameDir '<your Cyberpunk 2077 folder>'`. The first time, it needs Node.js's `npm` for EDGEmobile's two libraries.
+
+For zips laid out like a release's, run `node tools/release/zip.mjs --draft` (they land in `release/`), or the **Release zip** workflow in GitHub's Actions tab, which keeps them as the run's artifact. Extract them into the game folder.
 
 | You need | Why |
 |---|---|

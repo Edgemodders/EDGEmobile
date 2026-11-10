@@ -462,7 +462,7 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Not started |
 | M5 Install on the phone | The loader as a PWA: manifest, service worker, icons, the Scan button, offline screen, and its own origin | Not started |
 | M6 Chooms! | C1 to C5 in [Chooms!](#chooms), built before M4's general parts (the user's choice, 2026-10-30) | C1 built 2026-10-30, awaiting the user's test ([C1: built](#c1-built)) |
-| Release | The zip, `requires` for REDnode, the Nexus page, the changelog | Not started |
+| Release | The zip, `requires` for REDnode, the Nexus page, the changelog | Built 2026-11-10, not run as a release yet: `tools/release/zip.mjs` makes `EDGEmobile-<version>.zip` (EDGEmobile and EDGEphone) and `Chooms-<version>.zip`, laid out like the game folder; `notes.mjs` takes the notes from the changelogs; `.github/workflows/release.yml` makes test zips, or a release with both zips and the Nexus uploads once the pages exist (`nexus/`, `chooms/nexus/`). EDGEphone and Chooms! need REDnode 0.50.0 (the in-game clicks, REDnode #31) |
 
 ### M1: built
 
