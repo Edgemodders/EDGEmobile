@@ -16,3 +16,7 @@ How to keep it (the Edgemodders convention):
 - Your feed belongs to the playthrough you play. Loading an older save of it takes the feed back to that point.
 - A settings window on the PC: how often people and corporations post, and for each person a portrait (their face), a body image (head to toe, for photos of them doing something) and the places where their photos are taken. Images are chosen in the window itself, from your Steam screenshots, Pictures or any folder, so nothing opens behind the game.
 - For now the feed has a few hand-written posts to try it with. People start posting by themselves in a later version.
+
+### Other
+
+- Needs EDGEmobile 0.1.0 and REDnode 0.50.0 or later.

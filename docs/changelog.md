@@ -18,10 +18,12 @@ How to keep it (the Edgemodders convention):
 
 ### Changed
 
-- Needs REDnode 0.47.2 or later.
+- EDGEmobile needs REDnode 0.47.2 or later, and EDGEphone needs REDnode 0.50.0 or later.
+- EDGEmobile's zip has EDGEphone in it: one download for both.
 - The phone's status line comes back as soon as V is in the world after a load.
 
 ### Fixed
 
+- The phone in the game answers the mouse: clicks, typing and scrolling reach its screen and its apps (with REDnode 0.50.0).
 - The game no longer crashes on launch when the phone is open while the game starts.
 - A load that starts while the phone reads the game no longer shows in the log as a failure, and no longer hides a real one.

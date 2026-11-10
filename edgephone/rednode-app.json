@@ -6,7 +6,7 @@
   "description": "The phone in the game: a phone in the game's red, with the EDGEmobile OS inside. Drag it by its frame. Needs EDGEmobile.",
   "entry": "window.html",
   "requires": {
-    "rednode": ">=0.47.2",
+    "rednode": ">=0.50.0",
     "edgemobile": ">=0.1.0"
   },
   "kind": "window",

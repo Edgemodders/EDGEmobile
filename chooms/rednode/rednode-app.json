@@ -9,7 +9,7 @@
   "service": "service.mjs",
   "isolation": "process",
   "requires": {
-    "rednode": ">=0.47.2",
+    "rednode": ">=0.50.0",
     "edgemobile": ">=0.1.0"
   },
   "kind": "window",
