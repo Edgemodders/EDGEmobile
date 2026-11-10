@@ -240,7 +240,7 @@ A mobile app is a folder in `red4ext/plugins/REDnode/mobile-apps/<id>/`, beside 
 | The app: Feed, Post and comments, Profile, DMs, Search, Me, **You Might Already Know** | A mobile app, on both screens |
 | The accounts, the post cycle, the stored history | A Chooms! REDnode package on the PC |
 | Posts, comments and replies in character | REDagent (`agent.ask`, the player's Anthropic key): **Sonnet** for posts, **Opus** for DMs (the user's choice) |
-| Images | **Nano Banana Pro** (Google's image model, through the player's Gemini key in REDnode's shared keys, permission `keys:gemini`). The model's exact name and how it is called: *unverified*, the user will say more |
+| Images | An image model that edits: it takes the person's portrait or body image and one of their place images with a text prompt, and returns the post's picture. A setting picks it: **Nano Banana Pro** (Google's, the default, through the player's Gemini key in REDnode's shared keys, permission `keys:gemini`) or **GPT Image** (OpenAI's edit endpoint `images.edit`, which takes several input images with a prompt, through the player's OpenAI key, `keys:openai`; the user's choice, 2026-11-10). REDnode's shared keys hold an OpenAI key already: EDGEmat's Reshape uses it, and the user tested it there. Each model's exact name, limits and price: *unverified*, checked against Google's and OpenAI's own docs when C4 is built (other sites name OpenAI's current model GPT Image 2, April 2026, with up to 16 input images per edit) |
 | Settings | A REDnode window from the Chooms! package, on the PC |
 
 ### Accounts
@@ -271,15 +271,15 @@ A person's post is one of three kinds:
 | Selfie (the most common image post) | **Post images** on for that NPC, their portrait, at least one setting image | The NPC up close (smiling, laughing, whatever fits), the background from one of their setting images, no activity |
 | Activity | The same, their body image, and an activity for that setting | The NPC placed in the setting doing one of its activities ("working on her car"). Without a body image it becomes a selfie |
 
-Images being allowed does not mean every post has one, and setting images being present does not mean they are always used: the weights of the three kinds are settings. For an image post, the app picks the setting and the activity (or none for a selfie), Sonnet writes the caption knowing the scene, and the app builds the image prompt from a template: the portrait and the setting image go to the image model with it, and for an activity the body image too (the portrait is the face, the body image the whole person: their build and clothes). With no images, the post is text.
+Images being allowed does not mean every post has one, and setting images being present does not mean they are always used: the weights of the three kinds are settings. For an image post, the app picks the setting and the activity (or none for a selfie), Sonnet writes the caption and a line describing the scene ("Judy at her desk in her apartment, editing a braindance, the headset pushed up"), and the app builds the image prompt from a template with that line: the portrait and the setting image go to the image model with it, and for an activity the body image too (the portrait is the face, the body image the whole person: their build and clothes). With no images, the post is text.
 
 ### Settings (a REDnode window, on the PC)
 
 | Section | Settings |
 |---|---|
-| General | Chooms! on or off; check for posts every N minutes; the people's chance to post per check; the corporation chance; the most posts per check; the weights of text, selfie and activity posts; the models (Sonnet posts, Opus DMs); spending caps per day (proposed) |
+| General | Chooms! on or off; check for posts every N minutes; the people's chance to post per check; the corporation chance; the most posts per check; the weights of text, selfie and activity posts; the models (Sonnet posts, Opus DMs); the image model (Nano Banana Pro or GPT Image); spending caps per day (proposed) |
 | Each person (not corporations; Delamain included) | On or off; **Post images**; a **portrait** (their face, their picture in the app); a **body** image (head to toe, for activity photos); any number of **setting images**, each with a one-line description and its activities, one per line (Panam: the Aldecaldos camp; "working on her car", "around the campfire", "polishing her rifle") |
-| Keys | Whether REDagent's Anthropic key and the shared Gemini key are set; where to set them |
+| Keys | Whether REDagent's Anthropic key and the shared key for the chosen image model (Gemini or OpenAI) are set; where to set them |
 
 The images are the player's own, kept in the package's data folder. None ship with the mod, and they reach Google only as part of an image request, which the window says.
 
@@ -322,7 +322,7 @@ Chooms! lives in this repo beside EDGEphone (the user's choice, 2026-10-30), wit
 | C1 The app | The M4 parts it needs: `mobile-app.json`, the app in a sandboxed frame, the `mobile` library, the bridge from the app to its package through EDGEmobile. The screens from the prototype with stored data: Feed, Post and comments, Profile, DMs, Search, Me, You Might Already Know; follow, Choom Request and accept. The playthrough id. The settings window, with the images. Hand-written posts, no AI yet, to test the app |
 | C2 The game's story | A spike: facts, journal, texts, contacts, who is alive, whether facts are saved. Then the story points and cards for the first cast, who V is aware of, and the corporations by district |
 | C3 Posts | The cycle with Sonnet, entities by district, NPCs commenting and liking, follows and Choom Requests, the spoiler check, the caps |
-| C4 Images | Nano Banana Pro: selfies and activities, cached on the PC, 1080 × 1080 |
+| C4 Images | Selfies and activities from the person's portrait, body image and places, with the scene line from the post: Nano Banana Pro or GPT Image, a setting, each with the player's own key. Cached on the PC, 1080 × 1080. Both tried on the same posts, for how well each keeps a person looking like themselves |
 | C5 DMs | Conversations with Opus, remembering earlier ones |
 | M4 Mobile apps | The C1 parts made general for other modders: a sample app and a guide |
 
