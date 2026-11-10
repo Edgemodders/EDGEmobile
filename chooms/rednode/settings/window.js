@@ -1,7 +1,7 @@
 // Chooms!'s settings window. The mod (mod.mjs) keeps the settings and the images; this page
 // draws them and sends changes back over the package channel. Images are chosen in a picker
 // drawn here, from folders the mod lists, since the system's file picker opens behind the game;
-// previews come back as data addresses.
+// previews come back as data addresses, and the image picked goes back made smaller.
 
 const { channel } = await import('rednode');
 const $ = (id) => document.getElementById(id);
@@ -108,6 +108,24 @@ function drawPerson(p) {
   }
   q('.choosePlace').addEventListener('click', () => openPicker(p.id, 'setting'));
 
+  // Back to the pictures and places Chooms! comes with: a second press within a few seconds.
+  const reset = q('.reset');
+  q('.defaults').hidden = !p.defaults;
+  let armed = null;
+  reset.addEventListener('click', () => {
+    if (armed) {
+      clearTimeout(armed);
+      armed = null;
+      channel.post({ type: 'reset', person: p.id });
+      return;
+    }
+    reset.textContent = 'Press again to reset';
+    armed = setTimeout(() => {
+      armed = null;
+      reset.textContent = 'Reset to default';
+    }, 4000);
+  });
+
   const places = q('.places');
   p.settings.forEach((s, index) => {
     const row = $('placeTpl').content.cloneNode(true).firstElementChild;
@@ -167,7 +185,10 @@ function browse(path, into) {
 }
 
 function select(name) {
-  if (picking) picking.name = name;
+  if (picking) {
+    picking.name = name;
+    picking.data = null;
+  }
   $('pickPreview').src = BLANK;
   $('pickUse').hidden = !name;
   $('pickName').textContent = name ? `${name}: loading…` : 'Select an image to see it here. PNG, JPEG or WebP, up to 12 MB.';
@@ -222,15 +243,44 @@ function drawPeek(m) {
     $('pickUse').hidden = true;
     return;
   }
+  picking.data = m.data;
   $('pickPreview').src = m.data;
   $('pickName').textContent = m.name;
 }
 
-function use() {
-  if (!picking?.name) return;
-  channel.post({ type: 'pick', person: picking.person, kind: picking.kind, path: picking.path, name: picking.name });
-  message(`Adding ${picking.name}…`);
+// The picked image is kept at most 1440 pixels on its longest side, as WebP: enough for the
+// image model, and a 12 MB photo is not stored as it is. Chooms!'s bundled pictures are made the
+// same way (tools/chooms/export-content.mjs).
+const MAX_SIDE = 1440;
+const CHUNK = 256 * 1024; // base64 characters per message, a multiple of 4
+
+async function shrink(src) {
+  const img = new Image();
+  img.src = src;
+  await img.decode();
+  const k = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(img.naturalWidth * k));
+  c.height = Math.max(1, Math.round(img.naturalHeight * k));
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/webp', 0.9).split(',')[1];
+}
+
+async function use() {
+  if (!picking?.name || !picking.data) return;
+  const { person, kind, path, name, data } = picking;
+  message(`Adding ${name}…`);
   closePicker();
+  let b64;
+  try {
+    b64 = await shrink(data);
+  } catch {
+    message(`${name} could not be read as an image.`, 'error');
+    return;
+  }
+  const upload = `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+  const n = Math.ceil(b64.length / CHUNK);
+  for (let i = 0; i < n; i++) channel.post({ type: 'upload', upload, person, kind, i, n, chunk: b64.slice(i * CHUNK, (i + 1) * CHUNK), folder: path, name });
 }
 
 $('pickCancel').addEventListener('click', closePicker);

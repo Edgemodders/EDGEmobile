@@ -3,10 +3,10 @@
 // EDGEmobile (service.mjs). C1: hand-written posts, no AI yet.
 
 import { api, channel, game, pkg, quests, service } from 'rednode';
-import { randomBytes, randomInt } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, extname, join, resolve } from 'node:path';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import { Store } from './store.mjs';
 
 const roster = JSON.parse(readFileSync(join(pkg.dir, 'roster.json'), 'utf8')).accounts;
@@ -51,6 +51,64 @@ function saveSettings() {
   writeFileSync(`${settingsFile}.tmp`, JSON.stringify(settings, null, 2));
   renameSync(`${settingsFile}.tmp`, settingsFile);
 }
+
+// --- Bundled pictures and places (content/, made by tools/chooms/export-content.mjs) -----------
+// Each person's portrait, body image and places as Chooms! ships them. They are copied into the
+// player's own folder the first time and are then the player's to change. `applied` keeps what
+// was copied, so a place the player removed does not come back, and an update that brings new
+// pictures adds only those. A bundled file is named by a hash of the image, so a place the
+// player already has (the author's own, exported) is not added twice.
+
+const CONTENT_DIR = join(pkg.dir, 'content');
+let content = { people: {} };
+try {
+  content = JSON.parse(readFileSync(join(CONTENT_DIR, 'content.json'), 'utf8'));
+} catch {
+  // no bundled pictures
+}
+const hashOf = (file) => createHash('sha256').update(readFileSync(file)).digest('hex').slice(0, 16);
+
+function copyDefault(rel) {
+  const to = join(pkg.dataDir, rel);
+  if (!existsSync(to)) {
+    mkdirSync(dirname(to), { recursive: true });
+    copyFileSync(join(CONTENT_DIR, rel), to);
+  }
+  return rel;
+}
+
+// Adds what the bundled content has for a person that the player has not had yet. Returns
+// whether anything changed.
+function applyDefaults(id) {
+  const c = content.people?.[id];
+  if (!c) return false;
+  const p = person(id);
+  p.from ??= {};
+  p.applied ??= { places: [] };
+  let changed = false;
+  for (const kind of SINGLE) {
+    const rel = c[kind];
+    if (!rel || p.applied[kind] === rel || !existsSync(join(CONTENT_DIR, rel))) continue;
+    // The player's own image stays; an earlier default gives way to the new one.
+    if (!p[kind] || p.from[kind]) {
+      if (p.from[kind]) removeFile(p[kind]);
+      p[kind] = copyDefault(rel);
+      p.from[kind] = rel;
+    }
+    p.applied[kind] = rel;
+    changed = true;
+  }
+  for (const place of c.places ?? []) {
+    if (p.applied.places.includes(place.file) || !existsSync(join(CONTENT_DIR, place.file))) continue;
+    p.applied.places.push(place.file);
+    changed = true;
+    const hash = basename(place.file).split('.')[0];
+    if (p.settings.some((s) => existsSync(join(pkg.dataDir, s.file)) && hashOf(join(pkg.dataDir, s.file)) === hash)) continue;
+    p.settings.push({ file: copyDefault(place.file), description: String(place.description ?? ''), activities: (place.activities ?? []).map(String) });
+  }
+  return changed;
+}
+if (PEOPLE.map((a) => applyDefaults(a.id)).some(Boolean)) saveSettings();
 
 // --- The game: the playthrough and its time ---------------------------------------------------
 // Only while V is in the world (REDnode's game.state().world): calls into the game's world before
@@ -296,8 +354,9 @@ export function answer(call, args) {
 // --- The settings window ----------------------------------------------------------------------
 // The window is a page in the overlay with no file access. The system's file picker opens on the
 // desktop, behind the game (the user's C1 test, 2026-10-31), so the window draws a picker of its
-// own: the mod lists the PC's folders and their images, sends a preview of the one selected,
-// and copies the one picked. Images go back as data addresses for the window's previews. Only
+// own: the mod lists the PC's folders and their images and sends a preview of the one selected;
+// the window makes the one picked smaller (WebP, at most 1440 pixels on its longest side) and
+// sends it back in pieces. Images go back as data addresses for the window's previews. Only
 // this package's own window on the PC reaches the channel; a phone never does.
 
 const IMAGE_MAX = 12 * 1024 * 1024;
@@ -391,6 +450,7 @@ function addImage(id, p, kind, buf, ext) {
   if (SINGLE.includes(kind)) {
     removeFile(p[kind]);
     p[kind] = rel;
+    (p.from ??= {})[kind] = null;
   } else {
     p.settings.push({ file: rel, description: '', activities: [] });
   }
@@ -435,6 +495,7 @@ function personState(id) {
     images: p.images,
     portrait: preview(p.portrait),
     body: preview(p.body),
+    defaults: !!content.people?.[id],
     settings: p.settings.map((s) => ({ description: s.description, activities: s.activities.join('\n'), image: preview(s.file) })),
   };
 }
@@ -495,16 +556,19 @@ channel.on((m) => {
       if (!p || !SINGLE.includes(m.kind)) break;
       removeFile(p[m.kind]);
       p[m.kind] = null;
+      (p.from ??= {})[m.kind] = null;
       saveSettings();
       channel.post(personState(id));
       channel.post(windowState());
       if (m.kind === 'portrait') changed();
       break;
     case 'upload': {
-      // { upload, person, kind: 'portrait' | 'body' | 'setting', i, n, chunk (base64) }
+      // { upload, person, kind: 'portrait' | 'body' | 'setting', i, n, chunk (base64), folder, name }:
+      // an image picked in the window, already made smaller there. folder is where it came from,
+      // so the picker opens there next time.
       if (!p || !KINDS.includes(m.kind) || typeof m.chunk !== 'string') break;
       let u = uploads.get(m.upload);
-      if (!u) uploads.set(m.upload, (u = { person: id, kind: m.kind, chunks: [], got: 0, n: m.n }));
+      if (!u) uploads.set(m.upload, (u = { person: id, kind: m.kind, chunks: [], got: 0, n: m.n, folder: m.folder, name: m.name }));
       u.chunks[m.i] = Buffer.from(m.chunk, 'base64');
       u.got += u.chunks[m.i].length;
       if (u.got > IMAGE_MAX) {
@@ -520,7 +584,22 @@ channel.on((m) => {
         channel.post({ type: 'error', text: 'Only PNG, JPEG and WebP images.' });
         break;
       }
+      if (typeof u.folder === 'string' && isDir(u.folder)) settings.folder = u.folder;
       addImage(id, p, u.kind, buf, ext);
+      if (typeof u.name === 'string') channel.post({ type: 'note', text: `${u.name.slice(0, 120)} added.` });
+      break;
+    }
+    case 'reset': {
+      // { person }: back to the pictures and places Chooms! comes with.
+      if (!p || !content.people?.[id]) break;
+      for (const rel of [p.portrait, p.body, ...p.settings.map((x) => x.file)]) removeFile(rel);
+      settings.people[id] = { on: p.on, images: p.images, portrait: null, body: null, settings: [] };
+      applyDefaults(id);
+      saveSettings();
+      channel.post(personState(id));
+      channel.post(windowState());
+      changed();
+      channel.post({ type: 'note', text: `${byId.get(id).name}: the pictures and places Chooms! comes with.` });
       break;
     }
     case 'browse':
@@ -531,19 +610,6 @@ channel.on((m) => {
       const r = readPicked(m);
       const type = r.ext === 'jpg' ? 'jpeg' : r.ext;
       channel.post({ type: 'peek', path: m.path, name: m.name, ...(r.error ? { error: r.error } : { data: `data:image/${type};base64,${r.buf.toString('base64')}` }) });
-      break;
-    }
-    case 'pick': {
-      // { person, kind: 'portrait' | 'body' | 'setting', path, name }: the image picked in the window.
-      if (!p || !KINDS.includes(m.kind)) break;
-      const r = readPicked(m);
-      if (r.error) {
-        channel.post({ type: 'error', text: r.error });
-        break;
-      }
-      settings.folder = dirname(r.file);
-      addImage(id, p, m.kind, r.buf, r.ext);
-      channel.post({ type: 'note', text: `${m.name} added.` });
       break;
     }
     case 'try-post': {

@@ -17,7 +17,7 @@
 // EDGEphone keeps EDGEmobile's version. Chooms! has its own, in both its manifests. A release
 // needs a section "## <version> (<date>)" in the zip's changelog and nothing under Unreleased.
 import { spawnSync } from 'node:child_process';
-import { cpSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -64,6 +64,15 @@ function build(id, z) {
     // Chooms! needs an EDGEmobile that exists.
     const needs = m.requires?.edgemobile?.match(/^>=\s*(\d+\.\d+\.\d+)$/)?.[1];
     if (needs && newer(needs, ZIPS.edgemobile.version)) throw new Error(`${p.from}/${p.manifest} needs EDGEmobile ${needs}, newer than ${ZIPS.edgemobile.version}`);
+    // Chooms!'s bundled pictures and places (tools/chooms/export-content.mjs): every image listed is there.
+    const content = join(repo, p.from, 'content', 'content.json');
+    if (existsSync(content)) {
+      const files = Object.values(json(`${p.from}/content/content.json`).people ?? {}).flatMap((e) => [e.portrait, e.body, ...(e.places ?? []).map((x) => x.file)]).filter(Boolean);
+      const missing = files.filter((f) => !existsSync(join(repo, p.from, 'content', f)));
+      if (missing.length) throw new Error(`${p.from}/content/content.json lists images that are not there: ${missing.join(', ')}. Run node tools/chooms/export-content.mjs again`);
+      const size = files.reduce((n, f) => n + statSync(join(repo, p.from, 'content', f)).size, 0);
+      console.log(`${p.from}/content: ${files.length} images, ${(size / 1048576).toFixed(1)} MB`);
+    }
   }
 
   if (!draft) {
