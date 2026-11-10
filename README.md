@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://edgemodders.github.io/EDGEmobile/"><img src="docs/assets/brand/badges/docs.svg" alt="docs: read the docs"></a>
-  <img src="docs/assets/brand/badges/status.svg" alt="status: C1 Chooms!">
+  <img src="docs/assets/brand/badges/status.svg" alt="status: C1 passed">
   <img src="docs/assets/brand/badges/game.svg" alt="game: Cyberpunk 2077">
   <a href="https://github.com/Edgemodders/REDnode"><img src="docs/assets/brand/badges/rednode.svg" alt="runs in: REDnode"></a>
   <a href="LICENSE"><img src="docs/assets/brand/badges/license.svg" alt="license: MIT"></a>
@@ -20,7 +20,7 @@ Its home screen shows the mobile apps you install. Other modders can write them.
 **[Docs](https://edgemodders.github.io/EDGEmobile/)** &middot; [Design](docs/design.md) &middot; [Changelog](docs/changelog.md) &middot; [REDnode](https://github.com/Edgemodders/REDnode)
 
 > [!NOTE]
-> **Status: C1 Chooms!, not released yet.** The tunnel, pairing a phone by QR code and the phone's OS work: they passed in the game and on an Android phone (M1 to M3, 2026-10-29 and 10-30; iPhones unverified). Now being built: **Chooms!**, the first mobile app. Its first version (C1, with hand-written posts) passed its first nine test steps on an Android phone on 2026-10-31; the fixes from its first two tests await a retest. The rest of M4 (a sample app and a guide for modders who write mobile apps) and M5 (installing the app on the phone) are not started. There is no release yet. The plan and its phases, M1 to M6, are in [docs/design.md](docs/design.md).
+> **Status: C1 passed, not released yet.** The tunnel, pairing a phone by QR code and the phone's OS work: they passed in the game and on an Android phone (M1 to M3, 2026-10-29 and 10-30; iPhones unverified). Now being built: **Chooms!**, the first mobile app. Its first version (C1, with hand-written posts) passed in the game and on an Android phone on 2026-11-10; next is C2, the game's story. The rest of M4 (a sample app and a guide for modders who write mobile apps) and M5 (installing the app on the phone) are not started. There is no release yet. The plan and its phases, M1 to M6, are in [docs/design.md](docs/design.md).
 
 ## How your phone connects
 
