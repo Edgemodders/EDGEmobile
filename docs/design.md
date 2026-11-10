@@ -281,7 +281,20 @@ Images being allowed does not mean every post has one, and setting images being 
 | Each person (not corporations; Delamain included) | On or off; **Post images**; a **portrait** (their face, their picture in the app); a **body** image (head to toe, for activity photos); any number of **setting images**, each with a one-line description and its activities, one per line (Panam: the Aldecaldos camp; "working on her car", "around the campfire", "polishing her rifle") |
 | Keys | Whether REDagent's Anthropic key and the shared key for the chosen image model (Gemini or OpenAI) are set; where to set them |
 
-The images are the player's own, kept in the package's data folder. None ship with the mod, and they reach Google only as part of an image request, which the window says.
+The images are kept in the package's data folder, at most 1440 pixels on their longest side as WebP (the window makes a picked image smaller before it sends it). They reach the image service only as part of an image request, which the window says.
+
+**Bundled pictures and places** (the user's plan, 2026-11-10). Chooms! ships with a portrait, a body image and places for each person, so a player starts with photos ready; the player can then add, change or remove them. The author makes them with the settings window in the game, then exports them into the repo:
+
+| Step | How |
+|---|---|
+| Set them | Chooms!'s settings window in the game: each person's portrait, body image and places, with each place's line and activities. Photo mode screenshots, taken by the user |
+| Export | `node tools/chooms/export-content.mjs` copies them from the author's Chooms! data folder into `chooms/rednode/content/`: `content.json` (each person's images, lines and activities) and the images in `content/people/<id>/`, each named by a hash of the image. It lists what each person has, and removes images no longer listed |
+| Commit | Check the changes with git and commit them. The release zip carries `content/` as it is; `tools/release/zip.mjs` stops when `content.json` lists an image that is not there |
+| A player's first start | Chooms! copies each bundled picture and place into the player's own data folder and notes it as applied. From then on they are the player's: a place removed stays removed, and a portrait of their own is kept |
+| An update | New bundled pictures and places are added; what the player changed stays. A bundled portrait or body image that is new replaces the old bundled one only if the player has not chosen their own. A bundled place the player already has (the same image, by its hash) is not added twice |
+| Reset to default | A button for each person with bundled pictures: the player's own for that person are removed, and the bundled ones are copied in again |
+
+*To check before a release:* that CD Projekt RED's fan content rules allow shipping screenshots of the game's characters in a free mod (*unverified*).
 
 ### Playthroughs
 
@@ -322,7 +335,7 @@ Chooms! lives in this repo beside EDGEphone (the user's choice, 2026-10-30), wit
 | C1 The app | The M4 parts it needs: `mobile-app.json`, the app in a sandboxed frame, the `mobile` library, the bridge from the app to its package through EDGEmobile. The screens from the prototype with stored data: Feed, Post and comments, Profile, DMs, Search, Me, You Might Already Know; follow, Choom Request and accept. The playthrough id. The settings window, with the images. Hand-written posts, no AI yet, to test the app |
 | C2 The game's story | A spike: facts, journal, texts, contacts, who is alive, whether facts are saved. Then the story points and cards for the first cast, who V is aware of, and the corporations by district |
 | C3 Posts | The cycle with Sonnet, entities by district, NPCs commenting and liking, follows and Choom Requests, the spoiler check, the caps |
-| C4 Images | Selfies and activities from the person's portrait, body image and places, with the scene line from the post: Nano Banana Pro or GPT Image, a setting, each with the player's own key. Cached on the PC, 1080 × 1080. Both tried on the same posts, for how well each keeps a person looking like themselves |
+| C4 Images | The bundled pictures and places for the cast, from the user's photo mode screenshots (exported with `tools/chooms/export-content.mjs`; the code for them is built, 2026-11-10). Selfies and activities from the person's portrait, body image and places, with the scene line from the post: Nano Banana Pro or GPT Image, a setting, each with the player's own key. Cached on the PC, 1080 × 1080. Both tried on the same posts, for how well each keeps a person looking like themselves |
 | C5 DMs | Conversations with Opus, remembering earlier ones |
 | M4 Mobile apps | The C1 parts made general for other modders: a sample app and a guide |
 
@@ -372,7 +385,7 @@ Built on 2026-10-30: EDGEmobile 0.1.0 (with EDGEphone 0.1.0) and Chooms! 0.1.0. 
 | Playthroughs | `chooms/rednode/mod.mjs`, `store.mjs` | Once V is in the world, the fact `chooms_playthrough` holds the playthrough's id (set the first time). One history file per playthrough. Every follow, accept, like, post, comment and message keeps its game time (the hand-written ones are kept on any save: below, "After the second C1 test"); a follow or a like that changed back and forth keeps each change, so going back finds the value it had then |
 | Test data | `chooms/rednode/seed.json` | Five accounts V has met (Judy, Panam, Jackie, River, Kerry): Jackie a choom with an unread message, Judy following V with a Choom Request, six posts with comments, two of them corporations' |
 | The app | `chooms/mobile/` | The prototype's screens: the loading screen, Feed (Chooms and You Might Already Know strips), Post and comments, Profile (Follow, Accept choom, Message), DMs (Choom requests, threads), a thread, Search, Post (V writes), Me. All text is set as text. The silhouettes are the user's own image; Teko 700 ships with the app (Fontsource 5.3.0, OFL) |
-| The settings window | `chooms/rednode/settings/` | Posting (on or off, the check interval, the chances, the most per check, the weights of text, selfie and activity posts, the models, a daily cap) and People (on or off, Post images, the portrait, the body image, places with a description and activities). Images are chosen in a picker drawn in the window (below, "After the first C1 test") and checked to be PNG, JPEG or WebP, up to 12 MB. **Try a post with it** makes a hand-written post with that place's image |
+| The settings window | `chooms/rednode/settings/` | Posting (on or off, the check interval, the chances, the most per check, the weights of text, selfie and activity posts, the models, a daily cap) and People (on or off, Post images, the portrait, the body image, places with a description and activities, and Reset to default for a person with bundled pictures). Images are chosen in a picker drawn in the window (below, "After the first C1 test") and checked to be PNG, JPEG or WebP, up to 12 MB. **Try a post with it** makes a hand-written post with that place's image |
 
 **Changed from the plan:** V can write posts of their own (the prototype's Post tab). Chooms! keeps the last playthrough's feed at the main menu rather than showing nothing. A refusal "V is not in the world yet" ends Chooms!'s round of reads, as in EDGEmobile 0.0.8.
 
