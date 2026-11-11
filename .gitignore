@@ -1,4 +1,6 @@
 node_modules/
+# what the tests write: data folders, copies, screenshots
+/tests/.out/
 # tools/release zips
 /release/
 # Jekyll's output, when the docs are built locally
