@@ -1,0 +1,9 @@
+{
+  "id": "c2-journal-scan",
+  "name": "C2 journal scan",
+  "version": "0.0.1",
+  "author": "Edgemodders",
+  "description": "A developer tool for Chooms!'s C2 spike: reads the loaded save's journal (quests, contacts and their texts, the codex) and writes it to a JSON file in this package's data folder. It only reads; it changes nothing in the game. Remove the folder when done.",
+  "main": "mod.mjs",
+  "open": true
+}
