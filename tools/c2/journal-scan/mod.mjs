@@ -11,7 +11,14 @@ import { api, game, loc, pkg } from 'rednode';
 
 const SEEN = { inactive: false, active: true, succeeded: true, failed: true };
 const EVERY = { inactive: true, active: true, succeeded: true, failed: true };
-const TITLED = new Set(['gameJournalCodexEntry', 'gameJournalPhoneConversation', 'gameJournalQuestPhase', 'gameJournalQuestObjective', 'gameJournalQuestSubObjective', 'gameJournalCodexDescription']);
+// The text each entry type has, by the functions the game gives it (gameapi_lookup).
+const TEXTS = {
+  gameJournalCodexEntry: { title: 'GetTitle', image: 'GetImageID' },
+  gameJournalCodexDescription: { subtitle: 'GetSubTitle', text: 'GetTextContent' },
+  gameJournalQuestObjective: { text: 'GetDescription' },
+  gameJournalQuestSubObjective: { text: 'GetDescription' },
+  gameJournalQuestDescription: { text: 'GetDescription' },
+};
 
 // game.state() is a promise in a Node mod; onState follows it. V arriving in the world (at start
 // or after a load) asks for a scan.
@@ -49,7 +56,10 @@ async function scan() {
       const type = await typeOf(e);
       const [id, state, at] = await Promise.all([call(e.GetId()), call(jm.GetEntryState(e)), when(e)]);
       const n = { id, type, state, at };
-      if (TITLED.has(type)) n.title = await call(e.GetTitle()).catch(() => null);
+      for (const [k, fn] of Object.entries(TEXTS[type] ?? {})) {
+        const v = await (async () => call(e[fn]()))().catch(() => null);
+        if (v && v !== '0x0000000000000000') n[k] = v;
+      }
       if (type === 'gameJournalQuestObjective') n.optional = await call(jm.GetIsObjectiveOptional(e)).catch(() => null);
       if (depth > 0) {
         const list = await kids(e, filter);
@@ -112,7 +122,7 @@ async function scan() {
     // The codex (the database): its characters entries unlock as V meets people.
     const codex = [];
     for (const cat of (await call(jm.GetCodexCategories({ stateFilter: SEEN }, []))).out.entries.filter(Boolean)) {
-      const n = await node(cat, 2);
+      const n = await node(cat, 3);
       codex.push({ ...n, name: await call(cat.GetCategoryName()).catch(() => null) });
     }
 
