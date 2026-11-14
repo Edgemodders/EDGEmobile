@@ -305,8 +305,8 @@ History belongs to a playthrough (the user's choice). Proposed: on first seeing 
 | Layer | How |
 |---|---|
 | Story points | A list of story points, each a quest state or a fact; a knowledge card per NPC per story point. A prompt carries only the cards for points V has passed |
-| Met, alive, relationship | Facts and journal states (to be found in the C2 spike) |
-| Texts with V in the game | Asked of REDnode: the journal's phone conversations between V and each contact (*unverified* whether the game keeps them readable) |
+| Met, alive, relationship | The codex's characters and the contacts (met); a second contact or facts (alive). See [C2 spike](#c2-spike-what-the-journal-holds) |
+| Texts with V in the game | Read from the journal through REDnode's `api`: each contact's conversations, messages and V's replies, with game times ([C2 spike](#c2-spike-what-the-journal-holds)) |
 | The model's own knowledge | The model knows the whole story from its training. Each prompt says plainly that nothing past V's story points has happened, and a cheap check pass reads each post against the story points not reached before it is shown. That lowers leaks; it cannot rule them out |
 
 The knowledge cards are content work, about 15 to 25 story points per main NPC: drafted by Claude, checked by someone who knows the game.
@@ -326,7 +326,7 @@ Chooms! lives in this repo beside EDGEphone (the user's choice, 2026-10-30), wit
 | Need | Why |
 |---|---|
 | A model choice in `agent.ask` (such as `model: 'sonnet'`) | Sonnet for posts, Opus for DMs. Today the assistant picks its own model |
-| The texts between V and a contact, and V's contacts, from the journal | NPCs aware of their history with V; "met" for the main cast. After the C2 spike shows what the game holds |
+| The texts between V and a contact, and V's contacts, from the journal | NPCs aware of their history with V; "met" for the main cast. The C2 spike read them through `api` as it is; nothing new is needed, unless reading one subtree in one call turns out to be needed for speed |
 
 ### Phases
 
@@ -432,6 +432,46 @@ Send back: anything that did not match, and the lines of `red4ext/logs/rednode-m
 **The C1 retest passed (2026-11-10).** On the user's laptop, with the release tooling's build, steps 4 to 13 passed as written, on the in-game phone (REDnode #31's input into frames, REDnode 0.50.0 and later) and on Android: the feed with every hand-written post, accepting Judy and a message, following Panam, a like and a comment, the DMs badge, V's post, the settings window's picker with a portrait, a body image and a place and the test post with its image, the same feed on the phone, an older save undoing a follow, and the Edgemodders theme. Earlier, on 2026-11-01, the user tapped through the in-game phone on the PC. **C1 done.**
 
 **After the second C1 test (2026-11-01, on the user's PC, with REDnode 0.50.1).** The feed showed only Arasaka's post, Judy's profile said "No posts yet", and following Panam added nothing. The save is the playthrough Chooms! has used since 31 October, and four older saves of it had been loaded since (the log's "An older save: what came after it is dropped"). The hand-written posts are written the first time a playthrough is seen, dated up to six hours before that game time, so an older save dropped all but the two oldest (Kerry's, not followed, and Arasaka's). Fixed: what the seed writes (posts, their comments, messages) is marked and kept on any save; what V and, from C3, the people do is dropped as before. The playthrough's history file was put aside (`3.json.bak`) so the seed is written again. Also from this test, the user's change: each person has a **body** image beside the portrait, head to toe, for photos of them doing something at a place (Judy at her desk, Panam working on her car); the portrait stays their face and their picture in the app. Without a body image an activity photo becomes a selfie. 2 new checks in the harness, 62 in all, passed. *Not explained:* this playthrough's id is 3, not a large random number, and no log line shows Chooms! choosing it; the fact may have been set by hand in an earlier test.
+
+### C2 spike: what the journal holds
+
+*Run on 2026-11-13 and 11-14 on the user's PC, with the game running.* `tools/c2/journal-scan/` is a read-only REDnode package: each time V enters the world it reads the loaded save's journal through `api` (Get and Is functions only) and writes it to a JSON file in its own data folder. That file is game data: it stays on the PC and is never committed. Two saves were read, and they turned out to be two playthroughs:
+
+| | The late save | The earlier save |
+|---|---|---|
+| V | Corpo, feminine (the codex's `v_corpo_f`) | Corpo, masculine (`v_corpo_m`) |
+| Where in the story | Act 2 and Phantom Liberty, late | Act 1, Phantom Liberty just begun |
+| Quests seen (not inactive) | 136 | 51 |
+| Contacts | 54 | 28 |
+| Phone messages, V's replies | 231, 37 | 59, 13 |
+| Codex entries | 344, with 332 descriptions | 248, with 237 descriptions |
+| Calls through `api`, time | 15 754 in 253 s | 5 221 in 76 s |
+| Texts (LocKeys) resolved with `loc.text` | 2 651; the 197 empty ones are all codex subtitles, which the game leaves blank | 956; 154 empty, the same |
+
+**What can be read, and how:**
+
+| What | Functions (on `gameJournalManager` unless named) | What comes back |
+|---|---|---|
+| Quests | `GetQuests({stateFilter}, [])`, then `GetChildren(e, filter, [])` | Each quest's id, path (`quests/main_quest/act_01/...`, `ep1/...`), kind (`GetType()`: MainQuest, SideQuest, MinorQuest, StreetStory, Contract, CyberPsycho, CourierSideQuest), title (`GetTitle(jm)`), state, and the game time it changed (`GetEntryTimestamp`). Under it: phases (no text), objectives (`GetDescription()`, with their own state and time, `GetIsObjectiveOptional`) and quest descriptions (`gameJournalQuestDescription.GetDescription()`) |
+| Contacts | `GetContacts({stateFilter}, [])` | id, name (`GetLocalizedName(jm)`), `IsKnown(jm)`, `IsCallable(jm)`, Caller or Texter, state. Some people have two contacts, one for before and one for after a story turn (the late save has both `jackie` and `jackie_dead`) |
+| Texts | `GetConversations(contact, [])`, `GetMessagesAndChoices(conv, [], [])` | Each conversation's title, state and time; each message's text, image (a TweakDB id, mostly `0x0`), state and time. The messages list also holds V's replies (`gameJournalPhoneChoiceEntry`, which has `GetText` but no `GetSender`); every other message's sender is `NPC` |
+| The codex | `GetCodexCategories({stateFilter}, [])`, three levels down | Categories (Database, Characters, Other Locations, Tutorials; base game and Phantom Liberty each have their own), groups (`fixers`, `quests`, `open_world`...), entries (`GetTitle()`, `GetImageID()`) and their descriptions (`gameJournalCodexDescription.GetTextContent()`) |
+| The game time | `GetTimeSystem(...).GetGameTimeStamp()` | Seconds, the same clock as the journal's timestamps |
+
+**What it means for Chooms!:**
+
+| Need | From the journal |
+|---|---|
+| The lifepath and V's body | The codex's V entry (`v_<lifepath>_<m or f>`) and which prologue quest succeeded (`q000_corpo`, ...) |
+| Story points | The main quests' states and their objectives' states, each with a game time: enough to say "V has passed this point" and when. Phantom Liberty's quests sit under `ep1/` |
+| Who V has met | The codex's character entries unlock as V meets people, and contacts say known and callable. Together they are a better "met" than facts |
+| Who is alive | Partly: a second contact like `jackie_dead`. The rest needs facts (not read in this spike) |
+| What NPCs know of their texts with V | Every conversation, message and reply V picked, in order, with game times |
+| Bios for prompts | The codex descriptions V has unlocked, in the player's language: what V knows of each person, no more |
+
+**Cost.** One round trip per call, 60 calls a second or so: a full read is far too slow for each load (four minutes on a late save). Chooms! should read only what it needs (the main quests' states, the codex's characters, the contacts of its cast), which is a few hundred calls, and keep the rest for when a prompt needs it. If that is still slow, a REDnode request for one call that returns a journal subtree would cut it to one round trip (*unverified* whether it is needed).
+
+*Unverified:* why the earlier save has no `jackie` contact at all; whether contact ids are the same in every language (they look like it: ids are not texts); whether a save from another lifepath names V's codex entry the same way.
 
 ## Installing on the phone (PWA)
 
