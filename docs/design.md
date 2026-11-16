@@ -500,6 +500,40 @@ Where the story branches (who lives, who V romanced, which ending path), a card 
 
 The cards are files in the package, so a player who opens them can read later story points. That is the game's own story, told in Claude's words; it is the same as reading a wiki.
 
+### C2: built (the code parts)
+
+Built on 2026-11-16: parts 1, 2, 4, 5, 6 and 7 of the plan. The knowledge cards (part 3) come next.
+
+| Part | Where | How it came out |
+|---|---|---|
+| The journal read | `chooms/rednode/journal.mjs` | `readStory`: each story point by its path (`GetEntryByString`, `GetEntryState`, and `GetEntryTimestamp` for a point passed), the lifepath (the prologue quest finished), the codex's characters (both characters categories, their groups and entries), the contacts the roster names (`IsKnown`). 16 calls at a time. About 350 calls on a late save, by the spike's counts (*unverified* in the game: the time it takes) |
+| When it reads | `chooms/rednode/mod.mjs` | Each time V arrives in the world (a load), before the app is told, so a load never shows the people of the save before it; then every 3 minutes. A read that fails for another reason than a load is logged once and tried again in 3 minutes; the feed shows meanwhile |
+| Story points | `chooms/rednode/story.json` | 32 points: the prologue, Act 1 and 2, Phantom Liberty, and the cast's own quests (Jackie's farewell, Evelyn, Panam's family, Rogue and Johnny, Misty). Each a path and `done` or `started`. Lifepath quests too (only the Corpo one seen). No game text: our own notes for the card writer |
+| Who V has met | `roster.json` (`game`), `store.mjs` | A person is met when one of their codex entries is unlocked or one of their contacts is known. C1's `test` flag is gone. The summary is kept with the playthrough's history (`story`) and replaced on each read, so an older save simply knows fewer people |
+| Who has died | `roster.json` (`game.dead`) | A condition: a contact known (`jackie_dead`) or a story point passed (`heist`). Only Jackie so far: the main cast's other deaths come with the endings, which no save has reached yet. Someone who has died leaves the chooms strip and You Might Already Know, is marked **Remembered** on their profile, keeps their posts and messages, and takes no new messages ("They are gone.") |
+| Corporations by district | `roster.json` | Checked against the codex's district entries (read on the PC, not copied): Arasaka gains Santo Domingo (Arroyo), Militech loses Santo Domingo, Biotechnica is the Badlands only (the protein farms), Petrochem gains Dogtown (the stadium) and keeps Santo Domingo (Arroyo). Militech's and Petrochem's Badlands and Kang Tao's City Center are still a guess: the codex names neither |
+| The settings window | `settings/window.html`, `window.js` | A **Story** tab: V's lifepath and body, the story points passed of 32, who V has met, who is gone |
+
+**Ids not yet seen in a save** (*unverified*): River's codex entry and contact (`river_ward`), Kerry's contact (`kerry_eurodyne`; his codex entry was seen), the Nomad and Street Kid prologue quests. The quest the spike's notes took for River's first (`sq012_lost_girl`) starts with Elizabeth Peralez; River comes in later, if at all.
+
+**Checked outside the game:** the stand-in `rednode` has a journal in the spike's shapes (entries by path, the codex's two characters categories, contacts that are known or not). 8 new checks in `apps`, 79 in all, passed with `boot`'s 20: an early save (Corpo, feminine, one story point, C1's five people met); a late save (five points, done and started, a failed quest counting as started; Jackie gone, Hanako and Vik met, Kerry not), with Jackie out of the chooms strip, remembered on his profile, his messages kept and no new one; Hanako found by search and Kerry not; under 500 calls for a read; no read again on the next ticks; a codex that cannot be read still showing the feed, logged once; back to the early save, Jackie a choom again and Hanako unknown again. Also fixed in the tests: `apps` and `boot` turn off the tunnel's start-with-the-game setting that `auto` leaves on, which had made `apps` start a real tunnel.
+
+**C2 code test** (Chooms! with these changes, EDGEmobile 0.1.0, REDnode 0.50.0 or later). What the two saves should show comes from the spike's scans:
+
+| # | Step | Expect |
+|---|---|---|
+| 1 | Start the game, load the late save (Corpo, at "Meet Hanako") | In `red4ext/logs/rednode-mods.log`, a line `[chooms] The story: corpo, feminine, 31 of 32 story points, met 15, gone: jackie (… calls, … s)` |
+| 2 | Open Chooms!'s window from the launcher, the **Story** tab | V: Corpo, feminine. Story points passed: 31 of 32. Met: 15 people, all but River. Gone: Jackie Welles |
+| 3 | On the phone, Chooms!, the Feed | Jackie is not under Chooms. The hand-written posts of the people V follows still show, Jackie's too |
+| 4 | Tap Jackie's name | **Remembered** beside his tag. No Message button |
+| 5 | DMs, Jackie's thread | His messages, then "Jackie is gone. Their messages stay." No box to write in |
+| 6 | Search `kerry`, then `river` | Kerry found (his codex entry is unlocked in this save). No River |
+| 7 | Load the earlier save (the other playthrough, Corpo, masculine) | The log's line: `corpo, masculine, 18 of 32 story points, met 13, gone: jackie`. The Story tab says the same |
+| 8 | Search `kerry` and `kurt` | Neither: V has not met them in that playthrough |
+| 9 | Load the late save again | The Story tab back to 31 of 32 and 15 met |
+
+Send back: anything that did not match, the `[chooms]` lines of the log, and how long the read took (the line's seconds).
+
 ## Installing on the phone (PWA)
 
 A web app installs on a phone's home screen when it is served over HTTPS with a manifest and a service worker. The tunnel gives HTTPS. But an installed app is tied to the address it came from, and a quick tunnel's address changes each start, so an installed app served from the tunnel would break after every restart.
