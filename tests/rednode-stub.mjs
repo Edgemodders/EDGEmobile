@@ -69,6 +69,39 @@ const held = (fn) => async (...a) => {
   if (!H.world) H.badCalls++;
   return fn(...a);
 };
+// The journal, in the shapes the C2 spike found (docs/design.md, "C2 spike"). H.journal is the
+// loaded save's: entries by path ({ state, at }; any other path is a real entry, Inactive), the
+// codex's character entries (base game and Phantom Liberty), and contacts (id -> known). By
+// default an early save in which V has met C1's test people. H.journalFail breaks the codex.
+H.journal ??= {
+  entries: {
+    'quests/main_quest/prologue/q000_corpo': { state: 'Succeeded', at: 81000 },
+    'quests/main_quest/prologue/q001_intro': { state: 'Succeeded', at: 252000 },
+  },
+  codex: ['v_corpo_f', 'judy_alvarez', 'jackie_welles', 'panam_palmer', 'river_ward', 'kerry_eurodyne'],
+  codexEp1: [],
+  contacts: { judy: true, jackie: true, panam: true, takemura: false },
+};
+H.journalCalls ??= 0;
+const jheld = (fn) => held(async (...a) => (H.journalCalls++, fn(...a)));
+const jentry = (id, extra = {}) => ({ $type: 'gameJournalEntry', GetId: jheld(async () => id), ...extra });
+function journalManager() {
+  const J = H.journal;
+  const cat = (id, groups) => jentry(id, { $kids: groups });
+  const group = (id, ids) => jentry(id, { $kids: ids.map((x) => jentry(x)) });
+  return {
+    GetEntryByString: jheld(async (path) => jentry(path.split('/').pop(), { $path: path })),
+    GetEntryState: jheld(async (e) => J.entries[e.$path]?.state ?? 'Inactive'),
+    GetEntryTimestamp: jheld(async (e) => ({ seconds: J.entries[e.$path]?.at ?? 0 })),
+    GetChildren: jheld(async (e) => ({ result: undefined, out: { childEntries: e.$kids ?? [] } })),
+    GetCodexCategories: jheld(async () => {
+      if (H.journalFail) throw new Error('the codex broke');
+      return { result: undefined, out: { entries: [cat('glossary', [group('world', ['night_city'])]), cat('characters', [group('quests', J.codex), group('fixers', [])]), cat('characters', [group('quest', J.codexEp1 ?? [])])] } };
+    }),
+    GetContacts: jheld(async () => ({ result: undefined, out: { entries: Object.entries(J.contacts).map(([id, known]) => jentry(id, { IsKnown: jheld(async () => known) })) } })),
+  };
+}
+
 const watson = { ParentDistrict: held(async () => null), LocalizedName: held(async () => 'LocKey#10947'), EnumName: held(async () => 'Watson') };
 const littleChina = { ParentDistrict: held(async () => watson), LocalizedName: held(async () => 'LocKey#10963'), EnumName: held(async () => 'LittleChina') };
 export const api = {
@@ -78,6 +111,7 @@ export const api = {
       Get: held(async (name) => (name === 'PreventionSystem' ? { GetCurrentDistrict: held(async () => ({ GetDistrictRecord: held(async () => littleChina) })) } : null)),
     }), 'GetScriptableSystemsContainer'),
     GetWeatherSystem: gate(async () => ({ GetRainIntensityType: held(async () => H.rain ?? 'LightRain') }), 'GetWeatherSystem'),
+    GetJournalManager: gate(async () => journalManager(), 'GetJournalManager'),
   },
 };
 

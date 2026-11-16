@@ -792,6 +792,64 @@ if (mode === 'apps') {
   const pk2 = await callApp('profile', 'kerry');
   check('  and the second keeps its own', pk2.relation.follows);
 
+  // C2: the save's story, from its journal. The stand-in's early save: Corpo, feminine, two
+  // story points, C1's five test people met.
+  const c2logs = [];
+  const logBefore = console.log;
+  console.log = (...a) => { c2logs.push(a.join(' ')); logBefore(...a); };
+  let ws = await winMsg({ type: 'hello' }, (m) => m.type === 'state');
+  check('C2: the journal says who V is and who V has met', ws?.story?.lifepath === 'corpo' && ws.story.body === 'feminine' && ws.story.points === 1 && ws.story.met.join() === 'Jackie Welles,Judy Alvarez,Kerry Eurodyne,Panam Palmer,River Ward' && !ws.story.gone.length, JSON.stringify(ws?.story));
+  const jc0 = H.journalCalls;
+  // A late save: the heist done (Jackie dies), Jackie's second contact, Hanako and Vik met, Kerry not (yet).
+  const early = H.journal;
+  H.journal = {
+    entries: { ...early.entries, 'quests/main_quest/prologue/q005_heist': { state: 'Succeeded', at: 1029600 }, 'quests/main_quest/act_01/q101_resurrection': { state: 'Succeeded', at: 1625295 }, 'quests/meta/02_sickness': { state: 'Active', at: 5959802 }, 'quests/main_quest/act_01/q103_warhead': { state: 'Failed', at: 2000000 } },
+    codex: ['v_corpo_f', 'judy_alvarez', 'jackie_welles', 'panam_palmer', 'viktor'],
+    codexEp1: ['hanako_arasaka'],
+    contacts: { judy: true, jackie: true, jackie_dead: true, panam: true, takemura: true },
+  };
+  H.setWorld(false);
+  drain();
+  H.setWorld(true);
+  await waitMsg(l, (m) => m.t === 'app-event' && m.event === 'changed', 6000);
+  check('  a read is a few hundred calls, not thousands', H.journalCalls - jc0 < 500 && c2logs.some((x) => x.startsWith('The story: corpo, feminine, 5 of')), `${H.journalCalls - jc0} calls; ${c2logs.filter((x) => x.startsWith('The story')).join(' | ')}`);
+  ws = await winMsg({ type: 'hello' }, (m) => m.type === 'state');
+  check('a late save: more story points (done, and started even when failed), Jackie gone', ws?.story?.points === 5 && ws.story.gone.join() === 'Jackie Welles' && ws.story.met.includes('Hanako Arasaka') && ws.story.met.includes('Viktor Vektor') && !ws.story.met.includes('Kerry Eurodyne'), JSON.stringify(ws?.story));
+  f = await callApp('feed');
+  check('  Jackie leaves the chooms strip; Vik joins You Might Already Know', !f.chooms.some((a) => a.id === 'jackie') && f.suggestions.some((a) => a.id === 'viktor') && !f.suggestions.some((a) => a.id === 'jackie'), `${f.chooms.map((a) => a.id)} | ${f.suggestions.map((a) => a.id)}`);
+  p = await callApp('profile', 'jackie');
+  fail = await callApp('send', 'jackie', 'Miss you, choom.').then(() => null, (e) => e.message);
+  t = await callApp('thread', 'jackie');
+  check("  Jackie's profile: remembered, his messages kept, no new ones", p.relation.alive === false && !p.relation.canMessage && fail === 'They are gone.' && t.messages.length >= 3, `${JSON.stringify(p.relation)} ${fail}`);
+  s = await callApp('search', 'han');
+  fail = await callApp('profile', 'kerry').then(() => null, (e) => e.message);
+  check('  Hanako found by search; Kerry, not met in this save, is not', s.results.some((a) => a.id === 'hanako') && fail === 'No such account.', `${s.results.map((a) => a.id)} ${fail}`);
+  // The journal read again every few minutes, not every tick.
+  const jc = H.journalCalls;
+  await wait(6000);
+  check('  the journal is not read again on every tick', H.journalCalls === jc, `${H.journalCalls - jc} calls in 6 s`);
+  // A codex that cannot be read: the feed still shows, the reason is logged once.
+  H.journalFail = true;
+  H.setWorld(false);
+  drain();
+  H.setWorld(true);
+  await wait(7000);
+  f = await callApp('feed').catch(() => null);
+  const failLogs = c2logs.filter((x) => x.startsWith('Could not read the journal')).length;
+  check('a journal that cannot be read: the feed still shows, logged once', !!f && failLogs === 1, `${failLogs} logs`);
+  H.journalFail = false;
+  // Back to the early save: Jackie alive again, Vik and Hanako unknown again.
+  H.journal = early;
+  H.setWorld(false);
+  drain();
+  H.setWorld(true);
+  await waitMsg(l, (m) => m.t === 'app-event' && m.event === 'changed', 6000);
+  f = await callApp('feed');
+  p = await callApp('profile', 'jackie');
+  fail = await callApp('profile', 'hanako').then(() => null, (e) => e.message);
+  check('an earlier save again: Jackie back among the chooms, Hanako unknown again', f.chooms.some((a) => a.id === 'jackie') && p.relation.alive && fail === 'No such account.', `${f.chooms.map((a) => a.id)} ${fail}`);
+  console.log = logBefore;
+
   // Media addresses, by themselves: they end, they stay inside the package's folder.
   const { Bridge } = await import(pathToFileURL(join(PKG, 'server', 'bridge.mjs')).href);
   const fakeApps = { list: [{ id: 'chooms', name: 'Chooms!', package: 'chooms', entry: 'index.html', icon: null }], get: (id) => fakeApps.list.find((a) => a.id === id) };

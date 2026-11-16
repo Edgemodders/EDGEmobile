@@ -7,10 +7,13 @@ import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, extname, join, resolve } from 'node:path';
+import { readStory } from './journal.mjs';
 import { Store } from './store.mjs';
 
 const roster = JSON.parse(readFileSync(join(pkg.dir, 'roster.json'), 'utf8')).accounts;
 const seed = JSON.parse(readFileSync(join(pkg.dir, 'seed.json'), 'utf8'));
+const story = JSON.parse(readFileSync(join(pkg.dir, 'story.json'), 'utf8'));
+const STORY_MS = 3 * 60 * 1000;
 const byId = new Map(roster.map((a) => [a.id, a]));
 const PEOPLE = roster.filter((a) => a.kind !== 'corp');
 const PLAYTHROUGH_FACT = 'chooms_playthrough';
@@ -138,6 +141,8 @@ async function playthroughId() {
 }
 
 let reading = false;
+// When the journal was last read; 0 asks for a read (V arrived in the world: a load).
+let storyAt = 0;
 async function readGame() {
   if (!inWorld || reading) return;
   reading = true;
@@ -149,7 +154,27 @@ async function readGame() {
     const dropped = store.setNow(now);
     if (opened) console.log(`Playthrough ${pid}: history open`);
     if (dropped) console.log('An older save: what came after it is dropped');
-    if (opened || dropped) changed();
+    // The save's story: who V has met, who has died, the story points. Read before the app is
+    // told, so a load does not show the feed of whoever was met in the save before it.
+    let told = false;
+    if (opened || dropped || !storyAt || Date.now() - storyAt > STORY_MS) {
+      let s = null;
+      try {
+        s = await readStory({ api, game, story, roster });
+      } catch (err) {
+        if (NO_WORLD.test(err?.message ?? '')) throw err;
+        // Tried again with the next read, in STORY_MS; the feed shows meanwhile.
+        console.log(`Could not read the journal: ${err?.message ?? err}`);
+      }
+      if (!inWorld) return;
+      storyAt = Date.now();
+      if (s && store.setStory(s)) {
+        told = true;
+        channel.post(windowState());
+        console.log(`The story: ${s.lifepath ?? 'lifepath unknown'}, ${s.body ?? 'body unknown'}, ${Object.keys(s.points).length} of ${story.points.length} story points, met ${s.met.length}${s.dead.length ? `, gone: ${s.dead.join(', ')}` : ''} (${s.calls} calls, ${(s.ms / 1000).toFixed(1)} s)`);
+      }
+    }
+    if (opened || dropped || told) changed();
   } catch (err) {
     // A load started between two calls: the world went away; onState brings V back.
     if (NO_WORLD.test(err?.message ?? '')) inWorld = false;
@@ -163,6 +188,7 @@ function onGameState(s) {
   const now = !!(s.connected && s.world);
   if (now === inWorld) return;
   inWorld = now;
+  if (inWorld) storyAt = 0;
   if (inWorld) readGame();
 }
 game.onState(onGameState);
@@ -225,14 +251,16 @@ function relationView(id) {
     followsV: !!r.followsV,
     request: r.request ?? null,
     choom: r.request === 'accepted',
-    canMessage: a.kind !== 'corp' && r.request === 'accepted',
+    alive: store.alive(id),
+    canMessage: a.kind !== 'corp' && r.request === 'accepted' && store.alive(id),
   };
 }
 
 const known = () => roster.filter((a) => store.known(a.id));
-const chooms = () => known().filter((a) => store.isChoom(a.id)).map((a) => author(a.id));
+// The chooms strip and You Might Already Know are for the living; their posts and threads stay.
+const chooms = () => known().filter((a) => store.isChoom(a.id) && store.alive(a.id)).map((a) => author(a.id));
 // You Might Already Know: people V has met but does not follow.
-const suggestions = () => known().filter((a) => (a.kind === 'cast' || a.kind === 'delamain') && !store.relation(a.id).follows).map((a) => author(a.id));
+const suggestions = () => known().filter((a) => (a.kind === 'cast' || a.kind === 'delamain') && !store.relation(a.id).follows && store.alive(a.id)).map((a) => author(a.id));
 
 function feed() {
   const posts = store.data.posts.filter((p) => {
@@ -264,7 +292,7 @@ function threads() {
     .filter(([id]) => store.known(id))
     .map(([id, msgs]) => ({ with: author(id), last: msgs.at(-1)?.text ?? '', ago: msgs.length ? ago(msgs.at(-1).at) : '', at: msgs.at(-1)?.at ?? 0, unread: msgs.filter((m) => !m.read).length }))
     .sort((a, b) => b.at - a.at);
-  // Chooms with no messages yet, so V can start one.
+  // Chooms with no messages yet, so V can start one (chooms() is the living only).
   for (const c of chooms()) if (!list.some((t) => t.with.id === c.id)) list.push({ with: c, last: '', ago: '', at: 0, unread: 0 });
   return { requests, threads: list.map(({ at, ...t }) => t) };
 }
@@ -483,6 +511,20 @@ function windowState() {
       return { id: a.id, name: a.name, kind: a.kind, tag: a.tag, on: p.on, images: p.images, portrait: !!p.portrait, body: !!p.body, settings: p.settings.length };
     }),
     playthrough: store.id,
+    story: store.data?.story ? storySummary(store.data.story) : null,
+  };
+}
+
+// The save's story in a line for the settings window.
+function storySummary(s) {
+  const name = (id) => byId.get(id)?.name ?? id;
+  return {
+    lifepath: s.lifepath,
+    body: s.body,
+    points: Object.keys(s.points).length,
+    of: story.points.length,
+    met: s.met.map(name),
+    gone: s.dead.map(name),
   };
 }
 

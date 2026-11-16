@@ -74,8 +74,8 @@ export class Store {
     const at = (ago) => Math.max(0, now - (Number(ago) || 0));
     for (const a of this.roster.values()) {
       if (a.kind === 'corp') continue;
-      // Who V has met or is aware of comes from the game in C2; the test accounts until then.
-      this.data.accounts[a.id] = { met: !!a.test, aware: !!a.test, follows: false, followsV: false, request: null };
+      // Who V has met comes from the save's journal (setStory), not from here.
+      this.data.accounts[a.id] = { follows: false, followsV: false, request: null };
     }
     for (const [id, r] of Object.entries(seed.relations ?? {})) {
       const acc = this.data.accounts[id];
@@ -145,16 +145,34 @@ export class Store {
     if (!a) return null;
     this.data.corps ??= {};
     if (a.kind === 'corp') return (this.data.corps[id] ??= { follows: false });
-    return (this.data.accounts[id] ??= { met: false, aware: false, follows: false, followsV: false, request: null });
+    return (this.data.accounts[id] ??= { follows: false, followsV: false, request: null });
   }
 
-  /** Whether V knows of this account: a person V has met or is aware of; any corporation. */
+  /**
+   * What the loaded save's journal says (journal.mjs): the lifepath, the body, the story points
+   * passed with their game times, who V has met, who has died. Read again on each load, so an
+   * older save's journal simply says less. Returns whether it changed.
+   */
+  setStory(s) {
+    if (!this.data) return false;
+    const next = { lifepath: s.lifepath ?? null, body: s.body ?? null, points: s.points ?? {}, met: [...(s.met ?? [])].sort(), dead: [...(s.dead ?? [])].sort() };
+    if (JSON.stringify(next) === JSON.stringify(this.data.story ?? null)) return false;
+    this.data.story = next;
+    this.save();
+    return true;
+  }
+
+  /** Whether V knows of this account: a person V has met (the save's journal); any corporation. */
   known(id) {
     const a = this.roster.get(id);
     if (!a) return false;
     if (a.kind === 'corp') return true;
-    const r = this.relation(id);
-    return a.kind === 'figure' ? r.aware || r.met : r.met;
+    return !!this.data.story?.met.includes(id);
+  }
+
+  /** Whether this person is alive in the loaded save's story. */
+  alive(id) {
+    return !this.data.story?.dead.includes(id);
   }
 
   follow(id, on) {
@@ -214,6 +232,7 @@ export class Store {
   /** V writes to a choom. Replies come in C5. */
   send(id, text) {
     if (!this.isChoom(id)) throw new Error('You can only message your chooms.');
+    if (!this.alive(id)) throw new Error('They are gone.');
     const m = { id: this.#next('m'), from: 'v', at: this.data.now, text: clean(text), read: true };
     (this.data.dms[id] ??= []).push(m);
     this.save();

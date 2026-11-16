@@ -228,6 +228,7 @@ const VIEWS = {
       r.choom ? h('span', { class: 'nc-tag nc-tag--solid', style: 'background: var(--green)' }, 'Choom') : null,
       r.request === 'pending' ? h('span', { class: 'nc-tag nc-tag--solid', style: 'background: var(--yellow)' }, 'Wants to be your choom') : null,
       r.followsV && !r.choom ? h('span', { class: 'nc-tag' }, 'Follows you') : null,
+      r.alive === false ? h('span', { class: 'nc-tag' }, 'Remembered') : null,
     ];
     return [
       h('section', { class: 'nc-panel nc-panel--hero nc-scan hero', 'aria-label': `About ${a.name}` },
@@ -328,7 +329,7 @@ const VIEWS = {
     return [
       h('div', { class: 'row' }, avatar(t.with, 40), h('div', { class: 'who' }, nameButton(t.with), h('span', { class: 'meta' }, `@${t.with.handle}`))),
       t.messages.length ? list : h('p', { class: 'empty' }, 'No messages yet.'),
-      t.relation.canMessage ? h('p', { class: 'note' }, 'Replies come in a later version of Chooms!.') : h('p', { class: 'note' }, 'You can message chooms only.'),
+      t.relation.canMessage ? h('p', { class: 'note' }, 'Replies come in a later version of Chooms!.') : h('p', { class: 'note' }, t.relation.alive === false ? `${t.with.name.split(' ')[0]} is gone. Their messages stay.` : 'You can message chooms only.'),
     ];
   },
 };

@@ -17,6 +17,8 @@ How to keep it (the Edgemodders convention):
 - A settings window on the PC: how often people and corporations post, and for each person a portrait (their face), a body image (head to toe, for photos of them doing something) and the places where their photos are taken. Images are chosen in the window itself, from your Steam screenshots, Pictures or any folder, so nothing opens behind the game, and are kept at most 1440 pixels across.
 - Chooms! can come with pictures and places for its people, yours to change; **Reset to default** brings a person's back.
 - For now the feed has a few hand-written posts to try it with. People start posting by themselves in a later version.
+- Chooms! follows your save's story: only people V has met show in the feed and in search, and someone who has died in your story is marked **Remembered**, with their old posts and messages kept and no new messages. Read from the game's journal each time you load a save.
+- A **Story** tab in the settings window shows what Chooms! read from your save: V's lifepath, how far the story has come, and who V has met.
 
 ### Other
 

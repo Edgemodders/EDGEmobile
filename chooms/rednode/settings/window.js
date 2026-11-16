@@ -42,6 +42,31 @@ function drawGeneral(s) {
   drawing = false;
   people = s.people;
   drawList();
+  drawStory(s.story);
+}
+
+const LIFEPATHS = { corpo: 'Corpo', nomad: 'Nomad', streetkid: 'Street Kid' };
+function drawStory(st) {
+  const view = $('storyView');
+  view.replaceChildren();
+  const line = (label, text) => {
+    const p = document.createElement('p');
+    const b = document.createElement('strong');
+    b.textContent = `${label}: `;
+    p.append(b, text);
+    view.append(p);
+  };
+  if (!st) {
+    const p = document.createElement('p');
+    p.className = 'fine';
+    p.textContent = 'Load a save.';
+    view.append(p);
+    return;
+  }
+  line('V', [LIFEPATHS[st.lifepath] ?? 'lifepath not found', st.body ?? 'body not found'].join(', '));
+  line('Story points passed', `${st.points} of ${st.of}`);
+  line('Met', st.met.length ? st.met.join(', ') : 'no one yet');
+  if (st.gone.length) line('Gone', st.gone.join(', '));
 }
 
 let pendingGeneral = {};
