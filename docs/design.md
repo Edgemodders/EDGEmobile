@@ -473,6 +473,33 @@ Send back: anything that did not match, and the lines of `red4ext/logs/rednode-m
 
 *Unverified:* why the earlier save has no `jackie` contact at all; whether contact ids are the same in every language (they look like it: ids are not texts); whether a save from another lifepath names V's codex entry the same way.
 
+### C2 plan
+
+*Agreed with the user on 2026-11-16.* The code parts first (1, 2, 4, 5, 6), tested in the game, while the cards are written.
+
+| # | Part | How |
+|---|---|---|
+| 1 | Chooms! reads the journal | On each load, a small read: V's lifepath and body, the main quests' states, the codex's characters, the contacts of Chooms!'s cast. A few hundred calls, not 15 000. Again every few minutes while V plays |
+| 2 | Story points | `chooms/rednode/story.json`: about 30 points through the main story and Phantom Liberty, each a quest or objective reaching a state. Written by hand: ids and states only, no game text |
+| 3 | Knowledge cards | For each main cast member and each story point, a short card: what they know and feel by then. Drafted by Claude in its own words, checked by the user. The 7 main cast first |
+| 4 | Who V has met | The codex's characters and the contacts. Replaces C1's stand-in (every test account counts as met). People V has not met stay out of the feed and search |
+| 5 | Who is alive | A second contact (such as `jackie_dead`), and a small read-only check of facts for the main cast |
+| 6 | Corporations by district | The 6 corporations' districts checked and corrected |
+| 7 | Tests | In `tests/run.mjs`, with a stand-in journal: an early save, a late save, a second playthrough |
+| 8 | The user's test | In the game and on Android: an early and a late save show different people and different knowledge |
+
+**When the cards are made.** Once, ahead of time, for the whole story, and shipped in Chooms!'s package (`chooms/rednode/cards/`). Every player gets the same cards. What differs is which ones a prompt carries: on each load Chooms! reads that save's journal, works out the story points V has passed, and gives each NPC only the cards for those points. A player on an Act 1 save gets Act 1 knowledge; loading a late save of the same or another playthrough gets late knowledge, at once, with nothing to make.
+
+| Made when | What | Where |
+|---|---|---|
+| Ahead of time, once | The knowledge cards, for every story point | In the package, committed |
+| On each load | Which story points this save has passed, who V has met, who is alive | Read from the journal, not kept |
+| While playing | What happened in Chooms! (posts, comments, DMs) | The playthrough's history, with game times (C1) |
+
+Where the story branches (who lives, who V romanced, which ending path), a card names the condition it needs (a quest state, an objective, a fact), and only matching cards count. Why not have the model write cards while the player plays: cards made ahead are checked by a person, cost nothing to run, read the same for every player, and cannot leak a later point, since a card is chosen by the save's state, not written by a model that knows the whole story.
+
+The cards are files in the package, so a player who opens them can read later story points. That is the game's own story, told in Claude's words; it is the same as reading a wiki.
+
 ## Installing on the phone (PWA)
 
 A web app installs on a phone's home screen when it is served over HTTPS with a manifest and a service worker. The tunnel gives HTTPS. But an installed app is tied to the address it came from, and a quick tunnel's address changes each start, so an installed app served from the tunnel would break after every restart.
