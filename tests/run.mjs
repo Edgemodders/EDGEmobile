@@ -126,6 +126,17 @@ if (mode === 'auto') {
   const s = JSON.parse(readFileSync(join(dataDir, 'settings.json'), 'utf8'));
   writeFileSync(join(dataDir, 'settings.json'), JSON.stringify({ ...s, autoStart: true }));
 }
+// The modes that do not test the tunnel never start one. `auto` leaves its setting on in the
+// shared data folder, with a phone paired, so the next `apps` run started a real tunnel and its
+// "not served through the tunnel" check depended on how fast it came up (found 2026-11-16).
+if (mode === 'boot' || mode === 'apps') {
+  try {
+    const s = JSON.parse(readFileSync(join(dataDir, 'settings.json'), 'utf8'));
+    if (s.autoStart) writeFileSync(join(dataDir, 'settings.json'), JSON.stringify({ ...s, autoStart: false }));
+  } catch {
+    // no settings yet
+  }
+}
 
 // Mobile apps: the apps mode gets a fresh copy of the repo's Chooms! app beside a fresh Chooms!
 // package data folder; the other modes an empty apps folder, so they test what they did before.
