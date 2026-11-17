@@ -20,6 +20,6 @@ As of 2026-10-29. Nothing is released yet. Each phase ends with a test by the us
 | M3 The OS | Done 2026-10-30: passed in the game and on an Android phone, with EDGEphone as its own app |
 | M4 Mobile apps | Not started |
 | M5 Install on the phone | Not started |
-| M6 Chooms! | C1, the app with hand-written posts, done 2026-11-10: passed in the game and on an Android phone. Next: C2, the game's story |
+| M6 Chooms! | C1, the app with hand-written posts, done 2026-11-10: passed in the game and on an Android phone. C2, the game's story, under way: the save's story read built 2026-11-16, waiting for its test; the knowledge cards next |
 
 EDGEmobile is not affiliated with CD Projekt RED or Cloudflare. Source code and issues: [github.com/Edgemodders/EDGEmobile](https://github.com/Edgemodders/EDGEmobile)
