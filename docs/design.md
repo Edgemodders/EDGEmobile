@@ -588,7 +588,7 @@ Checked against "Pairing and security": nothing changes in pairing, the tunnel o
 
 ### C2: the knowledge cards (drafted 2026-11-21)
 
-Part 3 of the [C2 plan](#c2-plan): the main cast's cards, drafted for the user's review.
+Part 3 of the [C2 plan](#c2-plan): the main cast's cards, then the fixers' and the other story figures' (the same day), drafted for the user's review.
 
 | Part | Where | How |
 |---|---|---|
@@ -609,7 +609,23 @@ Part 3 of the [C2 plan](#c2-plan): the main cast's cards, drafted for the user's
 
 **Checked outside the game:** every card file is a person and every heading a story point; a save's cards come in the story's order; a typo in a heading, or a file that is no one, stops the load; the Story tab's counts for an early and a late save. 112 checks, all passed.
 
-**Cards test** (in the game, after the review): load the late save and open the Story tab. "Story points passed" now counts of 47, and a new line, "Knowledge cards for this save", lists each person V has met with a number. With the late save scanned on the PC (2026-11-14) it would read Judy Alvarez 6, Panam Palmer 4, Jackie Welles 6, Viktor Vektor 4, Misty Olszewski 5, Kerry Eurodyne 1 (met through his codex entry, so only his start card); River is not met in it. Then load an earlier save: fewer cards for most.
+**The fixers and the other story figures** (added 2026-11-21, at the user's request: "What about the fixers in the game that V meets and talks to?"):
+
+| Part | What |
+|---|---|
+| Two more fixers | Dino Dinovic (City Center) and El Capitan, Muamar Reyes (Santo Domingo), in `roster.json` as story figures. Their codex and contact ids (`dino_dinovic`; `el_capitan` and `muamar_el_capitan_reyes`) were seen in the user's save on 2026-11-14. Each has a dossier in `chooms/dossiers/` with two suggested places. Dexter DeShawn is left out: he dies early, so he could post only in early saves |
+| 12 more story points | `wakako-first` (V and Jackie's prologue job for Wakako), `regina-psychos` and `regina-psychos-all` (Psycho Killer begun and done), one "every gig in the district done" point per fixer (the game's `quests/street_stories/<district>/<district>_reward` quests: Watson, Westbrook, City Center, Heywood, Santo Domingo, the Badlands), `rogue-date` (Blistering Love), `delamain-job` and `delamain-mind` (Epistrophy, Don't Lose Your Mind). Paths from the game's journal file, titles and descriptions through REDcode's `loc_get`. 59 points in all |
+| No card per gig | There are dozens of gigs, and reading each one's state would roughly double a journal read. A fixer shows in Chooms! only once they have been in touch with V about work, so their `start` card already says V is one of their mercs; the district's "all done" point is the one gig card |
+| 37 more cards | Rogue 5, Regina 4, Wakako 4, Padre 4, Dakota 2, Dino 2, El Capitan 2, Mr. Hands 3; Delamain 4, Hanako 4, Kurt Hansen 3. 82 cards for 18 people; every account but the corporations has a `start` card (checked offline) |
+| Not covered | Pacifica has no "district done" quest in the base game's journal, and Phantom Liberty's journal (Mr. Hands's Dogtown gigs, Hansen's own quests) has not been read, so Hands and Hansen have only the Phantom Liberty points already in `story.json` |
+
+More lines least certain, for the review: Rogue's `panam-met` (why she sent V to Panam, and what V got in return) and `rogue-johnny` (that she learns of Johnny in V's head when Chippin' In starts); Padre's `start` (that he knew Jackie and Mama Welles well); Mr. Hands's and Kurt Hansen's Phantom Liberty cards (how much each knows of V's work, and when); Delamain's `heist` (that Jackie died in his cab); Hanako's `heist` (what Arasaka said in public about her father's death).
+
+All 82 cards, the doubts and the story points are also in a document for the user's review, [Chooms! knowledge cards](https://claude.ai/artifact/D1ZqR2v3PiaD4uE774kyfv) (private to the user); the files in `chooms/rednode/cards/` are the source.
+
+**Checked outside the game (with the fixers):** 113 offline checks, all passed.
+
+**Cards test** (in the game, after the review): load the late save and open the Story tab. "Story points passed" now counts of 59, and a new line, "Knowledge cards for this save", lists each person V has met with a number. With the late save scanned on the PC (2026-11-14, 33 of 59 points) it would read: Judy Alvarez 6, Panam Palmer 4, Jackie Welles 6, Viktor Vektor 4, Misty Olszewski 5, Kerry Eurodyne 1 (met through his codex entry, so only his start card), Rogue 4, Hanako Arasaka 4, Mr. Hands 3, Kurt Hansen 3, Wakako Okada 3, Delamain 2, Padre 2, Regina Jones 2, Dakota Smith 1, and Dino Dinovic and El Capitan 1 each if V has met them; River is not met in it. Then load an earlier save: fewer cards for most.
 
 ## Installing on the phone (PWA)
 
@@ -654,7 +670,7 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 | M3 The OS | The shell on both screens: the home screen (status line, clock, app grid, dock), the dock on the real phone, the phone in the game (a borderless red frame, Pin to HUD), the two themes, the fonts shipped | Done 2026-10-30: built, tested in the game and on Android, with EDGEphone as its own app ([EDGEphone](#edgephone-the-phone-as-its-own-app), [0.0.7](#007-rednodes-world-flag-and-the-games-text)) |
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Not started |
 | M5 Install on the phone | The loader as a PWA: manifest, service worker, icons, the Scan button, offline screen, and its own origin | Not started |
-| M6 Chooms! | C1 to C5 in [Chooms!](#chooms), built before M4's general parts (the user's choice, 2026-10-30) | C1 done 2026-11-10: built, tested in the game and on Android, two rounds of fixes ([C1: built](#c1-built)). C2 under way: the spike done 2026-11-14 ([C2 spike](#c2-spike-what-the-journal-holds)), the code parts built 2026-11-16 and passed in the game on 2026-11-21 ([C2: built](#c2-built-the-code-parts)); the knowledge cards next. Also built 2026-11-21: the dossiers for the bundled pictures, and Share on a real phone (passed on Android the same day). The knowledge cards drafted 2026-11-21 for the main cast ([C2: the knowledge cards](#c2-the-knowledge-cards-drafted-2026-11-21)), waiting for the user's review |
+| M6 Chooms! | C1 to C5 in [Chooms!](#chooms), built before M4's general parts (the user's choice, 2026-10-30) | C1 done 2026-11-10: built, tested in the game and on Android, two rounds of fixes ([C1: built](#c1-built)). C2 under way: the spike done 2026-11-14 ([C2 spike](#c2-spike-what-the-journal-holds)), the code parts built 2026-11-16 and passed in the game on 2026-11-21 ([C2: built](#c2-built-the-code-parts)); the knowledge cards next. Also built 2026-11-21: the dossiers for the bundled pictures, and Share on a real phone (passed on Android the same day). The knowledge cards drafted 2026-11-21 for the main cast, the fixers, Delamain, Hanako and Kurt Hansen ([C2: the knowledge cards](#c2-the-knowledge-cards-drafted-2026-11-21)), waiting for the user's review |
 | Release | The zip, `requires` for REDnode, the Nexus page, the changelog | Built 2026-11-10, not run as a release yet. The first release, the launch, comes once C2 to C5, M5 and M4 are all done (the user's choice, 2026-11-21, widening "after C3" of 2026-11-10: the user steps away from the mod after the launch, so it should give players and modders all of it), in this order: C2's cards, C3, C4, C5, M5, M4, then the release. `tools/release/zip.mjs` makes `EDGEmobile-<version>.zip` (EDGEmobile and EDGEphone) and `Chooms-<version>.zip`, laid out like the game folder; `notes.mjs` takes the notes from the changelogs; `.github/workflows/release.yml` makes test zips, or a release with both zips and the Nexus uploads once the pages exist (`nexus/`, `chooms/nexus/`). EDGEphone and Chooms! need REDnode 0.50.0 (the in-game clicks, REDnode #31) |
 
 ### M1: built
