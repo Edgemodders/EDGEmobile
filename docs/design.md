@@ -283,13 +283,14 @@ Images being allowed does not mean every post has one, and setting images being 
 
 The images are kept in the package's data folder, at most 1440 pixels on their longest side as WebP (the window makes a picked image smaller before it sends it). They reach the image service only as part of an image request, which the window says.
 
-**Bundled pictures and places** (the user's plan, 2026-11-10). Chooms! ships with a portrait, a body image and places for each person, so a player starts with photos ready; the player can then add, change or remove them. The author makes them with the settings window in the game, then exports them into the repo:
+**Bundled pictures and places** (the user's plan, 2026-11-10; kept as dossiers in the repo since 2026-11-21). Chooms! ships with a portrait, a body image and places for each person, so a player starts with photos ready; the player can then add, change or remove them. The author fills a dossier for each person in the repo, outside the game:
 
 | Step | How |
 |---|---|
-| Set them | Chooms!'s settings window in the game: each person's portrait, body image and places, with each place's line and activities. Photo mode screenshots, taken by the user |
-| Export | `node tools/chooms/export-content.mjs` copies them from the author's Chooms! data folder into `chooms/rednode/content/`: `content.json` (each person's images, lines and activities) and the images in `content/people/<id>/`, each named by a hash of the image. It lists what each person has, and removes images no longer listed |
-| Commit | Check the changes with git and commit them. The release zip carries `content/` as it is; `tools/release/zip.mjs` stops when `content.json` lists an image that is not there |
+| The dossiers | `chooms/dossiers/<id>/`, one per person in the roster: `portrait.<png, jpg or webp>`, `body.<...>`, and `places/<name>.<...>` each with `places/<name>.md` beside it (`# The place`, then what they might do there, one per line). A `README.md` in each says who they are, what is needed, and a checklist; `chooms/dossiers/README.md` has the rules and a table of everyone's progress. Places were written as suggestions (2026-11-21): a `.md` with no image yet is a place still to take |
+| Fill them | Drop images in by hand. Or set them in Chooms!'s settings window in the game and copy them in with `node tools/chooms/export-content.mjs` (each place becomes an image and its `.md`, named from its line). Photo mode screenshots, taken by the user |
+| Check | `node tools/chooms/dossiers.mjs` makes each image at most 1440 pixels across, as WebP, in place (the user's choice, 2026-11-21: the repo stays small; the originals are the user's to keep elsewhere), brings the checklists and the table up to date, and stops on a place with no `.md`, two portraits, or a folder that is no one. It uses sharp, the tools' own library (`tools/chooms/package.json`, not shipped), installed on first use. Then commit |
+| Build | `dossiers.mjs --build` writes `chooms/rednode/content/`: `content.json` (each person's images, lines and activities) and the images in `content/people/<id>/`, each named by a hash of the image. Git ignores it. `tools/release/zip.mjs` builds it into the release zip and `tools/deploy.ps1` into the game on this PC, so the dossiers are all that is committed |
 | A player's first start | Chooms! copies each bundled picture and place into the player's own data folder and notes it as applied. From then on they are the player's: a place removed stays removed, and a portrait of their own is kept |
 | An update | New bundled pictures and places are added; what the player changed stays. A bundled portrait or body image that is new replaces the old bundled one only if the player has not chosen their own. A bundled place the player already has (the same image, by its hash) is not added twice |
 | Reset to default | A button for each person with bundled pictures: the player's own for that person are removed, and the bundled ones are copied in again |
@@ -335,7 +336,7 @@ Chooms! lives in this repo beside EDGEphone (the user's choice, 2026-10-30), wit
 | C1 The app | The M4 parts it needs: `mobile-app.json`, the app in a sandboxed frame, the `mobile` library, the bridge from the app to its package through EDGEmobile. The screens from the prototype with stored data: Feed, Post and comments, Profile, DMs, Search, Me, You Might Already Know; follow, Choom Request and accept. The playthrough id. The settings window, with the images. Hand-written posts, no AI yet, to test the app |
 | C2 The game's story | A spike: facts, journal, texts, contacts, who is alive, whether facts are saved. Then the story points and cards for the first cast, who V is aware of, and the corporations by district |
 | C3 Posts | The cycle with Sonnet, entities by district, NPCs commenting and liking, follows and Choom Requests, the spoiler check, the caps |
-| C4 Images | The bundled pictures and places for the cast, from the user's photo mode screenshots (exported with `tools/chooms/export-content.mjs`; the code for them is built, 2026-11-10). Selfies and activities from the person's portrait, body image and places, with the scene line from the post: Nano Banana Pro or GPT Image, a setting, each with the player's own key. Cached on the PC, 1080 × 1080. Both tried on the same posts, for how well each keeps a person looking like themselves |
+| C4 Images | The bundled pictures and places for the cast, from the user's photo mode screenshots (the dossiers in `chooms/dossiers/`, built 2026-11-21). Selfies and activities from the person's portrait, body image and places, with the scene line from the post: Nano Banana Pro or GPT Image, a setting, each with the player's own key. Cached on the PC, 1080 × 1080. Both tried on the same posts, for how well each keeps a person looking like themselves |
 | C5 DMs | Conversations with Opus, remembering earlier ones |
 | M4 Mobile apps | The C1 parts made general for other modders: a sample app and a guide |
 
@@ -552,7 +553,7 @@ Run by the user on the laptop, with the zips of that day. The laptop's saves are
 
 The read takes well under 2 seconds in the game: 0.6 s for 263 calls, 1.7 s for 178.
 
-Also seen: at step 9's load, `Could not read the game: The game did not answer within 5 seconds`, then a good read 2 seconds later. A call made while the game is loading, not a failure; whether to stop logging it is the user's choice (asked 2026-11-21).
+Also seen: at step 9's load, `Could not read the game: The game did not answer within 5 seconds`, then a good read 2 seconds later. A call made while the game is loading, not a failure. Kept in the log (the user's choice, 2026-11-21), in case something else causes it one day.
 
 Fixed from the same run: the phone's scrollbars follow the theme (4bc0186), and Chooms!'s search box is a normal box at the top, with everyone V knows listed under it and narrowed as the player types (7c34505).
 
