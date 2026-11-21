@@ -35,6 +35,6 @@ The tunnel gives the test mod a private web address. As in the game, a phone get
 | `all.mjs` | Runs the modes and adds up the results |
 | `rednode-stub.mjs` | The stand-in `rednode`: the game's state, the world flag, `loc.text`, quest facts, services between packages, windows' channels. It follows REDnode 0.47.2's shapes |
 | `hooks.mjs` | Gives each package its own `rednode` (`?pkg=<id>`) |
-| `shot.mjs` | Screenshots a page with headless Chrome over the DevTools protocol. `node tests/shot.mjs <url> <out.png> <width> <height> [script] [waitMs]` |
+| `shot.mjs` | Screenshots a page with headless Chrome over the DevTools protocol. `node tests/shot.mjs <url> <out.png> <width> <height> [script] [waitMs]`. Scrollbars are hidden unless `SHOT_SCROLLBARS=1` is set (also for the `apps` screenshots) |
 
 Each mode exits with 1 when a check fails. What a run writes (the packages' data folders, copies of the apps, the picker's test folder, screenshots) goes in `tests/.out/`, which is not committed.

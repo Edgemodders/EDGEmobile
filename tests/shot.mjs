@@ -12,7 +12,7 @@ const WebSocket = createRequire(new URL('../edgemobile/package.json', import.met
 const [url, out, w, h, script = '', waitMs = '2500'] = process.argv.slice(2);
 const chrome = ['C:/Program Files/Google/Chrome/Application/chrome.exe', `${process.env.LOCALAPPDATA}/Google/Chrome/Application/chrome.exe`].find(existsSync);
 const port = 9300 + Math.floor(Math.random() * 500);
-const proc = spawn(chrome, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'em-shot-'))}`, `--window-size=${w},${h}`, '--hide-scrollbars', '--allow-file-access-from-files', 'about:blank'], { stdio: 'ignore' });
+const proc = spawn(chrome, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'em-shot-'))}`, `--window-size=${w},${h}`, ...(process.env.SHOT_SCROLLBARS ? [] : ['--hide-scrollbars']), '--allow-file-access-from-files', 'about:blank'], { stdio: 'ignore' });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let target;
 for (let i = 0; i < 50 && !target; i++) {
