@@ -584,6 +584,33 @@ Checked against "Pairing and security": nothing changes in pairing, the tunnel o
 | 5 | Tap Share, then close the sheet | Nothing else happens: no error |
 | 6 | Switch the theme to Edgemodders, share again | The card in yellow, as the theme |
 
+**The share test passed on 2026-11-21**, all six steps, on the user's Android phone.
+
+### C2: the knowledge cards (drafted 2026-11-21)
+
+Part 3 of the [C2 plan](#c2-plan): the main cast's cards, drafted for the user's review.
+
+| Part | Where | How |
+|---|---|---|
+| More story points | `chooms/rednode/story.json` | 15 points for the cast's own quests, so their cards follow their lives: Judy (Clouds, Maiko, the dive at Laguna Bend), Panam (the Basilisk, the Raffen Shiv), River (the case, the hunt for his nephew, dinner at the farm), Kerry (meeting V, Samurai's reunion and gig, his crisis, the Us Cracks, his choice, the marina). Their paths and what happens in each were read from the game's own journal file (`base\journal\cooked_journal.journal`, through REDcode, kept in the scratchpad, not committed); they are marked `"from": "journal"`, as no save has reached them yet. River's first point is now `river-law` ("I Fought the Law" is his first quest after all). 47 points in all |
+| The cards | `chooms/rednode/cards/<id>.md` | One file per person: `## start` (who they are before the story touches them), then `## <point>` for each story point that changes what they know. Each card says what they **know**, how they **feel**, and what they might **post** about. Our own words, V without pronouns, only what that person would know, neutral where the story branches (romances, how a deal ends). The rules are in `cards/README.md`. 45 cards: Judy 10, Kerry 8, Panam 6, Jackie 6, Misty 6, Viktor 5, River 4. Jackie's stop at the heist |
+| The loader | `chooms/rednode/cards.mjs` | `loadCards` reads them when Chooms! starts and stops on a file that is no one or a heading that is no story point; `cardsFor` gives a person's cards for a save: `start`, then each point passed, in the story's order. C3's posts will carry them |
+| The Story tab | `settings/window.js`, `mod.mjs` | A line "Knowledge cards for this save": for each person V has met, how many cards apply now |
+
+**For the user's review** (the content; the lines least certain first):
+
+| Card | The doubt |
+|---|---|
+| River, `river-law` | That working with V put him at odds with his department in that quest |
+| Misty, `relic` | Whether Misty knows by then that V is sick |
+| Kerry, `kerry-holdin` | That Kerry learns of Johnny in V's head in that quest |
+| Kerry, the order of his points | Samurai's reunion and gig are placed before his crisis, the Us Cracks and his choice; the order only matters for how a prompt reads |
+| Judy, `evelyn-gone` | Says plainly that Evelyn took her own life; it is the game's story, but a softer line is possible |
+
+**Checked outside the game:** every card file is a person and every heading a story point; a save's cards come in the story's order; a typo in a heading, or a file that is no one, stops the load; the Story tab's counts for an early and a late save. 112 checks, all passed.
+
+**Cards test** (in the game, after the review): load the late save and open the Story tab. "Story points passed" now counts of 47, and a new line, "Knowledge cards for this save", lists each person V has met with a number. With the late save scanned on the PC (2026-11-14) it would read Judy Alvarez 6, Panam Palmer 4, Jackie Welles 6, Viktor Vektor 4, Misty Olszewski 5, Kerry Eurodyne 1 (met through his codex entry, so only his start card); River is not met in it. Then load an earlier save: fewer cards for most.
+
 ## Installing on the phone (PWA)
 
 A web app installs on a phone's home screen when it is served over HTTPS with a manifest and a service worker. The tunnel gives HTTPS. But an installed app is tied to the address it came from, and a quick tunnel's address changes each start, so an installed app served from the tunnel would break after every restart.
@@ -627,7 +654,7 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 | M3 The OS | The shell on both screens: the home screen (status line, clock, app grid, dock), the dock on the real phone, the phone in the game (a borderless red frame, Pin to HUD), the two themes, the fonts shipped | Done 2026-10-30: built, tested in the game and on Android, with EDGEphone as its own app ([EDGEphone](#edgephone-the-phone-as-its-own-app), [0.0.7](#007-rednodes-world-flag-and-the-games-text)) |
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Not started |
 | M5 Install on the phone | The loader as a PWA: manifest, service worker, icons, the Scan button, offline screen, and its own origin | Not started |
-| M6 Chooms! | C1 to C5 in [Chooms!](#chooms), built before M4's general parts (the user's choice, 2026-10-30) | C1 done 2026-11-10: built, tested in the game and on Android, two rounds of fixes ([C1: built](#c1-built)). C2 under way: the spike done 2026-11-14 ([C2 spike](#c2-spike-what-the-journal-holds)), the code parts built 2026-11-16 and passed in the game on 2026-11-21 ([C2: built](#c2-built-the-code-parts)); the knowledge cards next. Also built 2026-11-21: the dossiers for the bundled pictures, and Share on a real phone (its test pending) |
+| M6 Chooms! | C1 to C5 in [Chooms!](#chooms), built before M4's general parts (the user's choice, 2026-10-30) | C1 done 2026-11-10: built, tested in the game and on Android, two rounds of fixes ([C1: built](#c1-built)). C2 under way: the spike done 2026-11-14 ([C2 spike](#c2-spike-what-the-journal-holds)), the code parts built 2026-11-16 and passed in the game on 2026-11-21 ([C2: built](#c2-built-the-code-parts)); the knowledge cards next. Also built 2026-11-21: the dossiers for the bundled pictures, and Share on a real phone (passed on Android the same day). The knowledge cards drafted 2026-11-21 for the main cast ([C2: the knowledge cards](#c2-the-knowledge-cards-drafted-2026-11-21)), waiting for the user's review |
 | Release | The zip, `requires` for REDnode, the Nexus page, the changelog | Built 2026-11-10, not run as a release yet. The first release, the launch, comes once C2 to C5, M5 and M4 are all done (the user's choice, 2026-11-21, widening "after C3" of 2026-11-10: the user steps away from the mod after the launch, so it should give players and modders all of it), in this order: C2's cards, C3, C4, C5, M5, M4, then the release. `tools/release/zip.mjs` makes `EDGEmobile-<version>.zip` (EDGEmobile and EDGEphone) and `Chooms-<version>.zip`, laid out like the game folder; `notes.mjs` takes the notes from the changelogs; `.github/workflows/release.yml` makes test zips, or a release with both zips and the Nexus uploads once the pages exist (`nexus/`, `chooms/nexus/`). EDGEphone and Chooms! need REDnode 0.50.0 (the in-game clicks, REDnode #31) |
 
 ### M1: built
