@@ -265,22 +265,31 @@ const VIEWS = {
   async search(q = '') {
     chrome(...TITLES.search);
     const field = h('input', { class: 'field-text', type: 'search', placeholder: 'Name or @handle', 'aria-label': 'Search', value: q, autocomplete: 'off' });
-    const results = h('div', {});
-    let timer = null;
-    const run = async () => {
-      const r = await call('search', field.value);
+    // Everyone V knows, fetched once and filtered here as the player types.
+    const r = await call('search', '');
+    const rows = r.results.map((a) => ({
+      key: `${a.name} ${a.handle}`.toLowerCase(),
+      el: h('button', { type: 'button', class: 'list-item', onclick: () => go('profile', a.id) }, avatar(a, 40, false), h('div', { class: 'who' }, h('span', { class: 'name' }, a.name), h('span', { class: 'meta' }, `@${a.handle}${a.tag ? ` · ${a.tag}` : ''}`))),
+    }));
+    const strip = peopleStrip('You might already know', r.suggestions);
+    const head = h('div', { class: 'section-head' }, h('h2', {}, 'Everyone you know'), h('span', { class: 'meta' }, ''));
+    const none = h('p', { class: 'note' }, 'No one by that name that you know of.');
+    const list = h('div', {}, ...rows.map((x) => x.el));
+    const filter = () => {
+      const term = field.value.trim().toLowerCase().replace(/^@/, '');
       stack.at(-1).arg = field.value;
-      results.replaceChildren(
-        ...(field.value.trim() ? (r.results.length ? r.results.map((a) => h('button', { type: 'button', class: 'list-item', onclick: () => go('profile', a.id) }, avatar(a, 40, false), h('div', { class: 'who' }, h('span', { class: 'name' }, a.name), h('span', { class: 'meta' }, `@${a.handle}${a.tag ? ` · ${a.tag}` : ''}`)))) : [h('p', { class: 'note' }, 'No one by that name that you know of.')]) : []),
-        peopleStrip('You might already know', r.suggestions) ?? '',
-      );
+      let shown = 0;
+      for (const x of rows) {
+        x.el.hidden = !!term && !x.key.includes(term);
+        if (!x.el.hidden) shown++;
+      }
+      if (strip) strip.hidden = !!term;
+      head.lastChild.textContent = term ? `${shown} of ${rows.length}` : String(rows.length);
+      none.hidden = shown > 0;
     };
-    field.addEventListener('input', () => {
-      clearTimeout(timer);
-      timer = setTimeout(run, 250);
-    });
-    await run();
-    return [field, results];
+    field.addEventListener('input', filter);
+    filter();
+    return [field, strip ?? '', head, list, none];
   },
 
   async compose() {

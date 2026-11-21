@@ -614,7 +614,11 @@ if (mode === 'apps') {
   check('  newest first', f.posts[0].by.id === 'judy' && f.posts[0].ago === '12m', `${f.posts[0].by.id} ${f.posts[0].ago}`);
   check('  chooms: Jackie', f.chooms.map((a) => a.id).join() === 'jackie');
   check('  You Might Already Know: met, not followed', ['panam', 'river', 'kerry'].every((id) => f.suggestions.some((a) => a.id === id)) && !f.suggestions.some((a) => ['judy', 'jackie', 'viktor', 'hanako'].includes(a.id)), f.suggestions.map((a) => a.id).join(','));
-  let s = await callApp('search', 'han');
+  let s = await callApp('search', '');
+  const kinds = s.results.map((a) => a.kind === 'corp');
+  const people = s.results.filter((a) => a.kind !== 'corp').map((a) => a.name);
+  check('search with no words: everyone V knows, people A to Z, then corporations', s.results.some((a) => a.id === 'kerry') && s.results.some((a) => a.id === 'arasaka') && !s.results.some((a) => a.id === 'hanako') && kinds.indexOf(true) === kinds.filter((k) => !k).length && people.join() === [...people].sort((a, b) => a.localeCompare(b)).join(), s.results.map((a) => a.id).join(','));
+  s = await callApp('search', 'han');
   check('search finds only who V knows of (not Hanako yet)', !s.results.some((a) => a.id === 'hanako'), s.results.map((a) => a.id).join(','));
   s = await callApp('search', 'arasaka');
   check('  corporations, always', s.results.some((a) => a.id === 'arasaka'));
@@ -901,6 +905,8 @@ if (mode === 'apps') {
     { click: [272, 790], wait: 1500, shot: 'c1-dms.png' },
     { click: [195, 250], wait: 1500, shot: 'c1-thread.png' },
     { click: [350, 790], wait: 1500, shot: 'c1-me.png' },
+    { click: [117, 790], wait: 1500, shot: 'c1-search.png' },
+    { click: [195, 96], type: 'ju', wait: 800, shot: 'c1-search-ju.png' },
   ]);
   out = await shoot('c1-feed.png', OPEN, '2500');
   delete process.env.SHOT_STEPS;

@@ -39,14 +39,16 @@ if (script) {
 const shot = await call('Page.captureScreenshot', { format: 'png' });
 writeFileSync(out, Buffer.from(shot.data, 'base64'));
 console.log('saved', out);
-// SHOT_STEPS: [{ "click": [x, y], "wait": ms, "shot": "file.png" }, ...]: real mouse clicks, which
-// reach into frames a script cannot, each followed by a screenshot if named.
+// SHOT_STEPS: [{ "click": [x, y], "type": "text", "wait": ms, "shot": "file.png" }, ...]: real mouse
+// clicks and typing into what has focus, which reach into frames a script cannot, each followed by
+// a screenshot if named.
 for (const step of JSON.parse(process.env.SHOT_STEPS || '[]')) {
   if (step.click) {
     const [x, y] = step.click;
     await call('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 });
     await call('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 });
   }
+  if (step.type) await call('Input.insertText', { text: step.type });
   await sleep(step.wait ?? 1500);
   if (step.shot) {
     const s = await call('Page.captureScreenshot', { format: 'png' });

@@ -307,9 +307,14 @@ function thread(id) {
   };
 }
 
+// Search: with no words, everyone V knows (people A to Z, then corporations A to Z), which the
+// app filters as the player types; with words, those whose name or handle holds them.
 function search(q) {
   const term = String(q ?? '').trim().toLowerCase().slice(0, 40);
-  const results = term ? known().filter((a) => a.name.toLowerCase().includes(term) || a.handle.toLowerCase().includes(term)).map((a) => author(a.id)) : [];
+  const results = known()
+    .filter((a) => !term || a.name.toLowerCase().includes(term) || a.handle.toLowerCase().includes(term))
+    .sort((a, b) => (a.kind === 'corp') - (b.kind === 'corp') || a.name.localeCompare(b.name))
+    .map((a) => author(a.id));
   return { suggestions: suggestions(), results };
 }
 
