@@ -850,8 +850,10 @@ if (mode === 'apps') {
     } catch (e) {
       err = e.message;
     }
-    const cast = rosterJ.filter((a) => a.kind === 'cast').map((a) => a.id);
-    check('the knowledge cards: every file a person, every heading start or a story point, each of the cast with a start card', !!real && cast.every((id) => real.get(id)?.has('start')), err || [...(real?.keys() ?? [])].join(','));
+    const people = rosterJ.filter((a) => a.kind !== 'corp').map((a) => a.id);
+    check('the knowledge cards: every file a person, every heading start or a story point, everyone who posts (all but the corporations) with a start card', !!real && people.every((id) => real.get(id)?.has('start')), err || people.filter((id) => !real?.get(id)?.has('start')).join(',') || [...(real?.keys() ?? [])].join(','));
+    const wc = real ? cardsFor(real, 'wakako', { heist: 1, 'wakako-first': 1, 'wakako-all': 1 }, storyJ).map((c) => c.point).join() : '';
+    check("  a fixer's cards: the prologue job, the heist, every gig in the district", wc === 'start,wakako-first,heist,wakako-all', wc);
     const jc = real ? cardsFor(real, 'judy', { heist: 1, 'judy-bd': 1, 'pl-crash': 1 }, storyJ).map((c) => c.point).join() : '';
     check('  a save\'s cards: start, then the points passed, in the story\'s order', jc === 'start,judy-bd,heist', jc);
     const bad = join(appsRoot, 'cards-test');

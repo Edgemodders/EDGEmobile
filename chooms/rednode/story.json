@@ -18,6 +18,14 @@
       "note": "V and Jackie's first job together; six months of gigs follow"
     },
     {
+      "id": "wakako-first",
+      "act": "prologue",
+      "path": "quests/side_quest/sq_q001_wakako",
+      "when": "done",
+      "note": "V and Jackie's job for Wakako: Sandra Dorsett, and the reward at her parlor",
+      "from": "journal"
+    },
+    {
       "id": "vik",
       "act": "prologue",
       "path": "quests/main_quest/prologue/q001_01_victor",
@@ -192,6 +200,14 @@
       "note": "Johnny and Rogue, after fifty years"
     },
     {
+      "id": "rogue-date",
+      "act": "act1",
+      "path": "quests/side_quest/sq031_cinema",
+      "when": "done",
+      "note": "Johnny's one night out with Rogue, through V; how it ends depends on V (cards stay neutral)",
+      "from": "journal"
+    },
+    {
       "id": "kerry-holdin",
       "act": "act1",
       "path": "quests/side_quest/sq011_kerry",
@@ -271,11 +287,90 @@
       "from": "journal"
     },
     {
+      "id": "delamain-job",
+      "act": "act1",
+      "path": "quests/side_quest/sq025_delamain",
+      "when": "started",
+      "note": "Delamain asks V to bring back his runaway cabs",
+      "from": "journal"
+    },
+    {
+      "id": "delamain-mind",
+      "act": "act1",
+      "path": "quests/side_quest/sq025b_delamain_insurgence",
+      "when": "done",
+      "note": "V reaches Delamain's core; how it ends depends on V (cards stay neutral)",
+      "from": "journal"
+    },
+    {
       "id": "misty-tarot",
       "act": "act1",
       "path": "quests/minor_quest/mq033_tarot",
       "when": "started",
       "note": "Misty's tarot cards around the city"
+    },
+    {
+      "id": "regina-psychos",
+      "act": "act1",
+      "path": "quests/minor_quest/mq043_cyberpsychos",
+      "when": "started",
+      "note": "V takes on Regina's cyberpsycho cases"
+    },
+    {
+      "id": "regina-psychos-all",
+      "act": "act1",
+      "path": "quests/minor_quest/mq043_cyberpsychos",
+      "when": "done",
+      "note": "Every cyberpsycho on her list dealt with; how many lived depends on V (cards stay neutral)",
+      "from": "journal"
+    },
+    {
+      "id": "regina-all",
+      "act": "act1",
+      "path": "quests/street_stories/watson/watson_reward",
+      "when": "done",
+      "note": "Every gig in Watson done for Regina",
+      "from": "journal"
+    },
+    {
+      "id": "wakako-all",
+      "act": "act1",
+      "path": "quests/street_stories/wesbrook/westbrook_reward",
+      "when": "done",
+      "note": "Every gig in Westbrook done for Wakako",
+      "from": "journal"
+    },
+    {
+      "id": "dino-all",
+      "act": "act1",
+      "path": "quests/street_stories/city_center/city_center_reward",
+      "when": "done",
+      "note": "Every gig in City Center done for Dino",
+      "from": "journal"
+    },
+    {
+      "id": "padre-all",
+      "act": "act1",
+      "path": "quests/street_stories/heywood/heywood_reward",
+      "when": "done",
+      "note": "Every gig in Heywood done for Padre",
+      "from": "journal"
+    },
+    {
+      "id": "capitan-all",
+      "act": "act1",
+      "path": "quests/street_stories/santo_domingo/santo_domingo_reward",
+      "when": "done",
+      "note": "Every gig in Santo Domingo done for El Capitan",
+      "from": "journal"
+    },
+    {
+      "id": "dakota-all",
+      "act": "act1",
+      "path": "quests/street_stories/badlands/badlands_reward",
+      "when": "done",
+      "note": "Every gig in the Badlands done for Dakota",
+      "from": "journal"
     },
     {
       "id": "takemura-again",
