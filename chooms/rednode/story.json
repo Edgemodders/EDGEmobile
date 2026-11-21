@@ -1,43 +1,358 @@
 {
-  "_about": "Chooms!'s story points (docs/design.md, C2 plan): each is a journal entry reaching a state. `path` is the entry's path in the game's journal, `kind` its kind (quest unless named), `when` 'done' (Succeeded) or 'started' (Active, Succeeded or Failed). A point V has passed lets each NPC use the knowledge cards for it (cards/, from C2's second half). The notes are ours, for whoever writes the cards; no game text. Paths seen in the user's saves on 2026-11-14 unless marked unverified. Lifepaths: the prologue quest V finished; only the Corpo one was seen.",
+  "_about": "Chooms!'s story points (docs/design.md, C2 plan): each is a journal entry reaching a state. `path` is the entry's path in the game's journal, `kind` its kind (quest unless named), `when` 'done' (Succeeded) or 'started' (Active, Succeeded or Failed). A point V has passed lets each NPC use the knowledge cards for it (cards/, from C2's second half). The notes are ours, for whoever writes the cards; no game text. Paths seen in the user's saves on 2026-11-14, except those marked `\"from\": \"journal\"`: read from the game's own journal file (base\\journal\\cooked_journal.journal, through REDcode, 2026-11-21), so they exist, but no save has reached them yet. Lifepaths: the prologue quest V finished; only the Corpo one was seen.",
   "lifepaths": {
     "corpo": "quests/main_quest/prologue/q000_corpo",
     "nomad": "quests/main_quest/prologue/q000_nomad",
     "streetkid": "quests/main_quest/prologue/q000_street_kid"
   },
-  "lifepathsUnverified": ["nomad", "streetkid"],
+  "lifepathsUnverified": [
+    "nomad",
+    "streetkid"
+  ],
   "points": [
-    { "id": "partners", "act": "prologue", "path": "quests/main_quest/prologue/q001_intro", "when": "done", "note": "V and Jackie's first job together; six months of gigs follow" },
-    { "id": "vik", "act": "prologue", "path": "quests/main_quest/prologue/q001_01_victor", "when": "done", "note": "V at Viktor's clinic; Misty next door" },
-    { "id": "dex", "act": "prologue", "path": "quests/main_quest/prologue/q001_02_dex", "when": "done", "note": "Dex offers the big job" },
-    { "id": "judy-bd", "act": "prologue", "path": "quests/main_quest/prologue/q004_braindance", "when": "done", "note": "V meets Judy and Evelyn; the braindance of the target" },
-    { "id": "pickup", "act": "prologue", "path": "quests/main_quest/prologue/q003_maelstrom", "when": "done", "note": "The bot from Maelstrom" },
-    { "id": "heist", "act": "prologue", "path": "quests/main_quest/prologue/q005_heist", "when": "done", "note": "The heist goes wrong: Jackie dies, V carries the chip, Dex shoots V" },
-    { "id": "firestorm", "act": "act1", "path": "quests/main_quest/act_01/q101_01_firestorm", "when": "done", "note": "Takemura pulls V out of the landfill" },
-    { "id": "relic", "act": "act1", "path": "quests/main_quest/act_01/q101_resurrection", "when": "done", "note": "V learns the chip is killing them; Johnny in V's head" },
-    { "id": "jackie-farewell", "act": "act1", "path": "quests/side_quest/sq018_jackie", "when": "done", "note": "Jackie's ofrenda with Mama Welles and Misty" },
-    { "id": "clouds", "act": "act1", "path": "quests/main_quest/act_01/q105_dollhouse", "when": "done", "note": "V looks for Evelyn at Clouds" },
-    { "id": "evelyn-found", "act": "act1", "path": "quests/main_quest/act_01/q105_04_judys", "when": "done", "note": "Judy and V find Evelyn, badly hurt" },
-    { "id": "evelyn-gone", "act": "act1", "path": "quests/side_quest/sq026_01_suicide", "when": "started", "note": "Evelyn's death; Judy grieving" },
-    { "id": "panam-met", "act": "act1", "path": "quests/main_quest/act_01/q103_warhead", "when": "started", "note": "V meets Panam, sent by Rogue" },
-    { "id": "panam-job", "act": "act1", "path": "quests/main_quest/act_01/q104_02_av_chase", "when": "done", "note": "Panam and V take down the AV; she owes V" },
-    { "id": "panam-family", "act": "act1", "path": "quests/side_quest/sq004_riders_on_the_storm", "when": "started", "note": "Panam's Aldecaldos and her trouble with Saul" },
-    { "id": "voodoo", "act": "act1", "path": "quests/main_quest/act_01/q110_voodoo", "when": "done", "note": "The Voodoo Boys in Pacifica" },
-    { "id": "alt", "act": "act1", "path": "quests/main_quest/act_01/q110_03_cyberspace", "when": "done", "note": "V meets Alt beyond the Blackwall" },
-    { "id": "johnny-past", "act": "act1", "path": "quests/main_quest/act_01/q108_johnny", "when": "done", "note": "Johnny's memories, Rogue's part in them" },
-    { "id": "rogue-johnny", "act": "act1", "path": "quests/side_quest/sq031_rogue", "when": "started", "note": "Johnny and Rogue, after fifty years" },
-    { "id": "peralez-case", "act": "act1", "path": "quests/side_quest/sq012_lost_girl", "when": "started", "note": "A case that starts with Elizabeth Peralez; River comes into it later (unverified). V meeting River is his codex entry or contact (roster.json), not this point" },
-    { "id": "misty-tarot", "act": "act1", "path": "quests/minor_quest/mq033_tarot", "when": "started", "note": "Misty's tarot cards around the city" },
-    { "id": "takemura-again", "act": "act2", "path": "quests/main_quest/act_01/q112_01_old_friend", "when": "done", "note": "Takemura's plan to reach Hanako" },
-    { "id": "industrial-park", "act": "act2", "path": "quests/main_quest/act_01/q112_02_industrial_park", "when": "done", "note": "V breaks into Arasaka's park" },
-    { "id": "parade", "act": "act2", "path": "quests/main_quest/act_01/q112_03_dashi_parade", "when": "done", "note": "The parade in Japantown" },
-    { "id": "hanako-taken", "act": "act2", "path": "quests/main_quest/act_01/q112_04_hideout", "when": "done", "note": "Hanako in V's hands; Takemura's hideout" },
-    { "id": "act2-end", "act": "act2", "path": "quests/meta/02_sickness", "when": "started", "note": "The meeting with Hanako; the end of the story draws near" },
-    { "id": "pl-start", "act": "pl", "path": "ep1/quests/main_quest/q300_phantom_liberty", "when": "done", "note": "Songbird's call; V goes to Dogtown" },
-    { "id": "pl-crash", "act": "pl", "path": "ep1/quests/main_quest/q301_crash", "when": "done", "note": "The president's plane comes down in Dogtown" },
-    { "id": "pl-myers", "act": "pl", "path": "ep1/quests/main_quest/q301_q302_rescue_myers", "when": "done", "note": "V gets Myers to a safehouse" },
-    { "id": "pl-reed", "act": "pl", "path": "ep1/quests/main_quest/q302_reed", "when": "done", "note": "V meets Reed" },
-    { "id": "pl-baron", "act": "pl", "path": "ep1/quests/main_quest/q303_baron", "when": "done", "note": "V works with Hansen's people" },
-    { "id": "pl-hands", "act": "pl", "path": "ep1/quests/main_quest/q303_hands", "when": "started", "note": "Mr. Hands and the next step" }
+    {
+      "id": "partners",
+      "act": "prologue",
+      "path": "quests/main_quest/prologue/q001_intro",
+      "when": "done",
+      "note": "V and Jackie's first job together; six months of gigs follow"
+    },
+    {
+      "id": "vik",
+      "act": "prologue",
+      "path": "quests/main_quest/prologue/q001_01_victor",
+      "when": "done",
+      "note": "V at Viktor's clinic; Misty next door"
+    },
+    {
+      "id": "dex",
+      "act": "prologue",
+      "path": "quests/main_quest/prologue/q001_02_dex",
+      "when": "done",
+      "note": "Dex offers the big job"
+    },
+    {
+      "id": "judy-bd",
+      "act": "prologue",
+      "path": "quests/main_quest/prologue/q004_braindance",
+      "when": "done",
+      "note": "V meets Judy and Evelyn; the braindance of the target"
+    },
+    {
+      "id": "pickup",
+      "act": "prologue",
+      "path": "quests/main_quest/prologue/q003_maelstrom",
+      "when": "done",
+      "note": "The bot from Maelstrom"
+    },
+    {
+      "id": "heist",
+      "act": "prologue",
+      "path": "quests/main_quest/prologue/q005_heist",
+      "when": "done",
+      "note": "The heist goes wrong: Jackie dies, V carries the chip, Dex shoots V"
+    },
+    {
+      "id": "firestorm",
+      "act": "act1",
+      "path": "quests/main_quest/act_01/q101_01_firestorm",
+      "when": "done",
+      "note": "Takemura pulls V out of the landfill"
+    },
+    {
+      "id": "relic",
+      "act": "act1",
+      "path": "quests/main_quest/act_01/q101_resurrection",
+      "when": "done",
+      "note": "V learns the chip is killing them; Johnny in V's head"
+    },
+    {
+      "id": "jackie-farewell",
+      "act": "act1",
+      "path": "quests/side_quest/sq018_jackie",
+      "when": "done",
+      "note": "Jackie's ofrenda with Mama Welles and Misty"
+    },
+    {
+      "id": "clouds",
+      "act": "act1",
+      "path": "quests/main_quest/act_01/q105_dollhouse",
+      "when": "done",
+      "note": "V looks for Evelyn at Clouds"
+    },
+    {
+      "id": "evelyn-found",
+      "act": "act1",
+      "path": "quests/main_quest/act_01/q105_04_judys",
+      "when": "done",
+      "note": "Judy and V find Evelyn, badly hurt"
+    },
+    {
+      "id": "evelyn-gone",
+      "act": "act1",
+      "path": "quests/side_quest/sq026_01_suicide",
+      "when": "started",
+      "note": "Evelyn's death; Judy grieving"
+    },
+    {
+      "id": "judy-maiko",
+      "act": "act1",
+      "path": "quests/side_quest/sq026_02_maiko",
+      "when": "done",
+      "note": "Judy brings V to Clouds and to Maiko, her ex, over the Tyger Claws who run it",
+      "from": "journal"
+    },
+    {
+      "id": "judy-revolution",
+      "act": "act1",
+      "path": "quests/side_quest/sq026_03_pizza",
+      "when": "done",
+      "note": "Judy and Maiko's plan against Clouds' bosses goes ahead, with V",
+      "from": "journal"
+    },
+    {
+      "id": "judy-pisces",
+      "act": "act1",
+      "path": "quests/side_quest/sq026_04_hiromi",
+      "when": "done",
+      "note": "The dolls' uprising and Maiko's deal; how it ends depends on V (cards stay neutral)",
+      "from": "journal"
+    },
+    {
+      "id": "judy-dive",
+      "act": "act1",
+      "path": "quests/side_quest/sq030_judy_romance",
+      "when": "done",
+      "note": "Judy and V dive at Laguna Bend, her drowned hometown; what follows depends on V (cards stay neutral)",
+      "from": "journal"
+    },
+    {
+      "id": "panam-met",
+      "act": "act1",
+      "path": "quests/main_quest/act_01/q103_warhead",
+      "when": "started",
+      "note": "V meets Panam, sent by Rogue"
+    },
+    {
+      "id": "panam-job",
+      "act": "act1",
+      "path": "quests/main_quest/act_01/q104_02_av_chase",
+      "when": "done",
+      "note": "Panam and V take down the AV; she owes V"
+    },
+    {
+      "id": "panam-family",
+      "act": "act1",
+      "path": "quests/side_quest/sq004_riders_on_the_storm",
+      "when": "started",
+      "note": "Panam's Aldecaldos and her trouble with Saul"
+    },
+    {
+      "id": "panam-help",
+      "act": "act1",
+      "path": "quests/side_quest/sq027_01_basilisk_convoy",
+      "when": "done",
+      "note": "Panam's plan to get the Aldecaldos a Basilisk, with V",
+      "from": "journal"
+    },
+    {
+      "id": "panam-queen",
+      "act": "act1",
+      "path": "quests/side_quest/sq027_02_raffen_shiv_attack",
+      "when": "done",
+      "note": "The Raffen Shiv attack; Panam and V fight back in the Basilisk; Saul and Panam",
+      "from": "journal"
+    },
+    {
+      "id": "voodoo",
+      "act": "act1",
+      "path": "quests/main_quest/act_01/q110_voodoo",
+      "when": "done",
+      "note": "The Voodoo Boys in Pacifica"
+    },
+    {
+      "id": "alt",
+      "act": "act1",
+      "path": "quests/main_quest/act_01/q110_03_cyberspace",
+      "when": "done",
+      "note": "V meets Alt beyond the Blackwall"
+    },
+    {
+      "id": "johnny-past",
+      "act": "act1",
+      "path": "quests/main_quest/act_01/q108_johnny",
+      "when": "done",
+      "note": "Johnny's memories, Rogue's part in them"
+    },
+    {
+      "id": "rogue-johnny",
+      "act": "act1",
+      "path": "quests/side_quest/sq031_rogue",
+      "when": "started",
+      "note": "Johnny and Rogue, after fifty years"
+    },
+    {
+      "id": "kerry-holdin",
+      "act": "act1",
+      "path": "quests/side_quest/sq011_kerry",
+      "when": "done",
+      "note": "V turns up at Kerry's villa with Johnny in V's head; Kerry meets V and learns about Johnny",
+      "from": "journal"
+    },
+    {
+      "id": "kerry-second",
+      "act": "act1",
+      "path": "quests/side_quest/sq011_johnny",
+      "when": "started",
+      "note": "Getting Samurai, Johnny and Kerry's old band, together for one more gig",
+      "from": "journal"
+    },
+    {
+      "id": "kerry-supreme",
+      "act": "act1",
+      "path": "quests/side_quest/sq011_concert",
+      "when": "done",
+      "note": "Samurai's one-night gig, with V there",
+      "from": "journal"
+    },
+    {
+      "id": "kerry-rebel",
+      "act": "act1",
+      "path": "quests/side_quest/sq017_kerry",
+      "when": "done",
+      "note": "Kerry's late-life crisis turns into a wild night out with V",
+      "from": "journal"
+    },
+    {
+      "id": "kerry-riot",
+      "act": "act1",
+      "path": "quests/side_quest/sq017_01_riot_club",
+      "when": "done",
+      "note": "Kerry goes after the Us Cracks and the label behind them, with V",
+      "from": "journal"
+    },
+    {
+      "id": "kerry-leash",
+      "act": "act1",
+      "path": "quests/side_quest/sq017_02_lounge",
+      "when": "done",
+      "note": "Kerry at a crossroads, choosing who he wants to be now",
+      "from": "journal"
+    },
+    {
+      "id": "kerry-boat",
+      "act": "act1",
+      "path": "quests/side_quest/sq028_kerry_romance",
+      "when": "started",
+      "note": "Kerry asks V to the marina; what follows depends on V (cards stay neutral)",
+      "from": "journal"
+    },
+    {
+      "id": "river-law",
+      "act": "act1",
+      "path": "quests/side_quest/sq012_lost_girl",
+      "when": "started",
+      "note": "A secret job from Elizabeth Peralez about a dead politician leads V to River Ward of the NCPD"
+    },
+    {
+      "id": "river-hunt",
+      "act": "act1",
+      "path": "quests/side_quest/sq021_sick_dreams",
+      "when": "done",
+      "note": "A killer who takes boys has River's nephew Randy; River and V hunt him",
+      "from": "journal"
+    },
+    {
+      "id": "river-following",
+      "act": "act1",
+      "path": "quests/side_quest/sq029_sobchak_romance",
+      "when": "started",
+      "note": "The case closed, River asks V to dinner with his family; what follows depends on V (cards stay neutral)",
+      "from": "journal"
+    },
+    {
+      "id": "misty-tarot",
+      "act": "act1",
+      "path": "quests/minor_quest/mq033_tarot",
+      "when": "started",
+      "note": "Misty's tarot cards around the city"
+    },
+    {
+      "id": "takemura-again",
+      "act": "act2",
+      "path": "quests/main_quest/act_01/q112_01_old_friend",
+      "when": "done",
+      "note": "Takemura's plan to reach Hanako"
+    },
+    {
+      "id": "industrial-park",
+      "act": "act2",
+      "path": "quests/main_quest/act_01/q112_02_industrial_park",
+      "when": "done",
+      "note": "V breaks into Arasaka's park"
+    },
+    {
+      "id": "parade",
+      "act": "act2",
+      "path": "quests/main_quest/act_01/q112_03_dashi_parade",
+      "when": "done",
+      "note": "The parade in Japantown"
+    },
+    {
+      "id": "hanako-taken",
+      "act": "act2",
+      "path": "quests/main_quest/act_01/q112_04_hideout",
+      "when": "done",
+      "note": "Hanako in V's hands; Takemura's hideout"
+    },
+    {
+      "id": "act2-end",
+      "act": "act2",
+      "path": "quests/meta/02_sickness",
+      "when": "started",
+      "note": "The meeting with Hanako; the end of the story draws near"
+    },
+    {
+      "id": "pl-start",
+      "act": "pl",
+      "path": "ep1/quests/main_quest/q300_phantom_liberty",
+      "when": "done",
+      "note": "Songbird's call; V goes to Dogtown"
+    },
+    {
+      "id": "pl-crash",
+      "act": "pl",
+      "path": "ep1/quests/main_quest/q301_crash",
+      "when": "done",
+      "note": "The president's plane comes down in Dogtown"
+    },
+    {
+      "id": "pl-myers",
+      "act": "pl",
+      "path": "ep1/quests/main_quest/q301_q302_rescue_myers",
+      "when": "done",
+      "note": "V gets Myers to a safehouse"
+    },
+    {
+      "id": "pl-reed",
+      "act": "pl",
+      "path": "ep1/quests/main_quest/q302_reed",
+      "when": "done",
+      "note": "V meets Reed"
+    },
+    {
+      "id": "pl-baron",
+      "act": "pl",
+      "path": "ep1/quests/main_quest/q303_baron",
+      "when": "done",
+      "note": "V works with Hansen's people"
+    },
+    {
+      "id": "pl-hands",
+      "act": "pl",
+      "path": "ep1/quests/main_quest/q303_hands",
+      "when": "started",
+      "note": "Mr. Hands and the next step"
+    }
   ]
 }
