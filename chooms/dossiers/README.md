@@ -29,7 +29,7 @@ The places already written are suggestions: change them, remove them, or add you
 
 The release zip builds Chooms!'s `content/` from these folders (`dossiers.mjs --build`), and so does `tools/deploy.ps1` for the game on this PC. Pictures set in the game's settings window can be copied in here with `node tools/chooms/export-content.mjs`.
 
-*To check before a release:* that CD Projekt RED's fan content rules allow shipping screenshots of the game's characters in a free mod (*unverified*).
+*Shipping the pictures:* photo mode screenshots are fine to ship in a free mod (the user's decision, 2026-11-21: photo mode is built into the game, and its pictures are shared across the internet). Chooms! stays free and says it is not affiliated with CD Projekt RED.
 
 ## Progress
 

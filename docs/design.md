@@ -295,7 +295,7 @@ The images are kept in the package's data folder, at most 1440 pixels on their l
 | An update | New bundled pictures and places are added; what the player changed stays. A bundled portrait or body image that is new replaces the old bundled one only if the player has not chosen their own. A bundled place the player already has (the same image, by its hash) is not added twice |
 | Reset to default | A button for each person with bundled pictures: the player's own for that person are removed, and the bundled ones are copied in again |
 
-*To check before a release:* that CD Projekt RED's fan content rules allow shipping screenshots of the game's characters in a free mod (*unverified*).
+*Shipping the pictures:* photo mode screenshots are fine to ship in a free mod (the user's decision, 2026-11-21: photo mode is built into the game, and its pictures are shared across the internet). Chooms! stays free and says it is not affiliated with CD Projekt RED.
 
 ### Playthroughs
 
