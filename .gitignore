@@ -9,3 +9,5 @@ docs/.jekyll-cache/
 # never commit Cloudflare's program or a player's data
 cloudflared*.exe
 phones.json
+# Chooms!'s bundled pictures and places: built from chooms/dossiers/ (tools/chooms/dossiers.mjs --build)
+/chooms/rednode/content/

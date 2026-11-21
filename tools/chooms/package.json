@@ -1,0 +1,11 @@
+{
+  "name": "edgemobile-chooms-tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tools for Chooms!'s bundled pictures and places (not shipped): sharp shrinks the dossiers' images",
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "sharp": "0.35.5"
+  }
+}

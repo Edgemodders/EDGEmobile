@@ -13,7 +13,7 @@ Before the first run, install EDGEmobile's libraries: `npm ci` in `edgemobile/` 
 | Mode | Checks | Needs |
 |---|---|---|
 | `boot` | The game starting with the phone window open, V arriving, a load from the pause menu, the main menu: no call into the world while V is not in it. EDGEphone's screen through EDGEmobile's service | Nothing |
-| `apps` | Mobile apps: the app frame, `/mobile.js`, the bridge to an app's package, media addresses. Chooms!: the feed per playthrough, older saves, the settings window, its image picker, bundled pictures and places, Reset to default, the export tool. Ends with headless Chrome screenshots in `tests/.out/shots/` | Chrome |
+| `apps` | Mobile apps: the app frame, `/mobile.js`, the bridge to an app's package, media addresses. Chooms!: the feed per playthrough, older saves, the settings window, its image picker, bundled pictures and places, Reset to default, the export tool, the dossiers (shrinking, checklists, the build). Ends with headless Chrome screenshots in `tests/.out/shots/` | Chrome |
 | `full` | The tunnel, pairing (the QR link's key and Allow), every refusal, the phone back by its signature, themes, fonts, what is and is not served | The internet, `cloudflared` |
 | `relink` | A restarted mod finds the running tunnel; the paired phone is in by signature | `full` just before, in the same command |
 | `auto` | With the setting on and a phone paired, the tunnel starts with the mod | `full` before it |

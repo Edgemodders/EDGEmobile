@@ -43,7 +43,7 @@ const ZIPS = {
     changelog: 'docs/chooms/changelog.md',
     same: ['chooms/mobile/mobile-app.json'],
     parts: [
-      { from: 'chooms/rednode', to: 'apps/chooms', manifest: 'rednode-app.json' },
+      { from: 'chooms/rednode', to: 'apps/chooms', manifest: 'rednode-app.json', content: true },
       { from: 'chooms/mobile', to: 'mobile-apps/chooms', manifest: 'mobile-app.json' },
     ],
   },
@@ -64,15 +64,6 @@ function build(id, z) {
     // Chooms! needs an EDGEmobile that exists.
     const needs = m.requires?.edgemobile?.match(/^>=\s*(\d+\.\d+\.\d+)$/)?.[1];
     if (needs && newer(needs, ZIPS.edgemobile.version)) throw new Error(`${p.from}/${p.manifest} needs EDGEmobile ${needs}, newer than ${ZIPS.edgemobile.version}`);
-    // Chooms!'s bundled pictures and places (tools/chooms/export-content.mjs): every image listed is there.
-    const content = join(repo, p.from, 'content', 'content.json');
-    if (existsSync(content)) {
-      const files = Object.values(json(`${p.from}/content/content.json`).people ?? {}).flatMap((e) => [e.portrait, e.body, ...(e.places ?? []).map((x) => x.file)]).filter(Boolean);
-      const missing = files.filter((f) => !existsSync(join(repo, p.from, 'content', f)));
-      if (missing.length) throw new Error(`${p.from}/content/content.json lists images that are not there: ${missing.join(', ')}. Run node tools/chooms/export-content.mjs again`);
-      const size = files.reduce((n, f) => n + statSync(join(repo, p.from, 'content', f)).size, 0);
-      console.log(`${p.from}/content: ${files.length} images, ${(size / 1048576).toFixed(1)} MB`);
-    }
   }
 
   if (!draft) {
@@ -94,12 +85,19 @@ function build(id, z) {
 
   for (const p of z.parts) {
     const to = join(stage, 'red4ext', 'plugins', 'REDnode', ...p.to.split('/'));
-    // node_modules comes fresh from npm below; backups and editor leftovers stay out.
-    cpSync(join(repo, p.from), to, { recursive: true, filter: (src) => !/^(node_modules|.*\.bak|.*\.tmp)$/.test(basename(src)) });
+    // node_modules comes fresh from npm below, content/ from the dossiers; backups and editor
+    // leftovers stay out.
+    const local = join(repo, p.from, 'content');
+    cpSync(join(repo, p.from), to, { recursive: true, filter: (src) => src !== local && !/^(node_modules|.*\.bak|.*\.tmp)$/.test(basename(src)) });
     cpSync(join(repo, 'LICENSE'), join(to, 'LICENSE.txt'));
     if (p.npm) {
       const npm = spawnSync('npm ci --omit=dev --ignore-scripts --no-audit --no-fund', { cwd: to, stdio: 'inherit', shell: true });
       if (npm.status !== 0) throw new Error(`npm ci failed in ${p.from}`);
+    }
+    // Chooms!'s bundled pictures and places, built from chooms/dossiers/ (tools/chooms/dossiers.mjs).
+    if (p.content) {
+      const built = spawnSync(process.execPath, [join(repo, 'tools', 'chooms', 'dossiers.mjs'), '--build', '--out', join(to, 'content')], { stdio: 'inherit' });
+      if (built.status !== 0) throw new Error('Chooms!\'s dossiers have problems (above): fix them, then build again');
     }
   }
 

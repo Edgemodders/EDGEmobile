@@ -57,7 +57,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: edgemobile/package-lock.json
+          cache-dependency-path: |
+            edgemobile/package-lock.json
+            tools/chooms/package-lock.json
 
       - name: Versions
         run: |

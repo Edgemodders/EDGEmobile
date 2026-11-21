@@ -1,31 +1,27 @@
-// Makes Chooms!'s bundled pictures and places (chooms/rednode/content/) from your own: the
-// portraits, body images and places you set in Chooms!'s settings window in the game.
+// Copies the pictures and places you set in Chooms!'s settings window in the game into the
+// dossiers (chooms/dossiers/<id>/), the files Chooms!'s bundled pictures and places are built
+// from (tools/chooms/dossiers.mjs). The other way to fill them is to drop files in by hand.
 //
 //   node tools/chooms/export-content.mjs                    from your Chooms! data on this PC
 //   node tools/chooms/export-content.mjs --data <folder>    from another Chooms! data folder
+//   node tools/chooms/export-content.mjs --out <folder>     into other dossiers (tests)
 //   node tools/chooms/export-content.mjs --dry              says what it would do, writes nothing
 //
-// content/content.json lists each person's portrait, body image and places (each place's image,
-// its line and its activities). The images sit beside it in content/people/<id>/, named by a
-// hash of the image, so the same image keeps the same name. Images no longer listed are removed.
-// Then check the changes with git and commit them: the release zip carries content/ as it is.
-// Chooms! copies the pictures and places into a player's own folder the first time it starts
-// (chooms/rednode/mod.mjs, "Bundled pictures and places").
-import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+// Each person's portrait and body image replace the dossier's. Each place becomes
+// places/<name>.<ext> with places/<name>.md beside it, <name> made from its line; a place of the
+// same name is replaced. Nothing else in a dossier is removed. Then run dossiers.mjs, check the
+// changes with git and commit them.
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repo = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const args = process.argv.slice(2);
+const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
 const dry = args.includes('--dry');
-const dataAt = args.indexOf('--data');
-const data = dataAt >= 0 ? args[dataAt + 1] : join(process.env.APPDATA ?? '', '@rednode', 'overlay', 'packages', 'chooms');
-// --out: another folder than the package's content/, for tests.
-const outAt = args.indexOf('--out');
-const out = outAt >= 0 ? args[outAt + 1] : join(repo, 'chooms', 'rednode', 'content');
-// Pictures picked since images are made smaller in the window are well under this.
-const LARGE = 1.5 * 1024 * 1024;
+const data = opt('--data') ?? join(process.env.APPDATA ?? '', '@rednode', 'overlay', 'packages', 'chooms');
+const out = opt('--out') ?? join(repo, 'chooms', 'dossiers');
+const IMAGE = /\.(png|jpe?g|webp)$/i;
 
 const settingsFile = join(data, 'settings.json');
 if (!existsSync(settingsFile)) {
@@ -35,71 +31,39 @@ if (!existsSync(settingsFile)) {
 const settings = JSON.parse(readFileSync(settingsFile, 'utf8'));
 const roster = JSON.parse(readFileSync(join(repo, 'chooms', 'rednode', 'roster.json'), 'utf8')).accounts.filter((a) => a.kind !== 'corp');
 
-const kept = new Set();
-const warnings = [];
-let bytes = 0;
+// "The Aldecaldos camp" -> "the-aldecaldos-camp".
+const slug = (s) => String(s ?? '').normalize('NFKD').replace(/[^\w\s-]/g, '').trim().toLowerCase().replace(/[\s_]+/g, '-').replace(/-+/g, '-').slice(0, 48) || 'place';
 
-// Copies one image into content/people/<id>/, named by its hash. Returns its path there.
-function put(id, rel, what) {
-  const src = join(data, rel);
-  const buf = readFileSync(src);
-  const ext = extname(rel).toLowerCase().replace('.jpeg', '.jpg');
-  const name = `people/${id}/${createHash('sha256').update(buf).digest('hex').slice(0, 16)}${ext}`;
-  kept.add(name);
-  bytes += buf.length;
-  if (buf.length > LARGE) warnings.push(`${what} is ${(buf.length / 1048576).toFixed(1)} MB, picked before the window made images smaller: choose it again there`);
-  if (!dry && !existsSync(join(out, name))) {
-    mkdirSync(dirname(join(out, name)), { recursive: true });
-    copyFileSync(src, join(out, name));
-  }
-  return name;
+// Copies one image to <dir>/<base><ext>, removing the same name with another extension.
+function put(src, dir, base) {
+  const ext = extname(src).toLowerCase().replace('.jpeg', '.jpg');
+  if (dry) return;
+  mkdirSync(dir, { recursive: true });
+  for (const f of readdirSync(dir)) if (IMAGE.test(f) && f.slice(0, -extname(f).length) === base && extname(f).toLowerCase() !== ext) rmSync(join(dir, f));
+  copyFileSync(src, join(dir, base + ext));
 }
 
-const people = {};
 const lines = [];
 for (const a of roster) {
   const p = settings.people?.[a.id];
-  const has = (rel) => typeof rel === 'string' && existsSync(join(data, rel));
-  const entry = {};
-  if (p && has(p.portrait)) entry.portrait = put(a.id, p.portrait, `${a.name}'s portrait`);
-  if (p && has(p.body)) entry.body = put(a.id, p.body, `${a.name}'s body image`);
-  const places = (p?.settings ?? []).filter((s) => has(s.file));
-  if (places.length) {
-    entry.places = places.map((s, i) => ({
-      file: put(a.id, s.file, `${a.name}'s place ${i + 1}`),
-      description: s.description ?? '',
-      activities: s.activities ?? [],
-    }));
-    places.forEach((s, i) => !s.description && warnings.push(`${a.name}'s place ${i + 1} has no line describing it`));
+  const has = (r) => typeof r === 'string' && existsSync(join(data, r));
+  const dir = join(out, a.id);
+  const parts = [];
+  if (p && has(p.portrait)) (put(join(data, p.portrait), dir, 'portrait'), parts.push('portrait'));
+  if (p && has(p.body)) (put(join(data, p.body), dir, 'body'), parts.push('body'));
+  const used = new Set();
+  for (const s of (p?.settings ?? []).filter((x) => has(x.file))) {
+    let name = slug(s.description);
+    for (let i = 2; used.has(name); i++) name = `${slug(s.description)}-${i}`;
+    used.add(name);
+    put(join(data, s.file), join(dir, 'places'), name);
+    const acts = Array.isArray(s.activities) ? s.activities : String(s.activities ?? '').split('\n');
+    if (!dry) writeFileSync(join(dir, 'places', `${name}.md`), [`# ${s.description || name}`, ...acts.map((x) => String(x).trim()).filter(Boolean).map((x) => `- ${x}`)].join('\n') + '\n');
+    parts.push(`places/${name}`);
   }
-  const parts = [entry.portrait && 'portrait', entry.body && 'body', entry.places && `${entry.places.length} place${entry.places.length === 1 ? '' : 's'}`].filter(Boolean);
-  lines.push(`  ${a.name}: ${parts.join(', ') || 'nothing yet'}`);
-  if (parts.length) people[a.id] = entry;
+  if (parts.length) lines.push(`  ${a.name}: ${parts.join(', ')}`);
 }
 
-// Images no longer listed go.
-const removed = [];
-const walk = (dir) => (existsSync(dir) ? readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)])) : []);
-for (const file of walk(join(out, 'people'))) {
-  const rel = relative(out, file).split('\\').join('/');
-  if (kept.has(rel)) continue;
-  removed.push(rel);
-  if (!dry) rmSync(file);
-}
-if (!dry) {
-  for (const dir of existsSync(join(out, 'people')) ? readdirSync(join(out, 'people')) : []) {
-    const at = join(out, 'people', dir);
-    if (statSync(at).isDirectory() && !readdirSync(at).length) rmdirSync(at);
-  }
-  mkdirSync(out, { recursive: true });
-  const json = {
-    _about: "Chooms!'s bundled pictures and places, made by tools/chooms/export-content.mjs from the author's own. Chooms! copies them into a player's folder the first time it starts; the player can then change them.",
-    people,
-  };
-  writeFileSync(join(out, 'content.json'), JSON.stringify(json, null, 2) + '\n');
-}
-
-console.log(`${dry ? 'Would write' : 'Wrote'} ${relative(repo, out)} from ${data}:`);
-console.log(lines.join('\n'));
-console.log(`${kept.size} images, ${(bytes / 1048576).toFixed(1)} MB${removed.length ? `; ${removed.length} no longer listed ${dry ? 'would be' : 'were'} removed` : ''}.`);
-for (const w of warnings) console.log(`Note: ${w}.`);
+console.log(`${dry ? 'Would copy' : 'Copied'} into ${relative(repo, out) || out} from ${data}:`);
+console.log(lines.length ? lines.join('\n') : '  nothing: no pictures or places are set in the window');
+console.log('Next: node tools/chooms/dossiers.mjs, then check the changes with git and commit them.');

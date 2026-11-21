@@ -6,7 +6,7 @@
   Mirrors into <game>\red4ext\plugins\REDnode\:
     edgemobile\        -> apps\edgemobile       (the server, the OS, the Connect window)
     edgephone\         -> apps\edgephone        (the phone in the game)
-    chooms\rednode\    -> apps\chooms           (Chooms!'s package: its feed, its settings window)
+    chooms\rednode\    -> apps\chooms           (Chooms!'s package: its feed, its settings window; its content\ built from chooms\dossiers\)
     chooms\mobile\     -> mobile-apps\chooms    (Chooms!'s mobile app)
   Other mobile apps a player installed in mobile-apps\ are left alone. Deploy REDnode first,
   with its own tools\deploy-native.ps1. Close the game first.
@@ -33,6 +33,10 @@ if (-not (Test-Path (Join-Path $package 'node_modules\ws'))) {
     try { npm ci --omit=dev } finally { Pop-Location }
     if ($LASTEXITCODE -ne 0) { throw "npm ci failed in $package." }
 }
+
+# Chooms!'s bundled pictures and places (content/), built from chooms/dossiers/.
+node (Join-Path $repo 'tools\chooms\dossiers.mjs') --build
+if ($LASTEXITCODE -ne 0) { throw "Chooms!'s dossiers have problems (above): fix them, then deploy again." }
 
 function Mirror([string] $from, [string] $to, [string] $name) {
     robocopy $from $to /MIR /NFL /NDL /NJH /NJS /NP /XF '*.bak' | Out-Null

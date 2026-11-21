@@ -733,13 +733,44 @@ if (mode === 'apps') {
   const noReset = await winMsg({ type: 'reset', person: 'river' }, (m) => m.type === 'person');
   check('  no reset for a person with nothing bundled', !noReset);
   // The export makes content/ from the player's own: each person's images, named by a hash.
+  // The export copies the pictures set in the game into dossiers (chooms/dossiers/<id>/).
   const exportOut = join(appsRoot, 'export-test');
+  rmSync(exportOut, { recursive: true, force: true });
   const ex = spawnSync(process.execPath, [join(REPO, 'tools', 'chooms', 'export-content.mjs'), '--data', join(dataDir, '..', 'chooms'), '--out', exportOut], { encoding: 'utf8' });
-  const exported = ex.status === 0 ? JSON.parse(readFileSync(join(exportOut, 'content.json'), 'utf8')) : null;
-  const ej = exported?.people.judy;
-  const evk = exported?.people.viktor;
-  check('the export: each person\'s portrait, body image and places, named by a hash, with their lines', !!ej?.portrait && !!ej.body && ej.places.length === 2 && ej.places[0].description === 'Lizzies Bar, the back room' && /^people\/judy\/[0-9a-f]{16}\.png$/.test(ej.portrait) && evk?.places.length === 2 && !exported.people.river && fs.existsSync(join(exportOut, ej.places[1].file)), ex.stdout.split('\n').slice(0, 3).join(' | ') + ex.stderr);
-  check('  the same image keeps the same name', evk?.places[0].file === `people/viktor/${createHash('sha256').update(variant(2)).digest('hex').slice(0, 16)}.png`);
+  const jd = join(exportOut, 'judy');
+  const jplaces = fs.existsSync(join(jd, 'places')) ? fs.readdirSync(join(jd, 'places')).sort() : [];
+  const jmd = jplaces.includes('lizzies-bar-the-back-room.md') ? readFileSync(join(jd, 'places', 'lizzies-bar-the-back-room.md'), 'utf8') : '';
+  check("the export: each person's portrait, body image and places into their dossier, each place with its .md", ex.status === 0 && fs.existsSync(join(jd, 'portrait.png')) && fs.existsSync(join(jd, 'body.png')) && jplaces.filter((f) => f.endsWith('.md')).length === 2 && jplaces.includes('lizzies-bar-the-back-room.png') && jmd === '# Lizzies Bar, the back room\n- editing a BD\n- fixing her rig\n' && fs.readdirSync(join(exportOut, 'viktor', 'places')).length === 4 && !fs.existsSync(join(exportOut, 'river')), `${jplaces.join(',')} | ${JSON.stringify(jmd)} | ${ex.stdout.split('\n').slice(0, 3).join(' | ')}${ex.stderr}`);
+
+  // The dossiers: big images made 1440-pixel WebP in place, places still to take, the build.
+  const sharpLib = createRequire(join(REPO, 'tools', 'chooms', 'package.json'));
+  if (!fs.existsSync(join(REPO, 'tools', 'chooms', 'node_modules', 'sharp'))) spawnSync('npm ci --no-audit --no-fund', { cwd: join(REPO, 'tools', 'chooms'), stdio: 'inherit', shell: true });
+  const sharp = sharpLib('sharp');
+  const dos = join(appsRoot, 'dossiers-test');
+  const built = join(appsRoot, 'content-test');
+  rmSync(dos, { recursive: true, force: true });
+  mkdirSync(join(dos, 'panam', 'places'), { recursive: true });
+  const solid = (w, hgt, r) => sharp({ create: { width: w, height: hgt, channels: 3, background: { r, g: 40, b: 60 } } }).png().toBuffer();
+  writeFileSync(join(dos, 'panam', 'portrait.png'), await solid(3000, 2000, 200));
+  writeFileSync(join(dos, 'panam', 'places', 'camp.png'), await solid(800, 600, 100));
+  writeFileSync(join(dos, 'panam', 'places', 'camp.md'), '# The Aldecaldos camp\n- working on her car\n\n* around the campfire\n');
+  writeFileSync(join(dos, 'panam', 'places', 'road.md'), '# A Badlands road\n- driving\n');
+  const dossiers = (...a) => spawnSync(process.execPath, [join(REPO, 'tools', 'chooms', 'dossiers.mjs'), '--dossiers', dos, ...a], { encoding: 'utf8' });
+  let dr = dossiers();
+  const pm = fs.existsSync(join(dos, 'panam', 'portrait.webp')) ? await sharp(join(dos, 'panam', 'portrait.webp')).metadata() : null;
+  const preadme = fs.existsSync(join(dos, 'panam', 'README.md')) ? readFileSync(join(dos, 'panam', 'README.md'), 'utf8') : '';
+  check('dossiers: a big image made a 1440-pixel WebP in place, a PNG made WebP, every person given a folder', dr.status === 0 && pm?.format === 'webp' && pm.width === 1440 && pm.height === 960 && !fs.existsSync(join(dos, 'panam', 'portrait.png')) && fs.existsSync(join(dos, 'panam', 'places', 'camp.webp')) && fs.existsSync(join(dos, 'judy', 'README.md')), dr.stdout + dr.stderr);
+  check('  the checklist: what is there, and the place still to take', /- \[x\] Portrait: `portrait\.webp`/.test(preadme) && /- \[ \] Body/.test(preadme) && /- \[x\] Place: The Aldecaldos camp/.test(preadme) && /- \[ \] Place: A Badlands road \(`places\/road\.png`\)/.test(preadme), preadme.slice(preadme.indexOf('## Checklist')));
+  dr = dossiers('--build', '--out', built);
+  const cj = dr.status === 0 ? JSON.parse(readFileSync(join(built, 'content.json'), 'utf8')) : null;
+  const cp = cj?.people.panam;
+  check('  the build: content.json and the images by their hash; a place with no image left out', /^people\/panam\/[0-9a-f]{16}\.webp$/.test(cp?.portrait ?? '') && cp.places?.length === 1 && cp.places[0].description === 'The Aldecaldos camp' && cp.places[0].activities.join('|') === 'working on her car|around the campfire' && fs.existsSync(join(built, cp.places[0].file)) && Object.keys(cj.people).join() === 'panam' && !fs.existsSync(join(dos, 'panam', 'places', 'road.png')), dr.stdout + dr.stderr);
+  const again = dossiers('--build', '--out', built);
+  check('  the same image keeps the same name', again.status === 0 && JSON.parse(readFileSync(join(built, 'content.json'), 'utf8')).people.panam.portrait === cp?.portrait);
+  writeFileSync(join(dos, 'panam', 'places', 'stray.png'), await solid(10, 10, 0));
+  mkdirSync(join(dos, 'nobody'));
+  dr = dossiers('--build', '--out', built);
+  check('  a place with no .md, or a folder that is no one, stops the build and leaves content/ alone', dr.status === 1 && /stray\.png: no stray\.md/.test(dr.stderr) && /nobody\/: no one in the roster/.test(dr.stderr) && fs.existsSync(join(built, cp?.portrait ?? 'x')), dr.stderr);
 
   // An older save of the same playthrough: what came after it is dropped.
   const before = H.time;
