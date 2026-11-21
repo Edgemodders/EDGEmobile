@@ -167,14 +167,20 @@ async function readGame() {
         console.log(`Could not read the journal: ${err?.message ?? err}`);
       }
       if (!inWorld) return;
+      const load = opened || dropped || !storyAt;
       storyAt = Date.now();
-      if (s && store.setStory(s)) {
-        told = true;
-        channel.post(windowState());
+      if (s && store.setStory(s)) told = true;
+      // Logged on each load, and when the story moved on between loads.
+      if (s && (told || load)) {
         console.log(`The story: ${s.lifepath ?? 'lifepath unknown'}, ${s.body ?? 'body unknown'}, ${Object.keys(s.points).length} of ${story.points.length} story points, met ${s.met.length}${s.dead.length ? `, gone: ${s.dead.join(', ')}` : ''} (${s.calls} calls, ${(s.ms / 1000).toFixed(1)} s)`);
       }
     }
-    if (opened || dropped || told) changed();
+    // The window and the app, whenever the playthrough, its time or its story changed: a switch
+    // back to a playthrough whose story is as it was still changes what the window shows.
+    if (opened || dropped || told) {
+      channel.post(windowState());
+      changed();
+    }
   } catch (err) {
     // A load started between two calls: the world went away; onState brings V back.
     if (NO_WORLD.test(err?.message ?? '')) inWorld = false;

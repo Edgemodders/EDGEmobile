@@ -852,6 +852,28 @@ if (mode === 'apps') {
   p = await callApp('profile', 'jackie');
   fail = await callApp('profile', 'hanako').then(() => null, (e) => e.message);
   check('an earlier save again: Jackie back among the chooms, Hanako unknown again', f.chooms.some((a) => a.id === 'jackie') && p.relation.alive && fail === 'No such account.', `${f.chooms.map((a) => a.id)} ${fail}`);
+  // Two playthroughs whose stories were both read already (the C2 test's step 9 on 2026-11-21):
+  // switching between them changes no story, but the open window must still be told, and the
+  // log names the story of each load.
+  const late = { entries: { ...early.entries, 'quests/main_quest/prologue/q005_heist': { state: 'Succeeded', at: 1029600 } }, codex: ['v_corpo_m', 'jackie_welles'], codexEp1: [], contacts: { jackie: true, jackie_dead: true } };
+  const switchTo = async (pidTo, journal) => {
+    H.setWorld(false);
+    H.facts.chooms_playthrough = pidTo;
+    H.journal = journal;
+    drain();
+    fromWin.length = 0;
+    H.setWorld(true);
+    await waitMsg(l, (m) => m.t === 'app-event' && m.event === 'changed', 6000);
+    for (let i = 0; i < 40 && !fromWin.some((m) => m.type === 'state'); i++) await wait(25);
+    return fromWin.filter((m) => m.type === 'state').at(-1);
+  };
+  await switchTo(pid2, late);
+  await switchTo(pid, early);
+  const nLogs = c2logs.filter((x) => x.startsWith('The story')).length;
+  ws = await switchTo(pid2, late);
+  check('back to a playthrough whose story was read already: the window is told, without asking', ws?.story?.body === 'masculine' && ws.story.points === 2, JSON.stringify(ws?.story));
+  ws = await switchTo(pid, early);
+  check('  and back again; each load logs its story', ws?.story?.body === 'feminine' && ws.story.points === 1 && c2logs.filter((x) => x.startsWith('The story')).length === nLogs + 2, `${JSON.stringify(ws?.story)} ${c2logs.filter((x) => x.startsWith('The story')).slice(-2).join(' | ')}`);
   console.log = logBefore;
 
   // Media addresses, by themselves: they end, they stay inside the package's folder.
