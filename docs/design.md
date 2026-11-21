@@ -546,7 +546,9 @@ Run by the user on the laptop, with the zips of that day. The laptop's saves are
 | Step | Result |
 |---|---|
 | 1 to 5, 7, 8 | Passed. Kerry is not found in step 6, right for this save (he is not among the met) |
-| 9 | **A bug**: back on the late save, the Story tab still showed the earlier save (18 of 32). Loading another playthrough whose story had been read before changed no story, so the window was not told, and the log had no story line. Fixed the same day (9c98558): the window is told whenever the playthrough, its time or its story changes, and each load logs its story line. Two new checks. **To check again**: steps 7 and 9 |
+| 9 | **A bug**: back on the late save, the Story tab still showed the earlier save (18 of 32). Loading another playthrough whose story had been read before changed no story, so the window was not told, and the log had no story line. Fixed the same day (9c98558): the window is told whenever the playthrough, its time or its story changes, and each load logs its story line. Two new checks. Steps 7 and 9 checked again on the laptop the same day, with the Story tab open: it followed each load. **Passed** |
+
+**The C2 code test passed on 2026-11-21.**
 
 The read takes well under 2 seconds in the game: 0.6 s for 263 calls, 1.7 s for 178.
 
