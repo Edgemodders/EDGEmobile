@@ -28,6 +28,19 @@
   background-size: auto, var(--grid-size) var(--grid-size), var(--grid-size) var(--grid-size);
 }
 
+/* Scrollbars: thin and square, in the theme's voice colour, for the shell and every mobile app
+   (each loads this file). Chromium (the game's overlay, Android) uses the ::-webkit- rules; other
+   browsers get scrollbar-color. Not both: Chromium ignores the ::-webkit- rules once
+   scrollbar-color is set. */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--red-dim); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--red); }
+::-webkit-scrollbar-corner { background: transparent; }
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: var(--red-dim) transparent; }
+}
+
 /* Corner brackets on hero areas: top left and bottom right, as on the banner. Edgemodders only. */
 .em-brackets { position: relative; }
 :root[data-theme="edgemodders"] .em-brackets::before,

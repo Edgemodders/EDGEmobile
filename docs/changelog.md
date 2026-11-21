@@ -27,3 +27,4 @@ How to keep it (the Edgemodders convention):
 - The phone in the game answers the mouse: clicks, typing and scrolling reach its screen and its apps (with REDnode 0.50.0).
 - The game no longer crashes on launch when the phone is open while the game starts.
 - A load that starts while the phone reads the game no longer shows in the log as a failure, and no longer hides a real one.
+- Scrollbars on the phone and in its apps follow the theme: thin and square, in the theme's colour, instead of the browser's default.
