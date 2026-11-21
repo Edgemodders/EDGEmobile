@@ -835,6 +835,35 @@ if (mode === 'apps') {
   console.log = (...a) => { c2logs.push(a.join(' ')); logBefore(...a); };
   let ws = await winMsg({ type: 'hello' }, (m) => m.type === 'state');
   check('C2: the journal says who V is and who V has met', ws?.story?.lifepath === 'corpo' && ws.story.body === 'feminine' && ws.story.points === 1 && ws.story.met.join() === 'Jackie Welles,Judy Alvarez,Kerry Eurodyne,Panam Palmer,River Ward' && !ws.story.gone.length, JSON.stringify(ws?.story));
+  check('  the knowledge cards for this save: start for each, and Jackie\'s for the point passed', ws?.story?.cards?.map((c) => `${c.name} ${c.n}`).join() === 'Jackie Welles 2,Judy Alvarez 1,Kerry Eurodyne 1,Panam Palmer 1,River Ward 1', JSON.stringify(ws?.story?.cards));
+
+  // The cards themselves (chooms/rednode/cards/): every file a person, every heading start or a
+  // story point; a save's cards in the story's order; a typo stops the load.
+  {
+    const { loadCards, cardsFor } = await import(pathToFileURL(join(REPO, 'chooms', 'rednode', 'cards.mjs')).href);
+    const storyJ = JSON.parse(readFileSync(join(REPO, 'chooms', 'rednode', 'story.json'), 'utf8'));
+    const rosterJ = JSON.parse(readFileSync(join(REPO, 'chooms', 'rednode', 'roster.json'), 'utf8')).accounts;
+    let real = null;
+    let err = '';
+    try {
+      real = loadCards(join(REPO, 'chooms', 'rednode', 'cards'), { story: storyJ, roster: rosterJ });
+    } catch (e) {
+      err = e.message;
+    }
+    const cast = rosterJ.filter((a) => a.kind === 'cast').map((a) => a.id);
+    check('the knowledge cards: every file a person, every heading start or a story point, each of the cast with a start card', !!real && cast.every((id) => real.get(id)?.has('start')), err || [...(real?.keys() ?? [])].join(','));
+    const jc = real ? cardsFor(real, 'judy', { heist: 1, 'judy-bd': 1, 'pl-crash': 1 }, storyJ).map((c) => c.point).join() : '';
+    check('  a save\'s cards: start, then the points passed, in the story\'s order', jc === 'start,judy-bd,heist', jc);
+    const bad = join(appsRoot, 'cards-test');
+    rmSync(bad, { recursive: true, force: true });
+    mkdirSync(bad, { recursive: true });
+    writeFileSync(join(bad, 'judy.md'), '# Judy\n\n## start\nKnows: x\n\n## judy-bdd\nKnows: y\n');
+    const typo = (() => { try { loadCards(bad, { story: storyJ, roster: rosterJ }); return ''; } catch (e) { return e.message; } })();
+    writeFileSync(join(bad, 'judy.md'), '# Judy\n\n## start\nKnows: x\n');
+    writeFileSync(join(bad, 'nobody.md'), '# Nobody\n\n## start\nKnows: x\n');
+    const stranger = (() => { try { loadCards(bad, { story: storyJ, roster: rosterJ }); return ''; } catch (e) { return e.message; } })();
+    check('  a heading that is no story point, or a file that is no one, stops the load', /judy-bdd/.test(typo) && /nobody/.test(stranger), `${typo} | ${stranger}`);
+  }
   const jc0 = H.journalCalls;
   // A late save: the heist done (Jackie dies), Jackie's second contact, Hanako and Vik met, Kerry not (yet).
   const early = H.journal;

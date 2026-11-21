@@ -67,6 +67,7 @@ function drawStory(st) {
   line('Story points passed', `${st.points} of ${st.of}`);
   line('Met', st.met.length ? st.met.join(', ') : 'no one yet');
   if (st.gone.length) line('Gone', st.gone.join(', '));
+  if (st.cards?.length) line('Knowledge cards for this save', st.cards.map((c) => `${c.name} ${c.n}`).join(', '));
 }
 
 let pendingGeneral = {};

@@ -20,7 +20,8 @@ How to keep it (the Edgemodders convention):
 - Chooms! follows your save's story: only people V has met show in the feed and in search, and someone who has died in your story is marked **Remembered**, with their old posts and messages kept and no new messages. Read from the game's journal each time you load a save.
 - Search starts with everyone you know, people first and then corporations, and narrows the list as you type.
 - **Share** on each post, on your real phone: the post as a picture in the Chooms! look, ready for TikTok, Instagram, Facebook or any app your phone shares to.
-- A **Story** tab in the settings window shows what Chooms! read from your save: V's lifepath, how far the story has come, and who V has met.
+- A **Story** tab in the settings window shows what Chooms! read from your save: V's lifepath, how far the story has come, who V has met, and how many knowledge cards each person has for that save.
+- Knowledge cards for the main cast: what each knows and feels at each point of the story, so they never post about what has not happened yet in your save.
 
 ### Other
 

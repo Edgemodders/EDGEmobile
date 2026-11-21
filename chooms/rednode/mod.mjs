@@ -7,12 +7,21 @@ import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, extname, join, resolve } from 'node:path';
+import { cardsFor, loadCards } from './cards.mjs';
 import { readStory } from './journal.mjs';
 import { Store } from './store.mjs';
 
 const roster = JSON.parse(readFileSync(join(pkg.dir, 'roster.json'), 'utf8')).accounts;
 const seed = JSON.parse(readFileSync(join(pkg.dir, 'seed.json'), 'utf8'));
 const story = JSON.parse(readFileSync(join(pkg.dir, 'story.json'), 'utf8'));
+// The knowledge cards (cards/README.md). A broken card is logged and the cards left out, so
+// Chooms! still runs; the offline tests stop such a card before it is released.
+let cards = new Map();
+try {
+  cards = loadCards(join(pkg.dir, 'cards'), { story, roster });
+} catch (err) {
+  console.log(`The knowledge cards could not be read: ${err.message}`);
+}
 const STORY_MS = 3 * 60 * 1000;
 const byId = new Map(roster.map((a) => [a.id, a]));
 const PEOPLE = roster.filter((a) => a.kind !== 'corp');
@@ -536,6 +545,8 @@ function storySummary(s) {
     of: story.points.length,
     met: s.met.map(name),
     gone: s.dead.map(name),
+    // The knowledge cards each person V has met would post with now (cards/), counting `start`.
+    cards: s.met.map((id) => ({ name: name(id), n: cardsFor(cards, id, s.points, story).length })).filter((c) => c.n),
   };
 }
 
