@@ -50,6 +50,8 @@ The release zip builds Chooms!'s `content/` from these folders (`dossiers.mjs --
 | [Padre](padre/README.md) | — | — | 0 | 2 |
 | [Dakota Smith](dakota/README.md) | — | — | 0 | 2 |
 | [Mr. Hands](hands/README.md) | — | — | 0 | 2 |
+| [Dino Dinovic](dino/README.md) | — | — | 0 | 2 |
+| [El Capitan](capitan/README.md) | — | — | 0 | 2 |
 | [Hanako Arasaka](hanako/README.md) | — | — | 0 | 2 |
 | [Kurt Hansen](kurt/README.md) | — | — | 0 | 2 |
 <!-- /table -->
