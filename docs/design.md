@@ -326,7 +326,7 @@ Chooms! lives in this repo beside EDGEphone (the user's choice, 2026-10-30), wit
 
 | Need | Why |
 |---|---|
-| A model choice in `agent.ask` (such as `model: 'sonnet'`) | Sonnet for posts, Opus for DMs. Today the assistant picks its own model |
+| More context, no tools, and a model choice in `agent.ask` ([REDnode #54](https://github.com/Edgemodders/REDnode/issues/54), filed 2026-11-21) | A post's context (the person's cards, recent posts, the scene) is larger than the 8,000 characters REDagent keeps today, and needs no tools. Package questions already run on Sonnet, so posts (C3) need no model choice; DMs (C5) want Opus |
 | The texts between V and a contact, and V's contacts, from the journal | NPCs aware of their history with V; "met" for the main cast. The C2 spike read them through `api` as it is; nothing new is needed, unless reading one subtree in one call turns out to be needed for speed |
 
 ### Phases
