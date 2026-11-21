@@ -534,6 +534,26 @@ Built on 2026-11-16: parts 1, 2, 4, 5, 6 and 7 of the plan. The knowledge cards 
 
 Send back: anything that did not match, the `[chooms]` lines of the log, and how long the read took (the line's seconds).
 
+### The C2 code test on the laptop (2026-11-21)
+
+Run by the user on the laptop, with the zips of that day. The laptop's saves are not the two scanned on the PC: its earlier save is a feminine V, and its late save has not met Kerry. So the counts differ from the table above, but they agree with what those saves hold.
+
+| Save | The log's line | Met (the Story tab) |
+|---|---|---|
+| Late | `corpo, feminine, 31 of 32 story points, met 14, gone: jackie (263 calls, 0.6 s)` | The 13 below and Kurt Hansen (from the count: Phantom Liberty is well under way) |
+| Earlier | `corpo, feminine, 18 of 32 story points, met 13, gone: jackie (178 calls, 1.7 s)` | Dakota Smith, Delamain, Hanako Arasaka, Mr. Hands, Jackie Welles, Judy Alvarez, Misty Olszewski, Padre, Panam Palmer, Regina Jones, Rogue Amendiares, Viktor Vektor, Wakako Okada |
+
+| Step | Result |
+|---|---|
+| 1 to 5, 7, 8 | Passed. Kerry is not found in step 6, right for this save (he is not among the met) |
+| 9 | **A bug**: back on the late save, the Story tab still showed the earlier save (18 of 32). Loading another playthrough whose story had been read before changed no story, so the window was not told, and the log had no story line. Fixed the same day (9c98558): the window is told whenever the playthrough, its time or its story changes, and each load logs its story line. Two new checks. **To check again**: steps 7 and 9 |
+
+The read takes well under 2 seconds in the game: 0.6 s for 263 calls, 1.7 s for 178.
+
+Also seen: at step 9's load, `Could not read the game: The game did not answer within 5 seconds`, then a good read 2 seconds later. A call made while the game is loading, not a failure; whether to stop logging it is the user's choice (asked 2026-11-21).
+
+Fixed from the same run: the phone's scrollbars follow the theme (4bc0186), and Chooms!'s search box is a normal box at the top, with everyone V knows listed under it and narrowed as the player types (7c34505).
+
 ## Installing on the phone (PWA)
 
 A web app installs on a phone's home screen when it is served over HTTPS with a manifest and a service worker. The tunnel gives HTTPS. But an installed app is tied to the address it came from, and a quick tunnel's address changes each start, so an installed app served from the tunnel would break after every restart.
