@@ -8,6 +8,9 @@
 //   mobile.on('changed', (data) => ...);      // the package's events
 //   mobile.screen;                            // 'game' (the phone in the game) or 'phone'
 //   mobile.home();                            // back to the home screen
+//   mobile.canShare;                          // true on a real phone that can share images
+//   await mobile.share({ title, text, files }); // the phone's share sheet; call it on a tap.
+//                                             // false if the player closed it
 //
 // The theme follows the shell: the page's <html data-theme> is kept current, and the 'theme'
 // event fires when it changes. Images from the package arrive as { url }.
@@ -59,6 +62,20 @@
     home() {
       post({ op: 'home' });
     },
+    /** Whether share() can work: a real phone whose browser shares images. Not in the game. */
+    canShare: false,
+    /**
+     * Opens the phone's share sheet (TikTok, Instagram, messages...) with a title, text and up
+     * to one image File. Call it from a tap: the phone allows a share only right after one.
+     * Resolves true once shared, false if the player closed the sheet.
+     */
+    share({ title = '', text = '', files = [] } = {}) {
+      return new Promise((resolve, reject) => {
+        const id = nextId++;
+        pending.set(id, { resolve, reject });
+        post({ op: 'share', id, title: String(title), text: String(text), files: [...files] });
+      });
+    },
   };
 
   window.addEventListener('message', (e) => {
@@ -67,6 +84,7 @@
     if (!m || m.mobile !== 1) return;
     if (m.op === 'init') {
       mobile.screen = m.screen;
+      mobile.canShare = m.share === true;
       setTheme(m.theme);
       ready(mobile);
     } else if (m.op === 'theme') {

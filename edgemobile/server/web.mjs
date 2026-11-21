@@ -146,7 +146,9 @@ export function startWeb({ dir, port, loaderOrigin, originOk, onSocket, appsDir,
         'Referrer-Policy': 'no-referrer',
         'Content-Security-Policy': csp,
         // Fonts load with CORS, and an app's page has an opaque origin. They are public files.
-        ...(type === 'font/woff2' ? { 'Access-Control-Allow-Origin': '*' } : {}),
+        // A media image too, so an app can draw it (Chooms!'s share card): its address is its
+        // own key, random and good for an hour, so this lets no one see it who could not before.
+        ...(type === 'font/woff2' || path.startsWith('/media/') ? { 'Access-Control-Allow-Origin': '*' } : {}),
       });
       res.end(body);
     } catch {

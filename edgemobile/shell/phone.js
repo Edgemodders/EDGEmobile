@@ -324,6 +324,32 @@ function closeApp() {
   $('appFrame').src = 'about:blank';
 }
 
+// Sharing, for an app (mobile.share): the phone's own share sheet, on a real phone only. What is
+// shared is what the app hands over, out of the phone to the app the player picks; nothing
+// names the PC or its address. The app's tap activates this frame too, so the sheet may open.
+const SHARE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+function canShare() {
+  if (inGame || typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return false;
+  try {
+    return navigator.canShare({ files: [new File([new Uint8Array(1)], 'post.png', { type: 'image/png' })] });
+  } catch {
+    return false;
+  }
+}
+async function shareFor(m) {
+  const reply = (ok, value, error) => toApp({ op: 'result', id: m.id, ok, value, error });
+  if (!canShare()) return reply(false, null, 'Sharing works on your phone, not in the game.');
+  const files = (Array.isArray(m.files) ? m.files : []).filter((f) => f instanceof File && SHARE_TYPES.includes(f.type) && f.size <= 8 * 1024 * 1024).slice(0, 1);
+  const data = { title: String(m.title ?? '').slice(0, 200), text: String(m.text ?? '').slice(0, 2000), ...(files.length ? { files } : {}) };
+  try {
+    await navigator.share(data);
+    reply(true, true);
+  } catch (err) {
+    if (err?.name === 'AbortError') reply(true, false);
+    else reply(false, null, err?.name === 'NotAllowedError' ? 'Tap Share again: the phone allows sharing only right after a tap.' : `The phone could not share: ${err?.message ?? err}`);
+  }
+}
+
 function toApp(msg) {
   const frame = $('appFrame');
   if (!openApp || !frame?.contentWindow) return;
@@ -343,7 +369,9 @@ window.addEventListener('message', (e) => {
   const m = e.data;
   if (!m || m.mobile !== 1) return;
   if (m.op === 'hello') {
-    toApp({ op: 'init', screen: inGame ? 'game' : 'phone', theme: document.documentElement.dataset.theme });
+    toApp({ op: 'init', screen: inGame ? 'game' : 'phone', share: canShare(), theme: document.documentElement.dataset.theme });
+  } else if (m.op === 'share') {
+    shareFor(m);
   } else if (m.op === 'home') {
     closeApp();
   } else if (m.op === 'call' && typeof m.call === 'string') {
