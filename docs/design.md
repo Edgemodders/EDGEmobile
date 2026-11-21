@@ -540,7 +540,7 @@ Run by the user on the laptop, with the zips of that day. The laptop's saves are
 
 | Save | The log's line | Met (the Story tab) |
 |---|---|---|
-| Late | `corpo, feminine, 31 of 32 story points, met 14, gone: jackie (263 calls, 0.6 s)` | The 13 below and Kurt Hansen (from the count: Phantom Liberty is well under way) |
+| Late | `corpo, feminine, 31 of 32 story points, met 14, gone: jackie (263 calls, 0.6 s)` | The 13 below and Kurt Hansen (the Story tab, sent by the user); gone: Jackie Welles |
 | Earlier | `corpo, feminine, 18 of 32 story points, met 13, gone: jackie (178 calls, 1.7 s)` | Dakota Smith, Delamain, Hanako Arasaka, Mr. Hands, Jackie Welles, Judy Alvarez, Misty Olszewski, Padre, Panam Palmer, Regina Jones, Rogue Amendiares, Viktor Vektor, Wakako Okada |
 
 | Step | Result |
