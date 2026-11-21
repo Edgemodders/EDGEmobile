@@ -557,6 +557,33 @@ Also seen: at step 9's load, `Could not read the game: The game did not answer w
 
 Fixed from the same run: the phone's scrollbars follow the theme (4bc0186), and Chooms!'s search box is a normal box at the top, with everyone V knows listed under it and narrowed as the player types (7c34505).
 
+### Sharing a post (built 2026-11-21)
+
+Asked for by the user on 2026-11-21: a Share button on Chooms!'s posts, on a real phone only, to post on TikTok, Instagram, Facebook and the like. Agreed the same day: the post shared as a picture, its photo cropped to a square, with a line naming the docs site; built before the knowledge cards.
+
+| Part | Where | How |
+|---|---|---|
+| The share sheet | `edgemobile/shell/mobile.js`, `phone.js` | `mobile.share({ title, text, files })` for any mobile app, and `mobile.canShare`. The shell calls the phone's own share sheet (`navigator.share`), which lists the apps the player has installed: TikTok, Instagram and Facebook have no web address to post through, and a Chooms! post has no public link. `canShare` is false in the game and in a browser that cannot share images. The shell takes up to one PNG, JPEG or WebP image of at most 8 MB, a title and a text. The app's tap activates the shell's frame too, so the sheet may open (*unverified* on Android until the test) |
+| The loader | `docs/phone/index.html` | Its frame allows `web-share` (its cache name raised to `edgemobile-loader-4`) |
+| The card | `chooms/mobile/card.js` | The post drawn on a canvas, 1080 pixels wide, at most 1920 tall (TikTok's 9:16): Chooms!'s title, the post's panel with the avatar, name, tag, handle, time, its words (at most 18 lines) and its photo cropped to a square from its middle, the likes and comments, and "Chooms! for Cyberpunk 2077" with `edgemodders.github.io/EDGEmobile`. The theme's colours and fonts |
+| The button | `chooms/mobile/app.js` | Share beside Like and Comments, on a real phone only. The text shared: the post's words, then "— Name (@handle) on Chooms! for Cyberpunk 2077" and the docs site's address. The card is kept, so if drawing took longer than the phone allows after a tap, a second tap shares at once |
+| Media images | `edgemobile/server/web.mjs` | Served with `Access-Control-Allow-Origin: *`, as fonts already are, so the app's page (an opaque origin) can draw them. A media address is its own key (random, good for an hour), so this lets no one see an image who could not before |
+
+Checked against "Pairing and security": nothing changes in pairing, the tunnel or what a phone may reach. What is shared leaves the phone only to the app the player picks, and never names the PC or its address.
+
+**Checked outside the game:** the media address answers with CORS; in Chrome, the card is a 1080-pixel PNG, a post with a photo and a long post stay within 1920 pixels (`tests/.out/shots/share-card-1.png`, `-2.png`). Not checkable outside a phone: the share sheet itself.
+
+**Share test** (Android, the phone paired; the new EDGEmobile and Chooms! zips; the loader updates by itself):
+
+| # | Step | Expect |
+|---|---|---|
+| 1 | In the game, Chooms! on the phone in the game | No Share button on posts |
+| 2 | On the real phone, Chooms!, the Feed | A Share button at the right of each post |
+| 3 | Tap Share on a post with a photo | The phone's share sheet, with your apps. Pick one that takes pictures (Instagram, TikTok, Messages): the card is there, the photo cropped square |
+| 4 | Share to a notes or messages app | The post's words, the "— Name (@handle) on Chooms! for Cyberpunk 2077" line and the address |
+| 5 | Tap Share, then close the sheet | Nothing else happens: no error |
+| 6 | Switch the theme to Edgemodders, share again | The card in yellow, as the theme |
+
 ## Installing on the phone (PWA)
 
 A web app installs on a phone's home screen when it is served over HTTPS with a manifest and a service worker. The tunnel gives HTTPS. But an installed app is tied to the address it came from, and a quick tunnel's address changes each start, so an installed app served from the tunnel would break after every restart.

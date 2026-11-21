@@ -39,6 +39,25 @@ function icon(d, { fill = 'none', size } = {}) {
 }
 const HEART = 'M12 20L3 11V6l3-3h4l2 2 2-2h4l3 3v5z';
 const BUBBLE = 'M4 5h16v11H9l-5 4z';
+const SHARE = 'M12 15V3M7 8l5-5 5 5M5 12v9h14v-9';
+
+// Share, on a real phone (mobile.canShare): the post as a picture (card.js) with its words, to
+// the phone's share sheet. The card is kept, so a second tap shares at once if the first one's
+// drawing took too long for the phone (it allows a share only right after a tap).
+const cards = new Map();
+async function sharePost(p) {
+  try {
+    let file = cards.get(p.id);
+    if (!file) {
+      file = await window.choomsCard(p);
+      cards.set(p.id, file);
+    }
+    const who = p.by.id === 'v' ? 'V' : `${p.by.name} (@${p.by.handle})`;
+    await mobile.share({ title: 'Chooms!', text: `${p.text}\n\n— ${who} on Chooms! for Cyberpunk 2077\n${window.choomsCredit}`, files: [file] });
+  } catch (err) {
+    toast(err.message);
+  }
+}
 
 let toastTimer = null;
 function toast(text) {
@@ -160,7 +179,8 @@ function postCard(p, { full = false } = {}) {
         h('span', { class: 'meta' }, `@${p.by.handle} · ${p.ago}`))),
     h('p', { class: 'post-text' }, p.text),
     p.image?.url ? h('img', { class: 'post-image', src: p.image.url, alt: p.image.alt || 'A photo', loading: 'lazy' }) : null,
-    h('div', { class: 'actions' }, like, comments));
+    h('div', { class: 'actions' }, like, comments,
+      mobile.canShare && window.choomsCard ? h('button', { type: 'button', class: 'act share', 'aria-label': 'Share', onclick: () => sharePost(p) }, icon(SHARE), h('span', {}, 'Share')) : null));
 }
 
 function peopleStrip(title, people, extra) {

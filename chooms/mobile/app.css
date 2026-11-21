@@ -76,6 +76,7 @@ textarea.field-text { flex: 1; height: 140px; padding: 12px; resize: none; line-
 .act svg { width: 22px; height: 22px; }
 .act[aria-pressed="true"] { color: var(--red); }
 .act:focus-visible { outline: 2px solid var(--yellow); outline-offset: -2px; }
+.act.share { margin-left: auto; }
 
 /* Comments */
 .comment { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }

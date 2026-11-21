@@ -686,6 +686,7 @@ if (mode === 'apps') {
   check('a test post with the place: its image, and Judy\'s portrait, as media addresses', pic?.by.id === 'judy' && /^\/media\/[A-Za-z0-9_-]{24}$/.test(pic.image.url) && /^\/media\//.test(pic.by.avatar?.url ?? ''), `${pic?.image?.url} ${pic?.by.avatar?.url}`);
   r = await getBin(pic.image.url);
   check('  the media address gives the image', r.status === 200 && r.headers['content-type'] === 'image/png' && r.body.equals(png));
+  check('  with CORS, so an app can draw it (the share card)', r.headers['access-control-allow-origin'] === '*', r.headers['access-control-allow-origin']);
   check('  no file path reaches the screen', !JSON.stringify(f).includes('people/judy'));
 
   // The window's own picker (the system's opens behind the game): browse, peek, pick.
@@ -966,6 +967,38 @@ if (mode === 'apps') {
   // The home screen with its apps, and the phone in the game (EDGEphone's window, its screen
   // pointed here) opening Chooms! with a click.
   await shoot('c1-home.png', '');
+
+  // The share card (chooms/mobile/card.js), drawn in Chrome with the theme's colours and fonts:
+  // a post with a photo (cropped to a square) and a long one, which stays within 1920 pixels.
+  const shell = pathToFileURL(join(PKG, 'shell')).href;
+  const cardPage = join(OUT, 'card-test.html');
+  // The fonts the card uses, inline: Chrome will not load fonts from file:// (the app gets them
+  // from EDGEmobile's server, with CORS).
+  const face = (family, weight, file) => `@font-face{font-family:"${family}";font-weight:${weight};src:url(data:font/woff2;base64,${readFileSync(join(PKG, 'shell', 'fonts', file)).toString('base64')}) format("woff2")}`;
+  const faces = [face('Chakra Petch', 700, 'chakra-petch-latin-700-normal.woff2'), face('Rajdhani', 500, 'rajdhani-latin-500-normal.woff2'), face('JetBrains Mono', 500, 'jetbrains-mono-latin-500-normal.woff2')].join('');
+  writeFileSync(cardPage, `<!doctype html><html data-theme="nightcity"><head><meta charset="utf-8">
+<link rel="stylesheet" href="${shell}/theme/tokens.css"><link rel="stylesheet" href="${shell}/theme/nc.css"><link rel="stylesheet" href="${shell}/theme/themes.css">
+<style>${faces}body{margin:0;background:#000}img{display:block}</style>
+<script src="${pathToFileURL(join(REPO, 'chooms', 'mobile', 'card.js')).href}"></script></head><body></body></html>`);
+  const CARD = `(async () => {
+    const pic = (w, h, c) => { const k = document.createElement('canvas'); k.width = w; k.height = h; const x = k.getContext('2d'); x.fillStyle = c; x.fillRect(0, 0, w, h); x.fillStyle = '#fff'; x.fillRect(w / 2 - 40, h / 2 - 40, 80, 80); return k.toDataURL(); };
+    const by = { id: 'judy', name: 'Judy Alvarez', handle: 'judy.a', tag: 'BD editor', color: 'var(--cyan)', initials: 'JA', avatar: { url: pic(300, 300, '#356') } };
+    const a = await choomsCard({ id: 'p1', by, ago: '12m', text: 'Night dive at Laguna Bend. Water\\'s still, city\\'s loud. Some places you just gotta see with your own eyes.', image: { url: pic(1600, 900, '#a35') }, likes: 1184, comments: 4 });
+    const b = await choomsCard({ id: 'p2', by: { ...by, avatar: null }, ago: '3h', text: 'word '.repeat(400), image: { url: pic(900, 1600, '#3a5') }, likes: 2, comments: 0 });
+    const size = async (f) => { const i = await createImageBitmap(f); return [i.width, i.height]; };
+    const img = new Image(); img.src = URL.createObjectURL(a); document.body.append(img); await img.decode();
+    const url = (x) => new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(x); });
+    return JSON.stringify({ a: await size(a), b: await size(b), type: a.type, name: a.name, png: [await url(a), await url(b)] });
+  })()`;
+  const cardOut = await new Promise((resolve) => {
+    const proc = spawn(process.execPath, [join(HERE, 'shot.mjs'), pathToFileURL(cardPage).href, join(OUT, 'card-page.png'), '1080', '1500', CARD, '1500'], { stdio: ['ignore', 'pipe', 'inherit'] });
+    let o = '';
+    proc.stdout.on('data', (d) => (o += d));
+    proc.on('exit', () => resolve(o));
+  });
+  const cardRes = (() => { try { return JSON.parse(JSON.parse(cardOut.match(/"\{.*\}"/)?.[0] ?? 'null')); } catch { return null; } })();
+  cardRes?.png?.forEach((d, i) => writeFileSync(join(shots, `share-card-${i + 1}.png`), Buffer.from(d.split(',')[1], 'base64')));
+  check('the share card: a 1080-pixel-wide PNG, a long post within 1920 pixels', cardRes?.type === 'image/png' && cardRes.a[0] === 1080 && cardRes.a[1] >= 1080 && cardRes.a[1] <= 1920 && cardRes.b[0] === 1080 && cardRes.b[1] <= 1920, cardOut.trim().split('\n').slice(0, 2).join(' | '));
   const phoneWin = pathToFileURL(join(REPO, 'edgephone', 'window.html')).href;
   const POINT = `(() => { const f = document.getElementById('screen'); f.src = ${JSON.stringify(`${base}/#s=`)} + ${JSON.stringify(ls)}; f.hidden = false; document.getElementById('wait').hidden = true; return 'ok'; })()`;
   process.env.SHOT_STEPS = JSON.stringify(JSON.parse(process.env.GAME_STEPS || '[]'));
