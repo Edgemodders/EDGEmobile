@@ -32,4 +32,4 @@ How to keep it (the Edgemodders convention):
 
 ### Other
 
-- Needs EDGEmobile 0.1.0, REDnode 0.72.0 and REDagent 0.4.5 or later. REDagent's own daily limit for each mod is $0.25 unless you change it: raise Chooms!'s in REDagent's Mods view.
+- Needs EDGEmobile 0.1.0, REDnode 0.72.0 and REDagent 0.4.5 or later. REDagent has a daily limit of its own for each mod, which you can raise in REDagent's Mods view.

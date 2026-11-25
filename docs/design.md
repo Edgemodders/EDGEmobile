@@ -674,7 +674,7 @@ The fonts ship with EDGEmobile (from M3): `edgemobile/shell/fonts/`, woff2 in La
 | Likes | Counts grow over game time, faster for popular accounts, worked out | No |
 | Follows and Choom Requests | Each cast member follows V once met; each sends a Choom Request at a story point named in `roster.json` (`request`), drafted for the user's review | No |
 | The spoiler check | Words for each story point (names, places, events), built from the cards: a post naming a point V has not passed is thrown away and asked for again once. The prompt says plainly that nothing past V's points has happened. With #54's model choice, a cheap model reads each post as a second check | No, then a cheap model |
-| Spending | `agent.ask` gives each answer's cost; Chooms! adds it up per real day and stops at `dailyCapUsd` ($1). REDagent's own daily limit per mod ($0.25 by default) must be raised for Chooms! by the player; the window says where | No |
+| Spending | `agent.ask` gives each answer's cost; Chooms! adds it up per real day and stops at `dailyCapUsd` ($1). REDagent's own daily limit per mod ($0.25 by default in REDagent 0.4.5; the owner asked on 2026-11-25 for $2.00, so players are not stopped after a short while) caps Chooms! too; the window says where to raise it | No |
 | Corporations' cards | About 12 for the 6 corporations, for the user's review | Content |
 | The settings window | **Post now** (for testing); a log of the last posts and comments with their costs; today's spending against the cap; a line saying why nothing posts (REDagent not allowed, the cap reached, V not in the world) | No |
 
@@ -749,7 +749,7 @@ On the PC, in the game, with REDnode 0.72.0 and REDagent 0.4.5 (both in the game
 | # | Do | Expect |
 |---|---|---|
 | 1 | Start the game; allow Chooms! to ask the assistant if the launcher or the Mod Manager asks. Open Chooms!'s settings, **Posting** | The status line: "Waiting for V: load a save." |
-| 2 | Load a save. In REDagent's **Mods** view, raise Chooms!'s daily limit to $1 | The status line names the next check and V's district |
+| 2 | Load a save. In REDagent's **Mods** view, check that Chooms!'s daily limit is at least $1 (raise it if it is still REDagent's old default of $0.25) | The status line names the next check and V's district |
 | 3 | **Post now** with **Anyone** | A post within a minute; the log names who and its cost; **Spent today** goes up. The post in Chooms!, in character, about nothing past V's story |
 | 4 | **Post now** with three or four of the cast in turn | Each in their own voice; nothing from later in the story (the log says if an answer was thrown away) |
 | 5 | In Chooms!, comment on one of those posts | Within two minutes the author answers V |
