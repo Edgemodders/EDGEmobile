@@ -148,6 +148,8 @@ if (mode === 'apps') {
   rmSync(join(dataDir, '..', 'chooms'), { recursive: true, force: true });
 }
 process.env.EDGEMOBILE_APPS_DIR = join(appsRoot, 'mobile-apps');
+// Chooms! answers V's posts and comments within a minute or two; in this run, within a second.
+process.env.CHOOMS_REPLY_MS = '300,600';
 // The apps mode runs a copy of Chooms!'s package with bundled test pictures and places in content/.
 const CHOOMS = mode === 'apps' ? join(appsRoot, 'pkg', 'chooms', 'rednode') : join(REPO, 'chooms', 'rednode');
 const TEST_PNG = Buffer.from('89504e470d0a1a0a0000000d4948445200000001000000010806000000' + '1f15c4890000000d49444154789c6360f8cfc0f01f0005000201c5e8e0d50000000049454e44ae426082', 'hex');
@@ -877,6 +879,146 @@ if (mode === 'apps') {
     writeFileSync(join(bad, 'nobody.md'), '# Nobody\n\n## start\nKnows: x\n');
     const stranger = (() => { try { loadCards(bad, { story: storyJ, roster: rosterJ }); return ''; } catch (e) { return e.message; } })();
     check('  a heading that is no story point, or a file that is no one, stops the load', /judy-bdd/.test(typo) && /nobody/.test(stranger), `${typo} | ${stranger}`);
+
+    // C3: posts by themselves (chooms/rednode/posts.mjs), driven directly: a fresh history, set
+    // dice, and a stand-in for agent.ask whose answers each check sets.
+    const P = await import(pathToFileURL(join(REPO, 'chooms', 'rednode', 'posts.mjs')).href);
+    const SP = await import(pathToFileURL(join(REPO, 'chooms', 'rednode', 'spoilers.mjs')).href);
+    const { Store: UStore } = await import(pathToFileURL(join(REPO, 'chooms', 'rednode', 'store.mjs')).href);
+    const seeded = (n) => () => ((n = (n + 0x6d2b79f5) | 0), (((n ^ (n >>> 15)) * (1 | n)) >>> 0) / 4294967296);
+    const udir = join(appsRoot, 'c3-unit');
+    rmSync(udir, { recursive: true, force: true });
+    mkdirSync(udir, { recursive: true });
+    const ust = new UStore({ dir: udir, roster: rosterJ });
+    ust.open('u1', 400000, { relations: {}, posts: [] });
+    ust.setStory({ lifepath: 'corpo', body: 'feminine', points: { partners: 252000 }, met: ['judy', 'jackie', 'panam', 'kerry', 'hanako'], dead: [] });
+    const G = { peopleChance: 100, corpChance: 100, gangChance: 100, maxPerCheck: 10, maxCommentsPerCheck: 2, weightText: 100, weightSelfie: 0, weightActivity: 0, postModel: 'sonnet', dailyCapUsd: 1, secondCheck: true };
+    const uasks = [];
+    let answers = [];
+    let checkSays = () => ({ leak: false });
+    const uask = async (prompt, o) => {
+      uasks.push({ prompt, ...o });
+      if (o.model === 'haiku') return { text: JSON.stringify(checkSays(o.context)), cost: 0.001 };
+      const next = answers.length > 1 ? answers.shift() : answers[0];
+      return { text: typeof next === 'function' ? next(prompt, o) : next, cost: 0.01 };
+    };
+    const ledgerU = new P.Ledger(join(udir, 'posting.json'));
+    let media = () => null;
+    const poster = new P.Poster({ store: ust, roster: rosterJ, story: storyJ, cards: real, general: () => G, ask: uask, ledger: ledgerU, media: (id) => media(id), rand: seeded(7), replyDelayMs: [0, 0] });
+    const ids = (list) => list.map((a) => a.id).sort().join();
+    let cand = poster.candidates('Watson');
+    check('C3: who may post in Watson: the cast V met (not Hanako, a story figure V does not follow), its corporations and its gangs', ids(cand.people) === 'jackie,judy,kerry,panam' && ids(cand.corps) === 'arasaka,traumateam' && ids(cand.gangs) === 'maelstrom,mox,scavengers,tygerclaws', `${ids(cand.people)} | ${ids(cand.corps)} | ${ids(cand.gangs)}`);
+    const trials = (district, n = 200) => Array.from({ length: n }, () => poster.pick(district).filter((a) => a.kind === 'gang').length);
+    let g = trials('Watson');
+    check('  with every chance at 100: exactly one gang each check', g.every((x) => x === 1), `${g.filter((x) => x !== 1).length} checks without one`);
+    check('  never a gang off its turf: City Center has none', trials('City Center').every((x) => x === 0));
+    const badl = [P.DISTRICTS.NorthBadlands, P.DISTRICTS.SouthBadlands, P.DISTRICTS.Badlands].map((d) => ids(poster.candidates(d).gangs));
+    check('  the game\'s three Badlands districts are the Badlands: the Aldecaldos and the Wraiths', badl.every((x) => x === 'aldecaldos,wraiths') && P.DISTRICTS.Dogtown_Brooklyn === 'Dogtown' && P.placeName('Kabuki_LizziesBar') === 'Lizzies Bar', badl.join(' | '));
+    G.gangChance = 0;
+    g = trials('Watson');
+    check('  gang chance 0: none', g.every((x) => x === 0));
+    G.gangChance = 10;
+    g = trials('Watson', 1000);
+    const rate = g.filter(Boolean).length / 10;
+    check('  gang chance 10%: about one check in ten', rate > 6 && rate < 14, `${rate}%`);
+    G.maxPerCheck = 2;
+    check('  at most maxPerCheck posts a check', Array.from({ length: 50 }, () => poster.pick('Watson').length).every((n) => n <= 2));
+    G.maxPerCheck = 10;
+
+    // A post: one question with no tools, Sonnet, the person's cards for this save only.
+    answers = [JSON.stringify({ text: 'Rig is humming tonight. Bring me something broken.' })];
+    poster.where = { district: 'Watson', area: 'Kabuki', time: '21:40', day: 5 };
+    let p1 = await poster.post(rosterJ.find((a) => a.id === 'judy'));
+    let q = uasks.find((x) => x.model === 'sonnet');
+    const cardPoints = q?.context?.cards?.map((c) => c.point) ?? [];
+    check('a post: one question with tools off and Sonnet, then the Haiku check', p1?.text.startsWith('Rig is humming') && p1.gen && p1.by === 'judy' && q.tools === false && uasks.some((x) => x.model === 'haiku' && x.tools === false), JSON.stringify(uasks.map((x) => x.model)));
+    check('  its context: only the cards of points this save has passed, and the place and hour', cardPoints.length > 0 && cardPoints.every((pt) => pt === 'start' || pt === 'partners') && q.context.now.area === 'Kabuki' && JSON.stringify(q.context).length < 65536, `${cardPoints.join(',')} ${JSON.stringify(q?.context?.now)}`);
+    check('  it says nothing past the cards has happened', /Nothing in the story has happened beyond/.test(q.prompt) && /V is the player/.test(q.prompt));
+    // The word check: an answer naming a later point is thrown away and asked for once more.
+    uasks.length = 0;
+    answers = [JSON.stringify({ text: 'Ran into Takemura today.' }), JSON.stringify({ text: 'Quiet night at Lizzie\'s.' })];
+    p1 = await poster.post(rosterJ.find((a) => a.id === 'judy'));
+    check('the spoiler words: a post naming a later point (Takemura) is thrown away and asked for again', p1?.text === "Quiet night at Lizzie's." && uasks.filter((x) => x.model === 'sonnet').length === 2 && /thrown away/.test(uasks.filter((x) => x.model === 'sonnet')[1].prompt));
+    answers = [JSON.stringify({ text: 'Maiko called again.' })];
+    p1 = await poster.post(rosterJ.find((a) => a.id === 'judy'));
+    check('  twice: no post, and the log says why', p1 === null && /not posted: .*Maiko/.test(ledgerU.log[0].note ?? ''), ledgerU.log[0].note);
+    const early = SP.forbiddenFor(poster.words, { partners: 1 });
+    const late = SP.forbiddenFor(poster.words, { partners: 1, heist: 1 });
+    check('  an early save may not name Takemura, Maiko or the Relic; Watson, Jackie and Evelyn are known from the start; the heist makes the Relic sayable', ['Takemura', 'Maiko', 'Relic'].every((w) => early.has(w)) && !['Watson', 'Jackie', 'Evelyn'].some((w) => early.has(w)) && !late.has('Relic') && SP.leaks('THE RELIC is mine', early).includes('Relic'), [...early].sort().join(' '));
+    // The second check: the cheap model's word counts as the word check's.
+    uasks.length = 0;
+    let n = 0;
+    checkSays = () => (++n === 1 ? { leak: true, why: 'hints at the heist' } : { leak: false });
+    answers = [JSON.stringify({ text: 'Big night coming for the boys.' }), JSON.stringify({ text: 'New rig parts came in.' })];
+    p1 = await poster.post(rosterJ.find((a) => a.id === 'judy'));
+    const hk = uasks.find((x) => x.model === 'haiku');
+    check('the second check (Haiku) throws away a leak too, and knows only the points\' notes', p1?.text === 'New rig parts came in.' && hk.context.done.length === 1 && hk.context.notYet.length === storyJ.points.length - 1, JSON.stringify({ text: p1?.text, done: hk?.context?.done?.length }));
+    checkSays = () => ({ leak: false });
+    // A photo post: the scene line for C4 is kept with it.
+    media = () => ({ images: true, portrait: true, body: false, places: [{ description: 'her apartment', activities: ['editing a BD'] }] });
+    G.weightSelfie = 100;
+    G.weightText = 0;
+    uasks.length = 0;
+    answers = [JSON.stringify({ text: 'Home.', scene: 'Judy smiling at the camera in her apartment, neon through the blinds.' })];
+    p1 = await poster.post(rosterJ.find((a) => a.id === 'judy'));
+    check('a photo post (a selfie at one of her places): the caption, and the scene line kept for C4', p1?.kind === 'selfie' && /neon/.test(p1.scene) && /"scene"/.test(uasks[0].prompt), JSON.stringify(p1));
+    G.weightSelfie = 0;
+    G.weightText = 100;
+    media = () => null;
+
+    // Follows and Choom Requests, at their story points, one request at a time; an older save takes them back.
+    poster.social();
+    const rel = (id) => ust.relation(id);
+    check('follows: each cast member V met follows V; Choom Requests only at their points (Jackie at partners)', ['judy', 'jackie', 'panam', 'kerry'].every((id) => rel(id).followsV) && rel('jackie').request === 'pending' && rel('judy').request === null && !rel('hanako').followsV, JSON.stringify(['judy', 'jackie', 'panam', 'kerry'].map((id) => [id, rel(id).followsV, rel(id).request])));
+    ust.setNow(500000);
+    ust.setStory({ ...ust.data.story, points: { partners: 252000, 'judy-maiko': 480000, 'panam-help': 490000 } });
+    poster.social();
+    const oneAtATime = [rel('judy').request, rel('panam').request].filter(Boolean).length;
+    poster.social();
+    check('  two points passed: one request, then the other at the next', oneAtATime === 1 && rel('judy').request === 'pending' && rel('panam').request === 'pending');
+    ust.setNow(450000);
+    check('  an older save: the requests sent after it are taken back', rel('judy').request === null && rel('panam').request === null && rel('jackie').request === 'pending');
+    ust.setStory({ ...ust.data.story, points: { partners: 252000 } });
+
+    // V first: V's new post is answered by those who follow V; V's comment by the post's author.
+    uasks.length = 0;
+    answers = [(prompt, o) => JSON.stringify({ text: `${o.context.account.name.split(' ')[0]} here, choom.` })];
+    const vp = ust.newPost('Back in Watson. Who is out tonight?');
+    poster.onV({ post: vp.id });
+    await poster.tick();
+    const toV = vp.comments.filter((c) => c.toV);
+    check('V first: V\'s new post is answered by people who follow V, told to answer V', toV.length >= 1 && toV.length <= 2 && toV.every((c) => ust.relation(c.by).followsV) && uasks.some((x) => /answer V/.test(x.prompt)), JSON.stringify(vp.comments.map((c) => c.by)));
+    const jp = ust.data.posts.find((x) => x.by === 'judy' && x.gen);
+    ust.comment(jp.id, 'Nice one, Judy.');
+    poster.onV({ post: jp.id });
+    await poster.tick();
+    check('  V\'s comment on Judy\'s post: Judy answers', jp.comments.at(-1)?.by === 'judy' && jp.comments.at(-1).toV);
+    // NPCs on each other's posts: someone whose cards name the author.
+    const before = ust.data.posts.reduce((s, x) => s + x.comments.length, 0);
+    const made = await poster.comments(2);
+    const after = ust.data.posts.reduce((s, x) => s + x.comments.length, 0);
+    check('NPCs comment on each other\'s posts, at most maxCommentsPerCheck', made >= 1 && made <= 2 && after - before === made, `${made}`);
+
+    // Likes: worked out from game time, fixed for each post, more for bigger accounts.
+    const at = ust.data.now;
+    const kp = ust.newPost('New song tonight.', 'kerry', null, 0, { gen: true });
+    const ar = ust.newPost('Security for a safer tomorrow.', 'arasaka', null, 0, { gen: true });
+    const likes = (x, now) => P.grownLikes(x, { now, account: rosterJ.find((a) => a.id === x.by), vFans: 0 });
+    check('likes grow with game time, the same each time they are drawn, more for a corporation', likes(kp, at) === 0 && likes(kp, at + 86400) > 0 && likes(kp, at + 86400) === likes(kp, at + 86400) && likes(ar, at + 86400) > likes(kp, at + 86400) && likes({ ...kp, seed: true }, at + 86400) === 0, `${likes(kp, at + 86400)} ${likes(ar, at + 86400)}`);
+    ust.setNow(at - 10);
+    check('an older save drops the posts and comments Chooms! wrote after it', !ust.data.posts.includes(kp) && !ust.data.posts.some((x) => x.comments.some((c) => c.gen && c.at > at - 10)));
+
+    // The cap: Chooms! stops for the day at dailyCapUsd; a refusal says what is wrong.
+    G.dailyCapUsd = ledgerU.today + 0.005; // less than one post costs
+    answers = [JSON.stringify({ text: 'One more.' })];
+    let out = await poster.cycle({ district: 'Watson', area: null, time: '22:00', day: 5 }, { who: 'kerry' });
+    const spentAfter = ledgerU.today;
+    out = await poster.cycle({ district: 'Watson', area: null, time: '22:00', day: 5 }, { who: 'kerry' });
+    check('the cap: once today\'s spending reaches it, the next check asks nothing', out.stopped === 'cap' && out.posts === 0 && ledgerU.today === spentAfter, JSON.stringify(out));
+    G.dailyCapUsd = 1;
+    const kinds = ['"chooms" must ask for the agent permission: "permissions": ["agent"] in its rednode-app.json', 'The player has not allowed this package to ask the assistant yet. They can allow it in the launcher or the Mod Manager.', 'No assistant is running. Install REDagent and switch it on.', 'This mod has reached its daily limit of $0.25 in REDagent.', 'The player has paused this mod in REDagent.', 'The assistant did not answer within 5 minutes.'].map(P.problemOf);
+    check('  REDnode\'s and REDagent\'s refusals each name what is wrong', kinds.join() === 'not-allowed,not-allowed,no-agent,agent-cap,agent-paused,error', kinds.join());
+    check('  an answer in a sentence or a code block is still read', P.parseAnswer('Sure!\n```json\n{"text": "hi"}\n```')?.text === 'hi' && P.parseAnswer('no json') === null);
   }
   const jc0 = H.journalCalls;
   // A late save: the heist done (Jackie dies), Jackie's second contact, Hanako and Vik met, Kerry not (yet).
@@ -1051,6 +1193,45 @@ if (mode === 'apps') {
   });
   delete process.env.SHOT_STEPS;
   check('  once a save is loaded, it shows the feed', answered.includes('feed'), answered.join(','));
+
+  // C3 through the running package (after the screenshots, so they show C1's feed): Post now
+  // from the settings window, first with no REDagent, then with a stand-in that answers.
+  const winWait = async (send, pred, ms = 6000) => { fromWin.length = 0; H.chan.chooms.toMod(send); for (let i = 0; i < ms / 50; i++) { const m = fromWin.find(pred); if (m) return m; await wait(50); } return null; };
+  const said = (m) => m.type === 'note' || m.type === 'error';
+  H.asks.length = 0;
+  let wm = await winWait({ type: 'post-now', who: 'judy' }, said);
+  check('C3 in the package: Post now with no REDagent says so', wm?.type === 'error' && /REDagent is not running/.test(wm.text), wm?.text);
+  H.agent = async (prompt, o) => (o.model === 'haiku' ? { text: '{"leak": false}', cost: 0.0004 } : { text: JSON.stringify({ text: `Test post ${H.asks.length}: Kabuki at night.` }), cost: 0.012 });
+  wm = await winWait({ type: 'post-now', who: 'judy' }, said);
+  f = await callApp('feed');
+  // The hand-written posts are dated after this older save, so the new one is found by its words.
+  const tp = f.posts.find((x) => /^Test post/.test(x.text));
+  const sq = H.asks.find((x) => x.model === 'sonnet');
+  check('  with REDagent: Judy posts, asked with no tools, Sonnet, where V is (Little China, Watson)', wm?.type === 'note' && tp?.by.id === 'judy' && sq?.tools === false && sq.context.now.district === 'Watson' && sq.context.now.area === 'Little China', `${wm?.text} | ${tp?.by.id} ${JSON.stringify(sq?.context?.now)}`);
+  const ps = await winWait({ type: 'hello' }, (m) => m.type === 'posting');
+  check("  the window: the log with its cost, today's spending, the next check", ps?.log[0]?.name === 'Judy Alvarez' && ps.log[0].cost > 0.012 && ps.spent > 0.012 && /next check is in \d+ min, in Watson/.test(ps.status), JSON.stringify({ status: ps?.status, log: ps?.log?.[0] }));
+  const jpost = tp.id;
+  await callApp('comment', jpost, 'Looks good, Judy.');
+  let pv = null;
+  for (let i = 0; i < 40; i++) {
+    pv = await callApp('post', jpost);
+    if (pv.commentList.at(-1)?.by.id === 'judy') break;
+    await wait(250);
+  }
+  check('  V comments on it: Judy answers within the reply delay', pv?.commentList.at(-1)?.by.id === 'judy', JSON.stringify(pv?.commentList?.map((c) => c.by.id)));
+  wm = await winWait({ type: 'post-now', who: 'maelstrom' }, said);
+  const wm2 = await winWait({ type: 'post-now', who: 'aldecaldos' }, said);
+  check('  a gang on its turf posts (Maelstrom in Watson); one off it does not (the Aldecaldos)', wm?.type === 'note' && wm2?.type === 'error' && /did not post/.test(wm2.text), `${wm?.text} | ${wm2?.text}`);
+  H.chan.chooms.toMod({ type: 'general', values: { dailyCapUsd: 0.01 } });
+  wm = await winWait({ type: 'post-now' }, said);
+  check('  the cap reached: no question asked, and the window says so', wm?.type === 'error' && /reached the cap/.test(wm.text), wm?.text);
+  H.chan.chooms.toMod({ type: 'general', values: { dailyCapUsd: 1 } });
+  H.menu = true;
+  H.emitState();
+  wm = await winWait({ type: 'post-now' }, said);
+  check('  a menu open: Chooms! waits', wm?.type === 'error' && /menu/.test(wm.text), wm?.text);
+  H.menu = false;
+  H.emitState();
 
   console.log(`\n${results.filter(Boolean).length}/${results.length} passed.`);
   process.exit(results.every(Boolean) ? 0 : 1);

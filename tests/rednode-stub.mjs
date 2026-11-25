@@ -28,7 +28,9 @@ H.world ??= false;
 H.mainMenu ??= !H.world;
 H.stateHandlers ??= [];
 H.time ??= 3 * 86400 + 14 * 3600 + 5 * 60;
-const gameState = () => ({ connected: true, overlay: 'closed', menu: false, photoMode: false, scene: false, mainMenu: !!H.mainMenu, world: !!H.world });
+const gameState = () => ({ connected: true, overlay: 'closed', menu: !!H.menu, photoMode: false, scene: false, mainMenu: !!H.mainMenu, world: !!H.world });
+// H.menu = true, then H.emitState(): a menu opens (the C3 check waits for it to close).
+H.emitState ??= () => H.stateHandlers.forEach((h) => h(gameState()));
 H.setWorld ??= (world, mainMenu = false) => {
   H.world = world;
   H.mainMenu = mainMenu;
@@ -142,6 +144,21 @@ const one = (key) => {
 export const loc = {
   text: async (key) => (Array.isArray(key) ? key.map(one) : one(key)),
   language: async () => H.lang ?? 'en',
+};
+
+// The AI assistant (agent.ask, REDnode 0.72.0 with #54): a stand-in REDagent with set answers.
+// H.agent(prompt, options, pkg) answers ({ text, cost }) or throws; with none, the host's own
+// refusal when no assistant runs. Every question is kept in H.asks. The limits are REDnode's.
+H.asks ??= [];
+export const agent = {
+  ask: async (prompt, options = {}) => {
+    const json = options.context === undefined ? '' : JSON.stringify(options.context);
+    H.asks.push({ pkg: PKG, prompt, context: options.context, tools: options.tools, model: options.model, contextChars: json.length });
+    if (prompt.length > 20000) throw new Error(`The question is ${prompt.length} characters; agent.ask takes at most 20000. Put the data in context.`);
+    if (json.length > 65536) throw new Error(`The context is ${json.length} characters of JSON; agent.ask takes at most 65536. Send less, such as only the recent posts.`);
+    if (!H.agent) throw new Error('No assistant is running. Install REDagent and switch it on.');
+    return H.agent(prompt, options, PKG);
+  },
 };
 
 // Services between packages. H.services[id] is a package's service file, once it runs; a call

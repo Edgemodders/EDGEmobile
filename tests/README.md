@@ -13,7 +13,7 @@ Before the first run, install EDGEmobile's libraries: `npm ci` in `edgemobile/` 
 | Mode | Checks | Needs |
 |---|---|---|
 | `boot` | The game starting with the phone window open, V arriving, a load from the pause menu, the main menu: no call into the world while V is not in it. EDGEphone's screen through EDGEmobile's service | Nothing |
-| `apps` | Mobile apps: the app frame, `/mobile.js`, the bridge to an app's package, media addresses. Chooms!: the feed per playthrough, older saves, the settings window, its image picker, bundled pictures and places, Reset to default, the export tool, the dossiers (shrinking, checklists, the build). Ends with headless Chrome screenshots in `tests/.out/shots/` | Chrome |
+| `apps` | Mobile apps: the app frame, `/mobile.js`, the bridge to an app's package, media addresses. Chooms!: the feed per playthrough, older saves, the settings window, its image picker, bundled pictures and places, Reset to default, the export tool, the dossiers (shrinking, checklists, the build). C3: posts by themselves (who posts, the spoiler checks, V answered first, follows and Choom Requests, likes, the cap) with a stand-in REDagent, both driven directly and through the running package. Ends with headless Chrome screenshots in `tests/.out/shots/` | Chrome |
 | `full` | The tunnel, pairing (the QR link's key and Allow), every refusal, the phone back by its signature, themes, fonts, what is and is not served | The internet, `cloudflared` |
 | `relink` | A restarted mod finds the running tunnel; the paired phone is in by signature | `full` just before, in the same command |
 | `auto` | With the setting on and a phone paired, the tunnel starts with the mod | `full` before it |
@@ -33,7 +33,7 @@ The tunnel gives the test mod a private web address. As in the game, a phone get
 |---|---|
 | `run.mjs` | The checks, by mode |
 | `all.mjs` | Runs the modes and adds up the results |
-| `rednode-stub.mjs` | The stand-in `rednode`: the game's state, the world flag, `loc.text`, quest facts, services between packages, windows' channels. It follows REDnode 0.47.2's shapes |
+| `rednode-stub.mjs` | The stand-in `rednode`: the game's state, the world flag, `loc.text`, quest facts, services between packages, windows' channels, and a stand-in REDagent for `agent.ask` (`H.agent` gives the answers; with none, REDnode's refusal; `H.asks` keeps every question). It follows REDnode 0.47.2's shapes, and 0.72.0's for `agent.ask` |
 | `hooks.mjs` | Gives each package its own `rednode` (`?pkg=<id>`) |
 | `shot.mjs` | Screenshots a page with headless Chrome over the DevTools protocol. `node tests/shot.mjs <url> <out.png> <width> <height> [script] [waitMs]`. Scrollbars are hidden unless `SHOT_SCROLLBARS=1` is set (also for the `apps` screenshots) |
 
