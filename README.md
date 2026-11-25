@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://edgemodders.github.io/EDGEmobile/"><img src="docs/assets/brand/badges/docs.svg" alt="docs: read the docs"></a>
-  <img src="docs/assets/brand/badges/status.svg" alt="status: C3 next">
+  <img src="docs/assets/brand/badges/status.svg" alt="status: C3 in progress">
   <img src="docs/assets/brand/badges/game.svg" alt="game: Cyberpunk 2077">
   <a href="https://github.com/Edgemodders/REDnode"><img src="docs/assets/brand/badges/rednode.svg" alt="runs in: REDnode"></a>
   <a href="LICENSE"><img src="docs/assets/brand/badges/license.svg" alt="license: MIT"></a>
@@ -20,7 +20,7 @@ Its home screen shows the mobile apps you install. Other modders can write them.
 **[Docs](https://edgemodders.github.io/EDGEmobile/)** &middot; [Design](docs/design.md) &middot; [Changelog](docs/changelog.md) &middot; [REDnode](https://github.com/Edgemodders/REDnode)
 
 > [!NOTE]
-> **Status: C2 done, C3 next, not released yet.** The tunnel, pairing a phone by QR code and the phone's OS work: they passed in the game and on an Android phone (M1 to M3, 2026-10-29 and 10-30; iPhones unverified). Now being built: **Chooms!**, the first mobile app. Its first version (C1, with hand-written posts) passed in the game and on an Android phone on 2026-11-10. C2, the game's story, is done (2026-11-21): Chooms! reads the loaded save's journal for who V has met and how far the story has come, and knows what each person knows at each point of the story. C3, people posting by themselves through REDagent, comes next. The rest of M4 (a sample app and a guide for modders who write mobile apps) and M5 (installing the app on the phone) are not started. There is no release yet: the first comes once Chooms! is complete (posts, images and DMs) and modders have their sample app and guide. The plan and its phases, M1 to M6, are in [docs/design.md](docs/design.md).
+> **Status: C3 in progress, not released yet.** The tunnel, pairing a phone by QR code and the phone's OS work: they passed in the game and on an Android phone (M1 to M3, 2026-10-29 and 10-30; iPhones unverified). Now being built: **Chooms!**, the first mobile app. Its first version (C1, with hand-written posts) passed in the game and on an Android phone on 2026-11-10. C2, the game's story, is done (2026-11-21): Chooms! reads the loaded save's journal for who V has met and how far the story has come, and knows what each person knows at each point of the story. C3, people, corporations and gangs posting by themselves through REDagent, is under way (planned 2026-11-25). The rest of M4 (a sample app and a guide for modders who write mobile apps) and M5 (installing the app on the phone) are not started. There is no release yet: the first comes once Chooms! is complete (posts, images and DMs) and modders have their sample app and guide. The plan and its phases, M1 to M6, are in [docs/design.md](docs/design.md).
 
 ## How your phone connects
 

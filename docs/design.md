@@ -251,6 +251,7 @@ A mobile app is a folder in `red4ext/plugins/REDnode/mobile-apps/<id>/`, beside 
 | Story figures | Kurt Hansen, Hanako, the fixers | In Search once V has become aware of them through the game, never before | V may follow them; they post only if V follows them | No |
 | Delamain | The cab company's AI | Once V has met him | V may follow him | DMs, yes (the user's choice). Proposed: like the main cast, he sends V a Choom Request |
 | Corporations | Militech, Arasaka, Kang Tao and others | Their posts in the feed | V may follow them | Never: no Choom Request, no DMs |
+| Gangs (C3, the user's addition, 2026-11-25) | Maelstrom, Tyger Claws, Valentinos, 6th Street, Voodoo Boys and the other major gangs | Their posts, only while V is in a district they operate in, at most one gang post per cycle ([C3 plan](#c3-plan)) | V may follow them | Never |
 
 An NPC who is dead in V's playthrough stops posting.
 
@@ -327,6 +328,7 @@ Chooms! lives in this repo beside EDGEphone (the user's choice, 2026-10-30), wit
 | Need | Why |
 |---|---|
 | More context, no tools, and a model choice in `agent.ask` ([REDnode #54](https://github.com/Edgemodders/REDnode/issues/54), filed 2026-11-21) | A post's context (the person's cards, recent posts, the scene) is larger than the 8,000 characters REDagent keeps today, and needs no tools. Package questions already run on Sonnet, so posts (C3) need no model choice; DMs (C5) want Opus |
+| The game's events for a fight: V's combat state changing, and an NPC killed or defeated with its affiliation (not in REDnode on 2026-11-25; a request issue to file) | Gangs remember the fights V has with them ([C3 plan](#c3-plan)). Events only, never polling (the user's rule) |
 | The texts between V and a contact, and V's contacts, from the journal | NPCs aware of their history with V; "met" for the main cast. The C2 spike read them through `api` as it is; nothing new is needed, unless reading one subtree in one call turns out to be needed for speed |
 
 ### Phases
@@ -335,7 +337,7 @@ Chooms! lives in this repo beside EDGEphone (the user's choice, 2026-10-30), wit
 |---|---|
 | C1 The app | The M4 parts it needs: `mobile-app.json`, the app in a sandboxed frame, the `mobile` library, the bridge from the app to its package through EDGEmobile. The screens from the prototype with stored data: Feed, Post and comments, Profile, DMs, Search, Me, You Might Already Know; follow, Choom Request and accept. The playthrough id. The settings window, with the images. Hand-written posts, no AI yet, to test the app |
 | C2 The game's story | A spike: facts, journal, texts, contacts, who is alive, whether facts are saved. Then the story points and cards for the first cast, who V is aware of, and the corporations by district |
-| C3 Posts | The cycle with Sonnet, entities by district, NPCs commenting and liking, follows and Choom Requests, the spoiler check, the caps |
+| C3 Posts | The cycle with Sonnet, entities by district, NPCs commenting and liking, follows and Choom Requests, the spoiler check, the caps; gangs on their turf, and the fights V has with them ([C3 plan](#c3-plan)) |
 | C4 Images | The bundled pictures and places for the cast, from the user's photo mode screenshots (the dossiers in `chooms/dossiers/`, built 2026-11-21). Selfies and activities from the person's portrait, body image and places, with the scene line from the post: Nano Banana Pro or GPT Image, a setting, each with the player's own key. Cached on the PC, 1080 × 1080. Both tried on the same posts, for how well each keeps a person looking like themselves |
 | C5 DMs | Conversations with Opus, remembering earlier ones |
 | M4 Mobile apps | The C1 parts made general for other modders: a sample app and a guide |
@@ -660,6 +662,42 @@ The look comes from the user's **Chooms! prototype** canvas, which uses the **Ni
 
 The fonts ship with EDGEmobile (from M3): `edgemobile/shell/fonts/`, woff2 in Latin and Latin Extended, with their SIL Open Font License files, so neither screen fetches from Google.
 
+### C3 plan
+
+*Agreed with the user on 2026-11-25.* People, corporations and gangs post by themselves through REDagent. Chooms! becomes 0.2.0; EDGEmobile and EDGEphone do not change. Text posts only: an image post's scene line is kept for C4.
+
+| Part | How | AI |
+|---|---|---|
+| The cycle | Every N minutes (`everyMinutes`, default 10), only while V is in the world and not in a menu or a scene, and only once the save's story has been read. Who may post: the cast V has met and who are alive, the story figures V follows, Delamain once met, the corporations present in V's district, and one gang (below). The chances and `maxPerCheck` pick who posts | No |
+| A post | One `agent.ask` per post, with `tools: false` (#54): the person's cards for the story points V has passed, their last 3 posts, the district, the game time, and "write one post as this person"; the answer is JSON (the text; for a post that would have an image, the scene line) | Yes |
+| Comments | One question per comment, at most `maxCommentsPerCheck` (new, default 2). V first: people who follow V answer a new post or comment of V's within a minute or two, and a post's author answers V's comment on it; then NPCs on each other's posts | Yes |
+| Likes | Counts grow over game time, faster for popular accounts, worked out | No |
+| Follows and Choom Requests | Each cast member follows V once met; each sends a Choom Request at a story point named in `roster.json` (`request`), drafted for the user's review | No |
+| The spoiler check | Words for each story point (names, places, events), built from the cards: a post naming a point V has not passed is thrown away and asked for again once. The prompt says plainly that nothing past V's points has happened. With #54's model choice, a cheap model reads each post as a second check | No, then a cheap model |
+| Spending | `agent.ask` gives each answer's cost; Chooms! adds it up per real day and stops at `dailyCapUsd` ($1). REDagent's own daily limit per mod ($0.25 by default) must be raised for Chooms! by the player; the window says where | No |
+| Corporations' cards | About 12 for the 6 corporations, for the user's review | Content |
+| The settings window | **Post now** (for testing); a log of the last posts and comments with their costs; today's spending against the cap; a line saying why nothing posts (REDagent not allowed, the cap reached, V not in the world) | No |
+
+**Gangs** (the user's addition, 2026-11-25). A new account kind, `gang`, for the major gangs only: Maelstrom, Tyger Claws, Valentinos, 6th Street, Voodoo Boys, Animals, Moxes, Wraiths, Scavengers, the Barghest (Phantom Liberty) and the Aldecaldos. Kang Tao stays a corporation. Their districts are checked against the game's data with REDcode before they are written in.
+
+| Rule | |
+|---|---|
+| When | At most one gang post per cycle, from its own chance (`gangChance`, new, low by default), so most cycles have none. When it triggers, one gang that operates in V's current district posts; off their turf a gang never posts |
+| What | No Choom Requests and no DMs. V may follow a gang to see its profile; its posts still come only on its turf |
+| Cards | About 30, for the user's review: a start card (their voice and turf), and the story points that touch them (Maelstrom after The Pickup, either way the deal with Royce went; the Voodoo Boys after Placide and Alt; the Valentinos after Jackie's death; the Animals after Sasquatch; the Barghest at Phantom Liberty's points) |
+| Incidents | When V fights a gang, Chooms! notes it: the gang, the district, the game time, how many V downed or killed. For a few game days the gang's chance goes up and its post question carries the incident, so it may call V out. An incident keeps its game time, so an older save drops it, as posts are |
+| How Chooms! hears of a fight | The game's own events, never polling (the user's rule, 2026-11-25): the change of V's combat state, and an NPC's death or defeat with the NPC's affiliation (its character record's, such as `Factions.Maelstrom`). The user has done it in redscript. REDnode's session answered on 2026-11-25: not today (`game.on` carries REDnode's own events and fact changes, `world.on` only the entities' lifecycle; combat state and affiliation can be read through `api` only when asked, which would be polling), and asked for a `request` issue: `combat` with `{ inCombat }`, `npcDowned` with `{ entity, record, affiliation (the record id, such as "Factions.Maelstrom"), killed, byPlayer, district }`, built (unverified) as a redscript wrap on the game's own handlers after a short spike on its side. Gang posts work without them; incidents wait for them |
+
+**REDnode #54** (more context, no tools, a choice of model in `agent.ask`): not started in REDnode's session on 2026-11-25 (item 6 of its order, #54a); the user sees to it, and C3 is built on it: `tools: false` for every question, its context limit in place of a check of Chooms!'s own, and a cheap model for the second spoiler check.
+
+**The order:**
+
+| # | Step |
+|---|---|
+| 1 | The content, for the user's review: the gangs' districts (from the game's data) and cards, the corporations' cards, the Choom Request points |
+| 2 | The code: the cycle, posts, comments with V first, likes, follows and Choom Requests, the spoiler check, spending and the cap, gangs, the settings window; incidents once REDnode has the events. Offline checks in `tests/` with a stand-in REDagent giving set answers: who is picked, the spoiler check, the cap, V answered first, Choom Requests at their points, gangs only on their turf and one per cycle, an older save dropping posts and incidents |
+| 3 | The user's test in the game on the PC, with REDnode #54: a fast cycle; posts in character, nothing past V's story, a reply to V's comment, the costs in the log, the cap stopping it, a gang post on its turf |
+
 ## Phases
 
 Each phase ends with a test by the user, on a real phone where it applies, before the next starts.
@@ -672,7 +710,7 @@ Each phase ends with a test by the user, on a real phone where it applies, befor
 | M3 The OS | The shell on both screens: the home screen (status line, clock, app grid, dock), the dock on the real phone, the phone in the game (a borderless red frame, Pin to HUD), the two themes, the fonts shipped | Done 2026-10-30: built, tested in the game and on Android, with EDGEphone as its own app ([EDGEphone](#edgephone-the-phone-as-its-own-app), [0.0.7](#007-rednodes-world-flag-and-the-games-text)) |
 | M4 Mobile apps | `mobile-app.json`, finding apps, icons and badges, opening, swiping between apps, the home bar, sandboxed frames, the `mobile` library, a sample app and a modder's guide | Under way: `mobile-app.json`, the sandboxed frame, `/mobile.js` and the bridge to an app's package built in C1 for Chooms!; the sample app and the guide not started |
 | M5 Install on the phone | The loader as a PWA: manifest, service worker, icons, the Scan button, offline screen, and its own origin | Not started |
-| M6 Chooms! | C1 to C5 in [Chooms!](#chooms), built before M4's general parts (the user's choice, 2026-10-30) | C1 done 2026-11-10: built, tested in the game and on Android, two rounds of fixes ([C1: built](#c1-built)). C2 under way: the spike done 2026-11-14 ([C2 spike](#c2-spike-what-the-journal-holds)), the code parts built 2026-11-16 and passed in the game on 2026-11-21 ([C2: built](#c2-built-the-code-parts)). Also built 2026-11-21: the dossiers for the bundled pictures, and Share on a real phone (passed on Android the same day). The knowledge cards drafted 2026-11-21 for the main cast, the fixers, Delamain, Hanako and Kurt Hansen ([C2: the knowledge cards](#c2-the-knowledge-cards-drafted-2026-11-21)), reviewed by the user and tested in the game the same day: **C2 done 2026-11-21**. C3 next |
+| M6 Chooms! | C1 to C5 in [Chooms!](#chooms), built before M4's general parts (the user's choice, 2026-10-30) | C1 done 2026-11-10: built, tested in the game and on Android, two rounds of fixes ([C1: built](#c1-built)). C2 under way: the spike done 2026-11-14 ([C2 spike](#c2-spike-what-the-journal-holds)), the code parts built 2026-11-16 and passed in the game on 2026-11-21 ([C2: built](#c2-built-the-code-parts)). Also built 2026-11-21: the dossiers for the bundled pictures, and Share on a real phone (passed on Android the same day). The knowledge cards drafted 2026-11-21 for the main cast, the fixers, Delamain, Hanako and Kurt Hansen ([C2: the knowledge cards](#c2-the-knowledge-cards-drafted-2026-11-21)), reviewed by the user and tested in the game the same day: **C2 done 2026-11-21**. C3 plan agreed 2026-11-25 ([C3 plan](#c3-plan)): people, corporations and gangs posting through REDagent; the content first |
 | Docs The wiki and the guides | EDGEmobile's and EDGEphone's wiki sections in EDGEweb (thorough; EDGEphone's with quickstarts, coding examples and a tutorial with screenshots), Chooms!'s pages, M4's modders' guide on this site; marked not released yet until the launch ([Docs plan](#docs-plan)) | Planned 2026-11-22, after M4 |
 | Release | The zip, `requires` for REDnode, the Nexus page, the changelog | Built 2026-11-10, not run as a release yet. The first release, the launch, comes once C2 to C5, M5 and M4 are all done (the user's choice, 2026-11-21, widening "after C3" of 2026-11-10: the user steps away from the mod after the launch, so it should give players and modders all of it), in this order: C2's cards, C3, C4, C5, M5, M4, the docs ([Docs plan](#docs-plan), added 2026-11-22), then the release ([Release steps](#release-steps)). `tools/release/zip.mjs` makes `EDGEmobile-<version>.zip` (EDGEmobile and EDGEphone) and `Chooms-<version>.zip`, laid out like the game folder; `notes.mjs` takes the notes from the changelogs; `.github/workflows/release.yml` makes test zips, or a release with both zips and the Nexus uploads once the pages exist (`nexus/`, `chooms/nexus/`). EDGEphone and Chooms! need REDnode 0.50.0 (the in-game clicks, REDnode #31) |
 
