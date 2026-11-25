@@ -1008,6 +1008,32 @@ if (mode === 'apps') {
     ust.setNow(at - 10);
     check('an older save drops the posts and comments Chooms! wrote after it', !ust.data.posts.includes(kp) && !ust.data.posts.some((x) => x.comments.some((c) => c.gen && c.at > at - 10)));
 
+    // Fights with gangs (REDnode 0.73.0, #61): counted by entity; for three game days the gang
+    // posts more, is the one that posts, and its question carries the fight.
+    const t0 = ust.data.now;
+    ust.noteDowned({ gang: 'maelstrom', entity: '11', killed: false, district: 'Watson' });
+    ust.noteDowned({ gang: 'maelstrom', entity: '11', killed: true, district: 'Watson' });
+    const { fight } = ust.noteDowned({ gang: 'maelstrom', entity: '12', killed: false, district: 'Watson' });
+    const fs1 = UStore.fightSummary(fight);
+    check('fights: a person defeated and then killed counts once, as killed', fs1.downed === 2 && fs1.killed === 1 && ust.data.fights.length === 1, JSON.stringify(fs1));
+    G.gangChance = 10;
+    const gangPicks = () => Array.from({ length: 1000 }, () => poster.pick('Watson').filter((a) => a.kind === 'gang').map((a) => a.id)).flat();
+    let gp = gangPicks();
+    check('  a gang V fought: the gang chance of 10% becomes 30%, and that gang is the one that posts', gp.length / 10 > 25 && gp.length / 10 < 35 && gp.every((id) => id === 'maelstrom'), `${gp.length / 10}% ${[...new Set(gp)]}`);
+    uasks.length = 0;
+    answers = [JSON.stringify({ text: 'Somebody shot up our boys in Northside. We remember faces.' })];
+    await poster.post(rosterJ.find((a) => a.id === 'maelstrom'));
+    const fq = uasks.find((x) => x.model === 'sonnet');
+    check('  its question carries the fight: when, where, how many', /V fought them lately/.test(fq?.prompt ?? '') && JSON.stringify(fq?.context?.fightsWithV) === JSON.stringify([{ when: 'today', district: 'Watson', downed: 2, killed: 1 }]), JSON.stringify(fq?.context?.fightsWithV));
+    G.gangChance = 0;
+    check('  gangs switched off (chance 0): still none', gangPicks().length === 0);
+    G.gangChance = 10;
+    ust.setNow(t0 + 3 * 86400 + 60);
+    gp = gangPicks();
+    check('  three game days later the fight is forgotten: the chance is 10% again, any gang of the district', !poster.fightsWith('maelstrom').length && gp.length / 10 > 6 && gp.length / 10 < 14 && new Set(gp).size > 1, `${gp.length / 10}%`);
+    ust.setNow(t0 - 1);
+    check('  an older save forgets a fight that came after it', !ust.data.fights.length);
+
     // The cap: Chooms! stops for the day at dailyCapUsd; a refusal says what is wrong.
     G.dailyCapUsd = ledgerU.today + 0.005; // less than one post costs
     answers = [JSON.stringify({ text: 'One more.' })];
@@ -1232,6 +1258,29 @@ if (mode === 'apps') {
   check('  a menu open: Chooms! waits', wm?.type === 'error' && /menu/.test(wm.text), wm?.text);
   H.menu = false;
   H.emitState();
+
+  // Fights, as REDnode 0.73.0 sends them (#61): V and a companion down two Tyger Claws, one sent
+  // only by its TweakDB id; someone else's kill and a person of no gang do not count. The fight is
+  // logged when combat ends, and the Tyger Claws' next question carries it.
+  const tdbId = (p) => `0x${createHash('sha1').update(p).digest('hex').slice(0, 16).toUpperCase()}`;
+  H.fire('combat', { inCombat: true });
+  H.fire('npcDowned', { entity: '901', record: 'Character.tyger_claws_gang', affiliation: 'Factions.TygerClaws', killed: true, by: 'player', byPlayer: true });
+  H.fire('npcDowned', { entity: '902', record: '0x00000012AB34CD56', affiliation: tdbId('Factions.TygerClaws'), killed: false, by: 'companion', byPlayer: true });
+  H.fire('npcDowned', { entity: '903', affiliation: 'Factions.TygerClaws', killed: true, by: 'other', byPlayer: false });
+  H.fire('npcDowned', { entity: '904', affiliation: 'Factions.NCPD', killed: true, by: 'player', byPlayer: true });
+  await wait(500);
+  fromWin.length = 0;
+  H.fire('combat', { inCombat: false });
+  let fl = null;
+  for (let i = 0; i < 60 && !fl; i++) {
+    fl = fromWin.find((m) => m.type === 'posting' && m.log[0]?.what === 'fight');
+    if (!fl) await wait(50);
+  }
+  check('fights in the package: two Tyger Claws downed by V (one known by its TweakDB id), logged when combat ends; others\' kills and no gang do not count', fl?.log[0].name === 'Tyger Claws' && /in Watson: 2 of theirs downed, 1 killed/.test(fl.log[0].note), JSON.stringify(fl?.log?.[0]));
+  H.asks.length = 0;
+  wm = await winWait({ type: 'post-now', who: 'tygerclaws' }, said);
+  const tq = H.asks.find((x) => x.model === 'sonnet');
+  check("  the Tyger Claws' post is asked with the fight", wm?.type === 'note' && tq?.context?.fightsWithV?.[0]?.downed === 2, JSON.stringify(tq?.context?.fightsWithV));
 
   console.log(`\n${results.filter(Boolean).length}/${results.length} passed.`);
   process.exit(results.every(Boolean) ? 0 : 1);

@@ -27,9 +27,10 @@ How to keep it (the Edgemodders convention):
 - People comment on each other's posts, and answer yours: when you post or comment, the people who follow V reply within a minute or two.
 - The cast follow V once you have met them, and send you a Choom Request when your story reaches the right point, one at a time.
 - Likes grow on posts over game time.
+- Gangs remember a fight with V for three game days: they post more in their district, and may call out the merc who did it. Needs REDnode 0.73.0.
 - Two checks against spoilers: names from later in the story, and a quick read by a cheaper model. A post that fails is written again.
 - The settings window's Posting tab says why nothing posts, or when the next check is; **Post now** to try it; today's spending against a daily cap ($2 unless you change it), and a log of what was asked and what it cost.
 
 ### Other
 
-- Needs EDGEmobile 0.1.0, REDnode 0.72.0 and REDagent 0.4.5 or later. REDagent has a daily limit of its own for each mod, which you can raise in REDagent's Mods view.
+- Needs EDGEmobile 0.1.0, REDnode 0.73.0 and REDagent 0.4.6 or later. REDagent has a daily limit of its own for each mod, which you can raise in REDagent's Mods view.

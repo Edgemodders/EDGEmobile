@@ -2,7 +2,7 @@
 // playthrough, the settings and their images, and the answers its mobile app gets through
 // EDGEmobile (service.mjs). C3: people, corporations and gangs post by themselves (posts.mjs).
 
-import { agent, api, channel, game, pkg, quests, service } from 'rednode';
+import { agent, api, channel, game, pkg, quests, service, tweakdb } from 'rednode';
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -312,11 +312,73 @@ async function readWhere() {
   return where;
 }
 
+// --- Fights with gangs (REDnode 0.73.0, #61) ---------------------------------------------------
+// The game's own events, never polling (the owner's rule): npcDowned for each person defeated or
+// killed, combat when V enters or leaves a fight. A person V or V's companion downed whose
+// affiliation is a gang's (roster.json's affiliations, by name or by its TweakDB id, as a release
+// build may send only the id) counts toward a fight with that gang (store.mjs, noteDowned); for
+// three game days that gang posts more and may call V out (posts.mjs). REDnode before 0.73.0
+// sends neither event, and Chooms! goes on without them.
+
+const GANG_OF = new Map();
+for (const a of roster.filter((x) => x.kind === 'gang')) {
+  for (const aff of a.affiliations ?? []) {
+    GANG_OF.set(aff, a.id);
+    try {
+      GANG_OF.set(String(tweakdb.id(aff)).toLowerCase(), a.id);
+    } catch {
+      // no TweakDB ids here: names only
+    }
+  }
+}
+const gangOf = (aff) => (typeof aff === 'string' ? (GANG_OF.get(aff) ?? GANG_OF.get(aff.toLowerCase()) ?? null) : null);
+
+// Where V is, read at most once a minute for the events of one fight.
+let whereRead = null;
+let whereAt = 0;
+function whereNow() {
+  if (lastWhere && Date.now() - whereAt < 60000) return Promise.resolve(lastWhere);
+  whereRead ??= readWhere()
+    .then((w) => ((lastWhere = w), (whereAt = Date.now()), w))
+    .catch(() => lastWhere)
+    .finally(() => (whereRead = null));
+  return whereRead;
+}
+
+const fought = new Set(); // fights touched since they were last logged
+function logFights() {
+  for (const id of fought) {
+    const f = store.data?.fights?.find((x) => x.id === id);
+    if (!f) continue;
+    const s = Store.fightSummary(f);
+    ledger.add({ who: f.gang, what: 'fight', note: `a fight with V${s.district ? ` in ${s.district}` : ''}: ${s.downed} of theirs downed, ${s.killed} killed` });
+    console.log(`A fight with ${byId.get(f.gang)?.name ?? f.gang}: ${s.downed} downed, ${s.killed} killed`);
+  }
+  if (fought.size) channel.post(postingState());
+  fought.clear();
+}
+
+game.on('npcDowned', async (e) => {
+  if (!e?.byPlayer || !inWorld || !store.data) return;
+  const gang = gangOf(e.affiliation);
+  if (!gang) return;
+  const pid = store.id;
+  const where = await whereNow();
+  if (store.id !== pid || !store.data) return;
+  const { fight } = store.noteDowned({ gang, entity: e.entity, killed: !!e.killed, district: where?.district ?? null });
+  fought.add(fight.id);
+});
+game.on('combat', (e) => {
+  if (e && !e.inCombat) logFights();
+});
+
 async function runCheck(options = {}) {
   cycling = true;
+  logFights(); // a fight in stealth may never end a combat
   try {
     const where = await readWhere();
     lastWhere = where;
+    whereAt = Date.now();
     const out = await poster.cycle(where, options);
     if (out.posts || out.comments) console.log(`A check in ${where.district ?? 'no district'}: ${out.posts} posts, ${out.comments} comments`);
     return out;

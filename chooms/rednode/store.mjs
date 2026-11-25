@@ -131,6 +131,15 @@ export class Store {
     for (const acc of [...Object.values(d.accounts), ...Object.values(d.corps ?? {})]) {
       for (const key of ['follows', 'followsV', 'request']) rewind(acc, key, now);
     }
+    // Fights with gangs: the people downed after the save are forgotten, and a fight with none left.
+    if (d.fights) {
+      for (const f of d.fights) {
+        for (const [k, p] of Object.entries(f.people)) if (p.at > now) delete f.people[k];
+        const ats = Object.values(f.people).map((p) => p.at);
+        if (ats.length) f.last = Math.min(f.last, Math.max(...ats));
+      }
+      d.fights = d.fights.filter((f) => f.at <= now && Object.keys(f.people).length);
+    }
     const changed = JSON.stringify(d) !== before;
     this.save();
     return changed;
@@ -241,6 +250,36 @@ export class Store {
     p.comments.push(c);
     this.save();
     return c;
+  }
+
+  /**
+   * V downed someone of a gang (C3, REDnode #61's npcDowned). People are counted by entity: one
+   * defeated and then killed is one person, killed. Events for the same gang within two game
+   * hours of its last make one fight. Returns { fight, added } (added: a person new to it).
+   */
+  noteDowned({ gang, entity, killed, district }) {
+    const d = this.data;
+    d.fights ??= [];
+    const now = d.now;
+    let fight = d.fights.find((f) => f.gang === gang && now - f.last <= 2 * 3600);
+    if (!fight) {
+      fight = { id: this.#next('f'), gang, district: district ?? null, at: now, last: now, people: {} };
+      d.fights.push(fight);
+      d.fights = d.fights.slice(-30);
+    }
+    const key = String(entity);
+    const was = fight.people[key];
+    fight.people[key] = { killed: !!killed || !!was?.killed, at: was?.at ?? now };
+    fight.last = now;
+    fight.district ??= district ?? null;
+    this.save();
+    return { fight, added: !was };
+  }
+
+  /** A fight as counted: { gang, district, at, downed, killed }. */
+  static fightSummary(f) {
+    const people = Object.values(f.people);
+    return { gang: f.gang, district: f.district, at: f.at, downed: people.length, killed: people.filter((p) => p.killed).length };
   }
 
   /** A person follows V (C3). Returns whether it changed. */

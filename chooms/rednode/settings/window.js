@@ -92,7 +92,7 @@ $('postNow').addEventListener('click', () => {
 });
 
 // The status line, today's spending, who may post now, and the log of what was asked.
-const WHAT = { post: 'posted', comment: 'commented', reply: 'answered V', request: '' };
+const WHAT = { post: 'posted', comment: 'commented', reply: 'answered V', request: '', fight: '' };
 const clock = (ms) => new Date(ms).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 function drawPosting(s) {
   $('status').textContent = s.status;

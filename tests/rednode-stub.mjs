@@ -4,6 +4,7 @@
 // The game's district and weather follow the shapes in REDnode's game API reference (2.5).
 // game.state().world and loc.text follow REDnode #25 and #26: world is false until the harness
 // puts V in the world (H.setWorld), and GameInstance calls are refused while it is false.
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 
 const H = globalThis.__harness;
@@ -36,9 +37,15 @@ H.setWorld ??= (world, mainMenu = false) => {
   H.mainMenu = mainMenu;
   H.stateHandlers.forEach((h) => h(gameState()));
 };
+H.gameOn ??= {};
+H.fire ??= (name, e) => (H.gameOn[name] ?? []).forEach((h) => h(e));
 export const game = {
   instance: { $type: 'GameInstance' },
-  on: () => {},
+  // Game events (REDnode 0.73.0's combat and npcDowned, #61): H.fire(name, event) sends one.
+  on: (name, h) => {
+    (H.gameOn[name] ??= []).push(h);
+    return () => H.gameOn[name].splice(H.gameOn[name].indexOf(h), 1);
+  },
   onState: (h) => H.stateHandlers.push(h),
   state: async () => gameState(),
   player: { position: async () => (H.world ? { x: 0, y: 0, z: 0 } : Promise.reject(new Error('no player'))) },
@@ -160,6 +167,9 @@ export const agent = {
     return H.agent(prompt, options, PKG);
   },
 };
+
+// TweakDB ids (tweakdb.id): a stand-in hash in the game's "0x" and 16 hex digits form.
+export const tweakdb = { id: (path) => `0x${createHash('sha1').update(String(path)).digest('hex').slice(0, 16).toUpperCase()}` };
 
 // Services between packages. H.services[id] is a package's service file, once it runs; a call
 // sets that provider's caller to this package for the call. H.caller still overrides EDGEmobile's

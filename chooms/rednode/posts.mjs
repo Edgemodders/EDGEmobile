@@ -9,7 +9,13 @@ import { createHash } from 'node:crypto';
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { cardsFor } from './cards.mjs';
 import { forbiddenFor, leaks, spoilerWords } from './spoilers.mjs';
-import { isOrg } from './store.mjs';
+import { Store, isOrg } from './store.mjs';
+
+/** How long a gang remembers a fight with V, in game seconds: three game days. */
+export const FIGHT_MEMORY = 3 * 86400;
+
+/** A gang's chance to post when V has fought it lately: three times the setting, at least 30%; none if gangs are off. */
+export const fightChance = (gangChance) => (gangChance > 0 ? Math.min(100, Math.max(30, gangChance * 3)) : 0);
 
 /**
  * The game's top districts, by their record's enum name (TweakDB, `Districts.*`, parentDistrict
@@ -147,6 +153,8 @@ const VOICE = {
 const STORY_RULE = "Nothing in the story has happened beyond what the cards in the context say; the last card is where they are now. Never mention people, places or events from later in Cyberpunk 2077's story, even ones you know.";
 const V_RULE = 'V is the player: a merc they know. Mention V only as their cards allow; most posts are about their own life, not about V.';
 
+const FIGHT_RULE = 'V fought them lately: "fightsWithV" in the context says when, where and how many of theirs V downed or killed. They may call it out, threaten payback, mourn their own or play it down, as this gang would. Unless their cards name V, to them V is only a merc.';
+
 const pronouns = (body) => (body === 'feminine' ? 'she/her' : body === 'masculine' ? 'he/him' : 'they/them');
 
 /**
@@ -195,6 +203,19 @@ export class Poster {
     return out;
   }
 
+  /** The fights V had with a gang in the last FIGHT_MEMORY, newest first, as the questions tell them. */
+  fightsWith(gang) {
+    const now = this.store.data?.now ?? 0;
+    const ago = (s) => (s < 86400 ? 'today' : s < 2 * 86400 ? 'yesterday' : `${Math.floor(s / 86400)} days ago`);
+    return (this.store.data?.fights ?? [])
+      .filter((f) => f.gang === gang && now - f.at <= FIGHT_MEMORY && Object.keys(f.people).length)
+      .sort((a, b) => b.at - a.at)
+      .map((f) => {
+        const s = Store.fightSummary(f);
+        return { when: ago(now - f.at), district: s.district, downed: s.downed, killed: s.killed };
+      });
+  }
+
   // An account that posted in the last three game hours waits.
   #fresh(id) {
     const now = this.store.data.now;
@@ -212,7 +233,8 @@ export class Poster {
   /**
    * Who posts this check: each person with the people's chance, each corporation in the district
    * with the corporation chance, and at most one gang of the district with the gang chance; then
-   * at most `maxPerCheck` of them. `force` (Post now) picks one when the dice pick none; `who`
+   * at most `maxPerCheck` of them. A gang of the district that V fought lately raises the gang
+   * chance (fightChance) and is the one that posts. `force` (Post now) picks one when the dice pick none; `who`
    * picks that account, if it may post.
    */
   pick(district, { force = false, who = null } = {}) {
@@ -222,7 +244,9 @@ export class Poster {
     const roll = (pct) => this.rand() * 100 < pct;
     const won = [...c.people.filter((a) => this.#fresh(a.id) && roll(g.peopleChance)), ...c.corps.filter((a) => this.#fresh(a.id) && roll(g.corpChance))];
     const gangs = c.gangs.filter((a) => this.#fresh(a.id));
-    if (gangs.length && roll(g.gangChance)) won.push(gangs[Math.floor(this.rand() * gangs.length)]);
+    const fought = gangs.filter((a) => this.fightsWith(a.id).length);
+    const pool = fought.length ? fought : gangs;
+    if (pool.length && roll(fought.length ? fightChance(g.gangChance) : g.gangChance)) won.push(pool[Math.floor(this.rand() * pool.length)]);
     const picked = this.#shuffle(won).slice(0, g.maxPerCheck);
     if (force && !picked.length) {
       const any = [...c.people, ...c.corps, ...(c.gangs.length ? [c.gangs[Math.floor(this.rand() * c.gangs.length)]] : [])];
@@ -241,6 +265,10 @@ export class Poster {
       theirRecentPosts: s.data.posts.filter((p) => p.by === a.id).sort((x, y) => y.at - x.at).slice(0, 3).map((p) => p.text),
       now: { district: this.where.district, area: this.where.area, time: this.where.time, day: this.where.day },
     };
+    if (a.kind === 'gang') {
+      const fights = this.fightsWith(a.id);
+      if (fights.length) out.fightsWithV = fights;
+    }
     if (!isOrg(a)) {
       const r = s.relation(a.id);
       out.v = { pronouns: pronouns(story?.body), relation: r.request === 'accepted' ? 'V is their choom on Chooms!' : r.followsV ? 'they follow V on Chooms!' : 'they know V' };
@@ -346,6 +374,7 @@ export class Poster {
       `${this.#voice(a)} Short: one to three sentences, under 280 characters. No hashtags or emoji unless they would use them. Do not repeat their recent posts. It is ${this.where.time ?? 'some time'} in ${this.where.area ? `${this.where.area}, ` : ''}${this.where.district ?? 'Night City'}; the post may fit the hour, but need not be about the place.`,
       STORY_RULE,
       isOrg(a) ? '' : V_RULE,
+      a.kind === 'gang' && this.fightsWith(a.id).length ? FIGHT_RULE : '',
       photo.kind === 'text'
         ? 'Answer only with JSON: {"text": "the post"}.'
         : `The post comes with a photo: ${photo.kind === 'selfie' ? 'a selfie of them' : `them ${photo.activity}`} at ${photo.description}. Write the caption, and "scene": one line describing that photo for an image model (them, the place, what they are doing, their expression, the light). Answer only with JSON: {"text": "the caption", "scene": "the photo"}.`,
