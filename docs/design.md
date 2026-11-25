@@ -737,7 +737,7 @@ Step 2 of the [C3 plan](#c3-plan). Chooms! 0.2.0, which asks for the `agent` per
 | What stops it | `posts.mjs`, `problemOf` | REDnode's and REDagent's refusals by their words: not allowed yet, no REDagent, Chooms! paused in REDagent, REDagent's daily limit for Chooms!, any other error. Each ends the check and shows in the window until the next answer |
 | The window | `settings/` | The Posting tab: a status line (why nothing posts, or when the next check is and where), the gang chance, the comments per check, the second check, and a **Today** panel: spending against the cap, **Post now** (anyone who may post where V is, or one of them), and the log with each question's cost |
 | Older saves | `store.mjs` | Posts, comments, follows and requests that Chooms! wrote carry their game time, so loading an older save drops them, as it drops V's |
-| Fights with gangs (built the same day, once REDnode 0.73.0 had [#61](https://github.com/Edgemodders/REDnode/issues/61)) | `mod.mjs`, `store.mjs`, `posts.mjs` | The game's own events, never polling: `npcDowned` for a person V or V's companion downed (`byPlayer`) whose affiliation is a gang's in `roster.json`, by its name or by its TweakDB id (`tweakdb.id`, as a release build may send only the id). People are counted by entity, so one defeated and then finished off is one person, killed. A gang's events within two game hours of its last make one fight, kept with its district (read once a minute at most) and its game time (`noteDowned`). The window's log names each fight when V leaves combat (`combat`), or at the next check. For three game days the gang's chance is three times `gangChance`, at least 30% (none if the chance is 0), that gang is the one of the district that posts, and its question carries `fightsWithV` (when, where, how many downed and killed), so it may call V out. An older save forgets what came after it. REDnode before 0.73.0 sends neither event, and Chooms! goes on without them, so Chooms! still requires 0.72.0 until 0.73.0 is in the game; the release requires 0.73.0 |
+| Fights with gangs (built the same day, once REDnode 0.73.0 had [#61](https://github.com/Edgemodders/REDnode/issues/61)) | `mod.mjs`, `store.mjs`, `posts.mjs` | The game's own events, never polling: `npcDowned` for a person V or V's companion downed (`byPlayer`) whose affiliation is a gang's in `roster.json`, by its name or by its TweakDB id (`tweakdb.id`, as a release build may send only the id). People are counted by entity, so one defeated and then finished off is one person, killed. A gang's events within two game hours of its last make one fight, kept with its district (read once a minute at most) and its game time (`noteDowned`). The window's log names each fight when V leaves combat (`combat`), or at the next check. For three game days the gang's chance is three times `gangChance`, at least 30% (none if the chance is 0), that gang is the one of the district that posts, and its question carries `fightsWithV` (when, where, how many downed and killed), so it may call V out. An older save forgets what came after it. REDnode before 0.73.0 sends neither event, and Chooms! goes on without them, so Chooms! required 0.72.0 until 0.73.0 was in the game, and `>=0.73.0` since then (2026-11-25) |
 
 What the game credits to V (quickhacks, thrown objects, cars, non-lethal takedowns) is REDnode's own *unverified* list until its fight events test (REDnode's docs/world.md). What a post costs in the game is *unverified* until the test: REDagent adds its own briefing to each question.
 
@@ -745,7 +745,7 @@ What the game credits to V (quickhacks, thrown objects, cars, non-lethal takedow
 
 ### C3 test
 
-On the PC, in the game, with REDnode 0.72.0 and REDagent 0.4.5 (both in the game on this PC on 2026-11-25) and Chooms! 0.2.0. A late save is best. About 20 minutes; it spends from the player's Anthropic key, up to the cap ($2 unless changed).
+On the PC, in the game, with REDnode 0.73.0 and REDagent 0.4.6 (both in the game on this PC on 2026-11-25) and Chooms! 0.2.0 (requiring REDnode 0.73.0). Step 12 can be run in the same session as REDnode's fight events test (REDnode's docs/world.md). A late save is best. About 20 minutes; it spends from the player's Anthropic key, up to the cap ($2 unless changed).
 
 | # | Do | Expect |
 |---|---|---|
@@ -760,7 +760,7 @@ On the PC, in the game, with REDnode 0.72.0 and REDagent 0.4.5 (both in the game
 | 9 | Set the cap just above **Spent today** | Once it is reached, the status line says so and nothing more is asked |
 | 10 | On a late save, look at the Choom Requests | One at a time in Chooms!, only from the cast whose point V has passed |
 | 11 | Load an older save of the same playthrough | What Chooms! wrote after it is gone |
-| 12 | Only with REDnode 0.73.0 in the game: in Watson, fight some Maelstrom (or Tyger Claws) and leave the fight. Then pick that gang and **Post now** | The log: "a fight with V in Watson: N of theirs downed, M killed". The gang's post may call out the merc who did it |
+| 12 | In Watson, fight some Maelstrom (or Tyger Claws) and leave the fight. Then pick that gang and **Post now** | The log: "a fight with V in Watson: N of theirs downed, M killed". The gang's post may call out the merc who did it |
 
 ## Phases
 
