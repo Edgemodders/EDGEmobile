@@ -129,7 +129,8 @@ function applyDefaults(id) {
   }
   return changed;
 }
-if (PEOPLE.map((a) => applyDefaults(a.id)).some(Boolean)) saveSettings();
+// Corporations and gangs have only a profile picture (portrait), from content/ alone.
+if (roster.map((a) => applyDefaults(a.id)).some(Boolean)) saveSettings();
 
 // --- The game: the playthrough and its time ---------------------------------------------------
 // Only while V is in the world (REDnode's game.state().world): calls into the game's world before
@@ -455,7 +456,7 @@ function author(id) {
   if (id === 'v') return V;
   const a = byId.get(id);
   if (!a) return { ...V, id, name: 'Unknown', handle: id, initials: '?' };
-  const portrait = isOrg(a) ? null : settings.people[id]?.portrait;
+  const portrait = settings.people[id]?.portrait;
   return { id: a.id, name: a.name, handle: a.handle, initials: a.initials, color: a.color, kind: a.kind, tag: a.tag ?? null, avatar: portrait ? { $media: portrait } : null };
 }
 

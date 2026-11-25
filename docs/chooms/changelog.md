@@ -15,7 +15,7 @@ How to keep it (the Edgemodders convention):
 - Chooms!, Night City's social feed, on EDGEmobile's phone: the feed, posts and comments, likes, profiles, Follow, Choom Requests to accept, messages with your chooms, search, and posts of your own.
 - Your feed belongs to the playthrough you play. Loading an older save of it takes the feed back to that point.
 - A settings window on the PC: how often people and corporations post, and for each person a portrait (their face), a body image (head to toe, for photos of them doing something) and the places where their photos are taken. Images are chosen in the window itself, from your Steam screenshots, Pictures or any folder, so nothing opens behind the game, and are kept at most 1440 pixels across.
-- Chooms! can come with pictures and places for its people, yours to change; **Reset to default** brings a person's back.
+- Chooms! can come with pictures and places for its people, yours to change; **Reset to default** brings a person's back. Corporations and gangs can come with a profile picture.
 - Chooms! follows your save's story: only people V has met show in the feed and in search, and someone who has died in your story is marked **Remembered**, with their old posts and messages kept and no new messages. Read from the game's journal each time you load a save.
 - Search starts with everyone you know, people first, then corporations and gangs, and narrows the list as you type.
 - **Share** on each post, on your real phone: the post as a picture in the Chooms! look, ready for TikTok, Instagram, Facebook or any app your phone shares to.
@@ -29,6 +29,7 @@ How to keep it (the Edgemodders convention):
 - Likes grow on posts over game time.
 - Gangs remember a fight with V for three game days: they post more in their district, and may call out the merc who did it. Needs REDnode 0.73.0.
 - Two checks against spoilers: names from later in the story, and a quick read by a cheaper model. A post that fails is written again.
+- The settings window's choices (the models, who posts) use REDnode's own dropdown, which opens in the game.
 - The settings window's Posting tab says why nothing posts, or when the next check is; **Post now** to try it; today's spending against a daily cap ($2 unless you change it), and a log of what was asked and what it cost.
 
 ### Other

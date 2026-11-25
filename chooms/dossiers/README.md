@@ -1,6 +1,6 @@
 # Chooms!'s dossiers
 
-The pictures and places Chooms! ships for each person. A player starts with them in Chooms!'s settings window in the game, and can then change, add or remove them; **Reset to default** brings these back.
+The pictures and places Chooms! ships for each person, and the profile picture of each corporation and gang. A player starts with them in Chooms!'s settings window in the game, and can then change, add or remove them; **Reset to default** brings these back.
 
 Each person has a folder named by their id in `chooms/rednode/roster.json`:
 
@@ -10,6 +10,8 @@ Each person has a folder named by their id in `chooms/rednode/roster.json`:
 | `body.png` | Head to toe, standing, on a plain background if you can. Used for photos of them doing something |
 | `places/<name>.png` | A place where photos of them are taken |
 | `places/<name>.md` | Beside each place: the place in one line, then what they might do there, one per line |
+
+A corporation or gang has a folder too, with one image: `portrait.png`, its profile picture in the app (a gang's tag or graffiti, or one of its own in its colours; a corporation's logo on a building, a sign or a screen), from photo mode, filling a square, as it is shown in a circle. It has no body image or places, since its posts are text. Its picture is the bundled one only: the settings window in the game does not change it.
 
 PNG, JPG and WebP all work. A place's `.md` looks like this:
 
@@ -55,3 +57,27 @@ The release zip builds Chooms!'s `content/` from these folders (`dossiers.mjs --
 | [Hanako Arasaka](hanako/README.md) | — | — | 0 | 2 |
 | [Kurt Hansen](kurt/README.md) | — | — | 0 | 2 |
 <!-- /table -->
+
+### Corporations and gangs
+
+<!-- orgs: written by tools/chooms/dossiers.mjs -->
+| Account | Kind | Profile picture |
+|---|---|---|
+| [Arasaka](arasaka/README.md) | Corporation | — |
+| [Militech](militech/README.md) | Corporation | — |
+| [Kang Tao](kangtao/README.md) | Corporation | — |
+| [Biotechnica](biotechnica/README.md) | Corporation | — |
+| [Petrochem](petrochem/README.md) | Corporation | — |
+| [Trauma Team](traumateam/README.md) | Corporation | — |
+| [Maelstrom](maelstrom/README.md) | Gang | — |
+| [Tyger Claws](tygerclaws/README.md) | Gang | — |
+| [The Mox](mox/README.md) | Gang | — |
+| [Valentinos](valentinos/README.md) | Gang | — |
+| [6th Street](sixthstreet/README.md) | Gang | — |
+| [Voodoo Boys](voodooboys/README.md) | Gang | — |
+| [Animals](animals/README.md) | Gang | — |
+| [Aldecaldos](aldecaldos/README.md) | Gang | — |
+| [Wraiths](wraiths/README.md) | Gang | — |
+| [Scavengers](scavengers/README.md) | Gang | — |
+| [Barghest](barghest/README.md) | Gang | — |
+<!-- /orgs -->

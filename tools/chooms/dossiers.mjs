@@ -9,8 +9,9 @@
 //   --out <folder>        with --build: another folder than chooms/rednode/content (the release zip)
 //   --dry                 says what it would do, writes nothing
 //
-// A dossier is chooms/dossiers/<id>/, <id> a person in chooms/rednode/roster.json:
-//   portrait.<png|jpg|jpeg|webp>   their face (their picture in the app)
+// A dossier is chooms/dossiers/<id>/, <id> an account in chooms/rednode/roster.json:
+//   portrait.<png|jpg|jpeg|webp>   their face (their picture in the app); for a corporation or a
+//                                  gang, its profile picture, the only image it has
 //   body.<...>                     head to toe, for photos of them doing something
 //   places/<name>.<...>            a place, with places/<name>.md beside it:
 //                                    # The place, in one line
@@ -53,7 +54,8 @@ async function loadSharp() {
 }
 const sharp = await loadSharp();
 
-const roster = JSON.parse(readFileSync(join(repo, 'chooms', 'rednode', 'roster.json'), 'utf8')).accounts.filter((a) => a.kind !== 'corp' && a.kind !== 'gang');
+const roster = JSON.parse(readFileSync(join(repo, 'chooms', 'rednode', 'roster.json'), 'utf8')).accounts;
+const isOrg = (a) => a.kind === 'corp' || a.kind === 'gang';
 const errors = [];
 const notes = [];
 const rel = (p) => relative(root, p).split('\\').join('/');
@@ -88,10 +90,11 @@ for (const d of existsSync(root) ? readdirSync(root, { withFileTypes: true }) : 
 const people = {};
 const writes = new Map(); // content/'s images, written at the end when nothing is wrong
 const rows = [];
+const orgRows = [];
 let shrunk = 0;
 for (const a of roster) {
   const dir = join(root, a.id);
-  if (!existsSync(dir) && !dry) mkdirSync(join(dir, 'places'), { recursive: true });
+  if (!existsSync(dir) && !dry) mkdirSync(isOrg(a) ? dir : join(dir, 'places'), { recursive: true });
   const status = { portrait: null, body: null, places: [], toTake: [] };
 
   // Shrinks an image in place (not with --build, which leaves the dossiers as they are).
@@ -126,6 +129,7 @@ for (const a of roster) {
     else status.places.push({ name, file: await prepare(join(placesDir, imgs[0])), ...readPlace(md) });
   }
   for (const p of status.places) if (!p.description) errors.push(`${a.id}/places/${p.name}.md: no line describing the place`);
+  if (isOrg(a) && (status.body || names.length)) errors.push(`${a.id}/: a ${a.kind === 'gang' ? 'gang' : 'corporation'} has only a profile picture (portrait.png); no body image or places`);
 
   // content/: the images by their hash, and the lines.
   if (build) {
@@ -146,7 +150,13 @@ for (const a of roster) {
 
   // The dossier's README: written once, then only its checklist is brought up to date.
   const readme = join(dir, 'README.md');
-  const check = [
+  const check = isOrg(a) ? [
+    '<!-- checklist: written by tools/chooms/dossiers.mjs -->',
+    '## Checklist',
+    '',
+    `- [${status.portrait ? 'x' : ' '}] Profile picture${status.portrait ? `: \`${rel(status.portrait).split('/').pop()}\`` : ' (`portrait.png`)'}`,
+    '<!-- /checklist -->',
+  ].join('\n') : [
     '<!-- checklist: written by tools/chooms/dossiers.mjs -->',
     '## Checklist',
     '',
@@ -158,10 +168,13 @@ for (const a of roster) {
   ].join('\n');
   const text = existsSync(readme)
     ? readFileSync(readme, 'utf8')
+    : isOrg(a)
+    ? `# ${a.name}\n\n${a.tag ?? ''}${a.districts?.length ? ` in ${a.districts.join(', ')}` : ''}. ${a.bio ?? ''}\n\n- **Profile picture:** ${a.name}'s picture in the app, beside each of its posts and on its profile, shown in a circle. ${a.kind === 'gang' ? 'Their tag or graffiti on a wall, or one of their own in their colours' : 'Its logo on a building, a sign or a screen'}, from photo mode, filling a square. Save it here as \`portrait.png\`.\n\nA ${a.kind === 'gang' ? 'gang' : 'corporation'} has no body image or places: its posts are text.\n\n<!-- checklist --><!-- /checklist -->\n`
     : `# ${a.name}\n\n${a.tag ? `${a.tag}, ` : ''}${a.home ?? ''}. ${a.bio ?? ''}\n\n- **Portrait:** ${a.name}'s face, shoulders up, in good light. It is their picture in the app.\n- **Body:** ${a.name} head to toe, standing, on a plain background if you can. Used for photos of them doing something.\n- **Places:** where photos of them are taken. Each is an image in \`places/\` with a \`.md\` of the same name beside it.\n\n<!-- checklist --><!-- /checklist -->\n`;
   const next = text.replace(/<!-- checklist[^>]*-->[\s\S]*?<!-- \/checklist -->/, check);
   if (!dry && next !== text) writeFileSync(readme, next);
-  rows.push(`| [${a.name}](${a.id}/README.md) | ${status.portrait ? 'yes' : '—'} | ${status.body ? 'yes' : '—'} | ${status.places.length} | ${status.toTake.length} |`);
+  if (isOrg(a)) orgRows.push(`| [${a.name}](${a.id}/README.md) | ${a.kind === 'gang' ? 'Gang' : 'Corporation'} | ${status.portrait ? 'yes' : '—'} |`);
+  else rows.push(`| [${a.name}](${a.id}/README.md) | ${status.portrait ? 'yes' : '—'} | ${status.body ? 'yes' : '—'} | ${status.places.length} | ${status.toTake.length} |`);
 }
 
 // The index's table.
@@ -169,7 +182,8 @@ const index = join(root, 'README.md');
 if (existsSync(index) && !dry) {
   const table = ['<!-- table: written by tools/chooms/dossiers.mjs -->', '| Person | Portrait | Body | Places | To take |', '|---|---|---|---|---|', ...rows, '<!-- /table -->'].join('\n');
   const text = readFileSync(index, 'utf8');
-  const next = text.replace(/<!-- table[^>]*-->[\s\S]*?<!-- \/table -->/, table);
+  const orgTable = ['<!-- orgs: written by tools/chooms/dossiers.mjs -->', '| Account | Kind | Profile picture |', '|---|---|---|', ...orgRows, '<!-- /orgs -->'].join('\n');
+  const next = text.replace(/<!-- table[^>]*-->[\s\S]*?<!-- \/table -->/, table).replace(/<!-- orgs[^>]*-->[\s\S]*?<!-- \/orgs -->/, orgTable);
   if (next !== text) writeFileSync(index, next);
 }
 
@@ -196,4 +210,4 @@ if (errors.length) {
   process.exit(1);
 }
 const count = Object.values(people).reduce((n, e) => n + !!e.portrait + !!e.body + (e.places?.length ?? 0), 0);
-console.log(`${roster.length} dossiers checked${shrunk ? `, ${shrunk} image${shrunk === 1 ? '' : 's'} shrunk` : ''}.${build ? ` ${count} image${count === 1 ? '' : 's'} for ${Object.keys(people).length} ${Object.keys(people).length === 1 ? 'person' : 'people'}.` : ''}`);
+console.log(`${roster.length} dossiers checked (${orgRows.length} corporations and gangs)${shrunk ? `, ${shrunk} image${shrunk === 1 ? '' : 's'} shrunk` : ''}.${build ? ` ${count} image${count === 1 ? '' : 's'} for ${Object.keys(people).length} account${Object.keys(people).length === 1 ? '' : 's'}.` : ''}`);
