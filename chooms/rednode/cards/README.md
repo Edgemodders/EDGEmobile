@@ -2,7 +2,7 @@
 
 What each person knows and feels at each point of the story, so their posts (and later their DMs) never run ahead of the player's save. Made once, ahead of time, shipped in the package: every player gets the same cards, and each save's journal picks which apply (docs/design.md, "C2 plan").
 
-One file per person, named by their id in `../roster.json`: `judy.md`, `panam.md` and so on.
+One file per account, named by its id in `../roster.json`: people (`judy.md`, `panam.md`), corporations (`arasaka.md`) and gangs (`maelstrom.md`). A corporation's or a gang's cards say what it knows as an organisation, in its public voice.
 
 ```markdown
 # Judy Alvarez

@@ -698,6 +698,23 @@ The fonts ship with EDGEmobile (from M3): `edgemobile/shell/fonts/`, woff2 in La
 | 2 | The code: the cycle, posts, comments with V first, likes, follows and Choom Requests, the spoiler check, spending and the cap, gangs, the settings window; incidents once REDnode has the events. Offline checks in `tests/` with a stand-in REDagent giving set answers: who is picked, the spoiler check, the cap, V answered first, Choom Requests at their points, gangs only on their turf and one per cycle, an older save dropping posts and incidents |
 | 3 | The user's test in the game on the PC, with REDnode #54: a fast cycle; posts in character, nothing past V's story, a reply to V's comment, the costs in the log, the cap stopping it, a gang post on its turf |
 
+### C3: the content (drafted 2026-11-25)
+
+Step 1 of the [C3 plan](#c3-plan), drafted for the user's review: the gangs, the corporations' and gangs' cards, and the Choom Request points. Also in the user's document [Chooms! knowledge cards](https://claude.ai/artifact/D1ZqR2v3PiaD4uE774kyfv); the files are the source.
+
+| Part | What |
+|---|---|
+| The gangs | 11 accounts of the new kind `gang` in `roster.json`, each with its `districts` and `affiliations` (the game's `Factions` records, with the android ones for Maelstrom, 6th Street, the Wraiths and the Scavengers, so a fight with their androids counts). Districts from the game's own table (TweakDB, each top district's `gangs`): Watson Maelstrom; Westbrook the Mox and the Tyger Claws; Heywood the Valentinos; Santo Domingo 6th Street; Pacifica the Voodoo Boys and the Animals; the Badlands the Aldecaldos; Dogtown the Barghest. City Center has none |
+| Added from the world | Not in that table, so for the review: the Tyger Claws and the Mox in Watson too (Kabuki, Little China, Lizzie's); the Wraiths in the Badlands; the Scavengers in Watson, Heywood and Santo Domingo |
+| Cards | 30 for the gangs (Maelstrom 2, Tyger Claws 4, the Mox 3, Valentinos 3, 6th Street 2, Voodoo Boys 3, Animals 2, Aldecaldos 4, Wraiths 2, Scavengers 2, Barghest 3) and 9 for the corporations (Arasaka 3, Militech 2, Kang Tao, Biotechnica, Petrochem and Trauma Team 1 each). 121 cards for 35 accounts; every account has a `start` card (checked offline) |
+| One more story point | `panam-saul`: Riders on the Storm done (Panam and V get Saul back from the Wraiths), for the Aldecaldos' and the Wraiths' cards. 60 points in all |
+| Choom Request points | `requestAt` in `roster.json`, for the review: Judy `judy-maiko`, Panam `panam-help`, Jackie `partners`, River `river-hunt`, Kerry `kerry-supreme`, Viktor `relic`, Misty `jackie-farewell`, Delamain `delamain-mind` |
+| The code | Gangs act as corporations do where Chooms! tells people from organisations (`isOrg` in `store.mjs`): no person's settings, no dossier, no requests, no DMs. Search lists people, then corporations, then gangs |
+
+Lines least certain, for the review: that the Animals meet V at the Grand Imperial Mall during the Voodoo Boys' quests (`animals`, `voodoo`); that the Wraiths hold Saul in Riders on the Storm (`wraiths`, `aldecaldos`, `panam-saul`); that Wakako's prologue job took Sandra Dorsett back from Scavengers in Watson (`scavengers`, `wakako-first`); that Jackie grew up around the Valentinos (`valentinos`, `start`); that some of El Capitan's gigs go against 6th Street (`sixthstreet`, `capitan-all`); the districts added from the world. One for the code step: the game names the Badlands' parts North Badlands and South Badlands as top districts of their own, so a Badlands account must match all three (*unverified* in the game).
+
+**Checked outside the game:** 116 offline checks, all passed.
+
 ## Phases
 
 Each phase ends with a test by the user, on a real phone where it applies, before the next starts.
