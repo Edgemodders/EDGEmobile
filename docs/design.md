@@ -744,7 +744,7 @@ Not built yet: the incidents (a gang remembering a fight with V), which wait for
 
 ### C3 test
 
-On the PC, in the game, with REDnode 0.72.0 and REDagent 0.4.5 (both in the game on this PC on 2026-11-25) and Chooms! 0.2.0. A late save is best. About 20 minutes, and some cents of the player's Anthropic key.
+On the PC, in the game, with REDnode 0.72.0 and REDagent 0.4.5 (both in the game on this PC on 2026-11-25) and Chooms! 0.2.0. A late save is best. About 20 minutes; it spends from the player's Anthropic key, up to the cap ($1 unless changed).
 
 | # | Do | Expect |
 |---|---|---|
