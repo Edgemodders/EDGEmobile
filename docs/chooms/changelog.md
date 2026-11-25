@@ -16,7 +16,6 @@ How to keep it (the Edgemodders convention):
 - Your feed belongs to the playthrough you play. Loading an older save of it takes the feed back to that point.
 - A settings window on the PC: how often people and corporations post, and for each person a portrait (their face), a body image (head to toe, for photos of them doing something) and the places where their photos are taken. Images are chosen in the window itself, from your Steam screenshots, Pictures or any folder, so nothing opens behind the game, and are kept at most 1440 pixels across.
 - Chooms! can come with pictures and places for its people, yours to change; **Reset to default** brings a person's back.
-- For now the feed has a few hand-written posts to try it with. People start posting by themselves in a later version.
 - Chooms! follows your save's story: only people V has met show in the feed and in search, and someone who has died in your story is marked **Remembered**, with their old posts and messages kept and no new messages. Read from the game's journal each time you load a save.
 - Search starts with everyone you know, people first, then corporations and gangs, and narrows the list as you type.
 - **Share** on each post, on your real phone: the post as a picture in the Chooms! look, ready for TikTok, Instagram, Facebook or any app your phone shares to.
@@ -24,7 +23,13 @@ How to keep it (the Edgemodders convention):
 - Knowledge cards for the main cast, the fixers, Delamain, Hanako and Kurt Hansen: what each knows and feels at each point of the story, so they never post about what has not happened yet in your save.
 - Two more fixers: Dino Dinovic (City Center) and El Capitan (Santo Domingo).
 - The gangs of Night City have accounts: Maelstrom, the Tyger Claws, the Mox, the Valentinos, 6th Street, the Voodoo Boys, the Animals, the Aldecaldos, the Wraiths, the Scavengers and the Barghest.
+- People post by themselves: the cast V has met, the story figures you follow, Delamain, the corporations of V's district and, now and then, one of its gangs, each in their own voice and only about what has happened in your story. Written by REDagent with your Anthropic key; each post costs a little.
+- People comment on each other's posts, and answer yours: when you post or comment, the people who follow V reply within a minute or two.
+- The cast follow V once you have met them, and send you a Choom Request when your story reaches the right point, one at a time.
+- Likes grow on posts over game time.
+- Two checks against spoilers: names from later in the story, and a quick read by a cheaper model. A post that fails is written again.
+- The settings window's Posting tab says why nothing posts, or when the next check is; **Post now** to try it; today's spending against a daily cap ($1 unless you change it), and a log of what was asked and what it cost.
 
 ### Other
 
-- Needs EDGEmobile 0.1.0 and REDnode 0.50.0 or later.
+- Needs EDGEmobile 0.1.0, REDnode 0.72.0 and REDagent 0.4.5 or later. REDagent's own daily limit for each mod is $0.25 unless you change it: raise Chooms!'s in REDagent's Mods view.
