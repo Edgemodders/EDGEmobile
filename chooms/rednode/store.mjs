@@ -6,6 +6,9 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+/** A corporation or a gang: an organisation, with no Choom Requests, no DMs and no person's settings. */
+export const isOrg = (a) => a?.kind === 'corp' || a?.kind === 'gang';
+
 const MAX_TEXT = 500;
 
 // A value that can change back and forth (a follow, a like, a request): its value before any
@@ -73,7 +76,7 @@ export class Store {
   #seed(seed, now) {
     const at = (ago) => Math.max(0, now - (Number(ago) || 0));
     for (const a of this.roster.values()) {
-      if (a.kind === 'corp') continue;
+      if (isOrg(a)) continue;
       // Who V has met comes from the save's journal (setStory), not from here.
       this.data.accounts[a.id] = { follows: false, followsV: false, request: null };
     }
@@ -144,7 +147,7 @@ export class Store {
     const a = this.roster.get(id);
     if (!a) return null;
     this.data.corps ??= {};
-    if (a.kind === 'corp') return (this.data.corps[id] ??= { follows: false });
+    if (isOrg(a)) return (this.data.corps[id] ??= { follows: false });
     return (this.data.accounts[id] ??= { follows: false, followsV: false, request: null });
   }
 
@@ -166,7 +169,7 @@ export class Store {
   known(id) {
     const a = this.roster.get(id);
     if (!a) return false;
-    if (a.kind === 'corp') return true;
+    if (isOrg(a)) return true;
     return !!this.data.story?.met.includes(id);
   }
 

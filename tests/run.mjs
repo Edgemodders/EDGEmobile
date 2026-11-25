@@ -615,9 +615,10 @@ if (mode === 'apps') {
   check('  chooms: Jackie', f.chooms.map((a) => a.id).join() === 'jackie');
   check('  You Might Already Know: met, not followed', ['panam', 'river', 'kerry'].every((id) => f.suggestions.some((a) => a.id === id)) && !f.suggestions.some((a) => ['judy', 'jackie', 'viktor', 'hanako'].includes(a.id)), f.suggestions.map((a) => a.id).join(','));
   let s = await callApp('search', '');
-  const kinds = s.results.map((a) => a.kind === 'corp');
-  const people = s.results.filter((a) => a.kind !== 'corp').map((a) => a.name);
-  check('search with no words: everyone V knows, people A to Z, then corporations', s.results.some((a) => a.id === 'kerry') && s.results.some((a) => a.id === 'arasaka') && !s.results.some((a) => a.id === 'hanako') && kinds.indexOf(true) === kinds.filter((k) => !k).length && people.join() === [...people].sort((a, b) => a.localeCompare(b)).join(), s.results.map((a) => a.id).join(','));
+  const rank = (a) => (a.kind === 'gang' ? 2 : a.kind === 'corp' ? 1 : 0);
+  const ranks = s.results.map(rank);
+  const people = s.results.filter((a) => !rank(a)).map((a) => a.name);
+  check('search with no words: everyone V knows, people A to Z, then corporations, then gangs', s.results.some((a) => a.id === 'kerry') && s.results.some((a) => a.id === 'arasaka') && s.results.some((a) => a.id === 'maelstrom') && !s.results.some((a) => a.id === 'hanako') && ranks.join() === [...ranks].sort().join() && people.join() === [...people].sort((a, b) => a.localeCompare(b)).join(), s.results.map((a) => a.id).join(','));
   s = await callApp('search', 'han');
   check('search finds only who V knows of (not Hanako yet)', !s.results.some((a) => a.id === 'hanako'), s.results.map((a) => a.id).join(','));
   s = await callApp('search', 'arasaka');
@@ -850,8 +851,19 @@ if (mode === 'apps') {
     } catch (e) {
       err = e.message;
     }
-    const people = rosterJ.filter((a) => a.kind !== 'corp').map((a) => a.id);
-    check('the knowledge cards: every file a person, every heading start or a story point, everyone who posts (all but the corporations) with a start card', !!real && people.every((id) => real.get(id)?.has('start')), err || people.filter((id) => !real?.get(id)?.has('start')).join(',') || [...(real?.keys() ?? [])].join(','));
+    const people = rosterJ.map((a) => a.id);
+    check('the knowledge cards: every file an account, every heading start or a story point, every account (people, corporations, gangs) with a start card', !!real && people.every((id) => real.get(id)?.has('start')), err || people.filter((id) => !real?.get(id)?.has('start')).join(',') || [...(real?.keys() ?? [])].join(','));
+    // C3: the gangs (each with its districts and the game's Factions records) and the cast's
+    // Choom Request points, each a story point.
+    const pointIds = new Set(storyJ.points.map((p) => p.id));
+    const gangs = rosterJ.filter((a) => a.kind === 'gang');
+    const badGang = gangs.filter((g) => !g.districts?.length || !g.affiliations?.length || !g.affiliations.every((f) => /^Factions\.\w+$/.test(f))).map((g) => g.id);
+    check('  the gangs: 11, each with districts and Factions records', gangs.length === 11 && !badGang.length, `${gangs.length} ${badGang.join(',')}`);
+    const asks = rosterJ.filter((a) => a.kind === 'cast' || a.kind === 'delamain');
+    const badAsk = asks.filter((a) => !pointIds.has(a.requestAt)).map((a) => `${a.id}:${a.requestAt}`);
+    check('  every cast member and Delamain with a Choom Request point from story.json', !badAsk.length, badAsk.join(','));
+    const ac = real ? cardsFor(real, 'aldecaldos', { 'panam-met': 1, 'panam-saul': 1 }, storyJ).map((c) => c.point).join() : '';
+    check("  a gang's cards: start, then the points that touch them", ac === 'start,panam-met,panam-saul', ac);
     const wc = real ? cardsFor(real, 'wakako', { heist: 1, 'wakako-first': 1, 'wakako-all': 1 }, storyJ).map((c) => c.point).join() : '';
     check("  a fixer's cards: the prologue job, the heist, every gig in the district", wc === 'start,wakako-first,heist,wakako-all', wc);
     const jc = real ? cardsFor(real, 'judy', { heist: 1, 'judy-bd': 1, 'pl-crash': 1 }, storyJ).map((c) => c.point).join() : '';

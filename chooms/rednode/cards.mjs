@@ -10,7 +10,7 @@ import { join } from 'node:path';
  * a typo cannot silently drop a card.
  */
 export function loadCards(dir, { story, roster }) {
-  const people = new Set(roster.filter((a) => a.kind !== 'corp').map((a) => a.id));
+  const people = new Set(roster.map((a) => a.id));
   const points = new Set(story.points.map((p) => p.id));
   const cards = new Map();
   for (const file of existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.md') && f !== 'README.md') : []) {

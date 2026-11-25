@@ -156,6 +156,14 @@
       "note": "Panam's Aldecaldos and her trouble with Saul"
     },
     {
+      "id": "panam-saul",
+      "act": "act1",
+      "path": "quests/side_quest/sq004_riders_on_the_storm",
+      "when": "done",
+      "note": "Panam and V get Saul back from the Wraiths",
+      "from": "journal"
+    },
+    {
       "id": "panam-help",
       "act": "act1",
       "path": "quests/side_quest/sq027_01_basilisk_convoy",

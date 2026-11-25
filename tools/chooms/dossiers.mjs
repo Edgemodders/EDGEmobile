@@ -53,7 +53,7 @@ async function loadSharp() {
 }
 const sharp = await loadSharp();
 
-const roster = JSON.parse(readFileSync(join(repo, 'chooms', 'rednode', 'roster.json'), 'utf8')).accounts.filter((a) => a.kind !== 'corp');
+const roster = JSON.parse(readFileSync(join(repo, 'chooms', 'rednode', 'roster.json'), 'utf8')).accounts.filter((a) => a.kind !== 'corp' && a.kind !== 'gang');
 const errors = [];
 const notes = [];
 const rel = (p) => relative(root, p).split('\\').join('/');

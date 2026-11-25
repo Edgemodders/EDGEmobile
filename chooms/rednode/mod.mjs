@@ -9,7 +9,7 @@ import { homedir } from 'node:os';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { cardsFor, loadCards } from './cards.mjs';
 import { readStory } from './journal.mjs';
-import { Store } from './store.mjs';
+import { Store, isOrg } from './store.mjs';
 
 const roster = JSON.parse(readFileSync(join(pkg.dir, 'roster.json'), 'utf8')).accounts;
 const seed = JSON.parse(readFileSync(join(pkg.dir, 'seed.json'), 'utf8'));
@@ -24,7 +24,7 @@ try {
 }
 const STORY_MS = 3 * 60 * 1000;
 const byId = new Map(roster.map((a) => [a.id, a]));
-const PEOPLE = roster.filter((a) => a.kind !== 'corp');
+const PEOPLE = roster.filter((a) => !isOrg(a));
 const PLAYTHROUGH_FACT = 'chooms_playthrough';
 const NOW_MS = 5000;
 
@@ -225,7 +225,7 @@ function author(id) {
   if (id === 'v') return V;
   const a = byId.get(id);
   if (!a) return { ...V, id, name: 'Unknown', handle: id, initials: '?' };
-  const portrait = a.kind === 'corp' ? null : settings.people[id]?.portrait;
+  const portrait = isOrg(a) ? null : settings.people[id]?.portrait;
   return { id: a.id, name: a.name, handle: a.handle, initials: a.initials, color: a.color, kind: a.kind, tag: a.tag ?? null, avatar: portrait ? { $media: portrait } : null };
 }
 
@@ -267,7 +267,7 @@ function relationView(id) {
     request: r.request ?? null,
     choom: r.request === 'accepted',
     alive: store.alive(id),
-    canMessage: a.kind !== 'corp' && r.request === 'accepted' && store.alive(id),
+    canMessage: !isOrg(a) && r.request === 'accepted' && store.alive(id),
   };
 }
 
@@ -282,7 +282,7 @@ function feed() {
     if (p.by === 'v') return true;
     const a = byId.get(p.by);
     if (!a || !store.known(p.by)) return false;
-    return a.kind === 'corp' || store.relation(p.by).follows;
+    return isOrg(a) || store.relation(p.by).follows;
   });
   return { posts: posts.sort(newestFirst).slice(0, 60).map((p) => postView(p)), chooms: chooms(), suggestions: suggestions() };
 }
@@ -322,13 +322,14 @@ function thread(id) {
   };
 }
 
-// Search: with no words, everyone V knows (people A to Z, then corporations A to Z), which the
+// Search: with no words, everyone V knows (people A to Z, then corporations, then gangs), which the
 // app filters as the player types; with words, those whose name or handle holds them.
+const ORDER = (a) => (a.kind === 'gang' ? 2 : a.kind === 'corp' ? 1 : 0);
 function search(q) {
   const term = String(q ?? '').trim().toLowerCase().slice(0, 40);
   const results = known()
     .filter((a) => !term || a.name.toLowerCase().includes(term) || a.handle.toLowerCase().includes(term))
-    .sort((a, b) => (a.kind === 'corp') - (b.kind === 'corp') || a.name.localeCompare(b.name))
+    .sort((a, b) => ORDER(a) - ORDER(b) || a.name.localeCompare(b.name))
     .map((a) => author(a.id));
   return { suggestions: suggestions(), results };
 }
@@ -572,7 +573,7 @@ const NUMBERS = { everyMinutes: [1, 240], peopleChance: [0, 100], corpChance: [0
 
 channel.on((m) => {
   const id = m?.person;
-  const p = id && byId.get(id) && byId.get(id).kind !== 'corp' ? person(id) : null;
+  const p = id && byId.get(id) && !isOrg(byId.get(id)) ? person(id) : null;
   switch (m?.type) {
     case 'hello':
       channel.post(windowState());
