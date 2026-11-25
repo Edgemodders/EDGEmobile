@@ -1209,7 +1209,7 @@ if (mode === 'apps') {
   const sq = H.asks.find((x) => x.model === 'sonnet');
   check('  with REDagent: Judy posts, asked with no tools, Sonnet, where V is (Little China, Watson)', wm?.type === 'note' && tp?.by.id === 'judy' && sq?.tools === false && sq.context.now.district === 'Watson' && sq.context.now.area === 'Little China', `${wm?.text} | ${tp?.by.id} ${JSON.stringify(sq?.context?.now)}`);
   const ps = await winWait({ type: 'hello' }, (m) => m.type === 'posting');
-  check("  the window: the log with its cost, today's spending, the next check", ps?.log[0]?.name === 'Judy Alvarez' && ps.log[0].cost > 0.012 && ps.spent > 0.012 && /next check is in \d+ min, in Watson/.test(ps.status), JSON.stringify({ status: ps?.status, log: ps?.log?.[0] }));
+  check("  the window: the log with its cost, today's spending against the $2 cap, the next check", ps?.cap === 2 && ps.log[0]?.name === 'Judy Alvarez' && ps.log[0].cost > 0.012 && ps.spent > 0.012 && /next check is in \d+ min, in Watson/.test(ps.status), JSON.stringify({ status: ps?.status, log: ps?.log?.[0] }));
   const jpost = tp.id;
   await callApp('comment', jpost, 'Looks good, Judy.');
   let pv = null;
@@ -1225,7 +1225,7 @@ if (mode === 'apps') {
   H.chan.chooms.toMod({ type: 'general', values: { dailyCapUsd: 0.01 } });
   wm = await winWait({ type: 'post-now' }, said);
   check('  the cap reached: no question asked, and the window says so', wm?.type === 'error' && /reached the cap/.test(wm.text), wm?.text);
-  H.chan.chooms.toMod({ type: 'general', values: { dailyCapUsd: 1 } });
+  H.chan.chooms.toMod({ type: 'general', values: { dailyCapUsd: 2 } });
   H.menu = true;
   H.emitState();
   wm = await winWait({ type: 'post-now' }, said);

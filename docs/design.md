@@ -674,7 +674,7 @@ The fonts ship with EDGEmobile (from M3): `edgemobile/shell/fonts/`, woff2 in La
 | Likes | Counts grow over game time, faster for popular accounts, worked out | No |
 | Follows and Choom Requests | Each cast member follows V once met; each sends a Choom Request at a story point named in `roster.json` (`request`), drafted for the user's review | No |
 | The spoiler check | Words for each story point (names, places, events), built from the cards: a post naming a point V has not passed is thrown away and asked for again once. The prompt says plainly that nothing past V's points has happened. With #54's model choice, a cheap model reads each post as a second check | No, then a cheap model |
-| Spending | `agent.ask` gives each answer's cost; Chooms! adds it up per real day and stops at `dailyCapUsd` ($1). REDagent's own daily limit per mod ($0.25 by default in REDagent 0.4.5; the owner asked on 2026-11-25 for $2.00, so players are not stopped after a short while) caps Chooms! too; the window says where to raise it | No |
+| Spending | `agent.ask` gives each answer's cost; Chooms! adds it up per real day and stops at `dailyCapUsd` ($2 since 2026-11-25, the owner's choice for now, to be tuned after play testing; $1 in the plan). REDagent's own daily limit per mod ($0.25 by default in REDagent 0.4.5; the owner asked on 2026-11-25 for $2.00, so players are not stopped after a short while) caps Chooms! too; the window says where to raise it | No |
 | Corporations' cards | About 12 for the 6 corporations, for the user's review | Content |
 | The settings window | **Post now** (for testing); a log of the last posts and comments with their costs; today's spending against the cap; a line saying why nothing posts (REDagent not allowed, the cap reached, V not in the world) | No |
 
@@ -733,7 +733,7 @@ Step 2 of the [C3 plan](#c3-plan). Chooms! 0.2.0, which asks for the `agent` per
 | Comments | `posts.mjs` | V first: a new post of V's is answered by one or two of the people who follow V, and V's comment on someone's post by its author (on V's own post, by the last who commented), within a minute or two, when V is free to be posted at. Then in each check, at most `maxCommentsPerCheck` (new, 2): people comment on the last game day's posts of those their cards name, and on V's if they follow V |
 | Likes | `posts.mjs`, `grownLikes` | Worked out, never written: a post Chooms! or V wrote gathers likes over game time, most of them in the first game day, more for a bigger account (a person 3,000 followers, a story figure 8,000, a gang 20,000, a corporation 300,000; `fans` in roster.json can say otherwise), each post's share fixed by its id. V's count grows with how many follow V. The hand-written seed posts keep theirs |
 | Follows and Choom Requests | `posts.mjs`, `social` | No AI. After each story read and in each check: every cast member and Delamain V has met follows V; the first whose `requestAt` the save has passed sends a Choom Request, one at a time. Stamped with the game time, so an older save takes them back |
-| Spending | `posts.mjs`, `Ledger` | Each answer's cost (from `agent.ask`) is added to today's (the player's own day), kept in `posting.json` in the package's data folder with a log of the last 30 questions. At `dailyCapUsd` no new question is asked; a post already paid for still gets its second check |
+| Spending | `posts.mjs`, `Ledger` | Each answer's cost (from `agent.ask`) is added to today's (the player's own day), kept in `posting.json` in the package's data folder with a log of the last 30 questions. At `dailyCapUsd` ($2 by default; settings saved before 0.2.0, when the cap did nothing, take the new default once) no new question is asked; a post already paid for still gets its second check |
 | What stops it | `posts.mjs`, `problemOf` | REDnode's and REDagent's refusals by their words: not allowed yet, no REDagent, Chooms! paused in REDagent, REDagent's daily limit for Chooms!, any other error. Each ends the check and shows in the window until the next answer |
 | The window | `settings/` | The Posting tab: a status line (why nothing posts, or when the next check is and where), the gang chance, the comments per check, the second check, and a **Today** panel: spending against the cap, **Post now** (anyone who may post where V is, or one of them), and the log with each question's cost |
 | Older saves | `store.mjs` | Posts, comments, follows and requests that Chooms! wrote carry their game time, so loading an older save drops them, as it drops V's |
@@ -744,12 +744,12 @@ Not built yet: the incidents (a gang remembering a fight with V), which wait for
 
 ### C3 test
 
-On the PC, in the game, with REDnode 0.72.0 and REDagent 0.4.5 (both in the game on this PC on 2026-11-25) and Chooms! 0.2.0. A late save is best. About 20 minutes; it spends from the player's Anthropic key, up to the cap ($1 unless changed).
+On the PC, in the game, with REDnode 0.72.0 and REDagent 0.4.5 (both in the game on this PC on 2026-11-25) and Chooms! 0.2.0. A late save is best. About 20 minutes; it spends from the player's Anthropic key, up to the cap ($2 unless changed).
 
 | # | Do | Expect |
 |---|---|---|
 | 1 | Start the game; allow Chooms! to ask the assistant if the launcher or the Mod Manager asks. Open Chooms!'s settings, **Posting** | The status line: "Waiting for V: load a save." |
-| 2 | Load a save. In REDagent's **Mods** view, check that Chooms!'s daily limit is at least $1 (raise it if it is still REDagent's old default of $0.25) | The status line names the next check and V's district |
+| 2 | Load a save. In REDagent's **Mods** view, check that Chooms!'s daily limit is at least $2 (raise it if it is still REDagent 0.4.5's default of $0.25); Chooms!'s own cap on the Posting tab is $2 | The status line names the next check and V's district |
 | 3 | **Post now** with **Anyone** | A post within a minute; the log names who and its cost; **Spent today** goes up. The post in Chooms!, in character, about nothing past V's story |
 | 4 | **Post now** with three or four of the cast in turn | Each in their own voice; nothing from later in the story (the log says if an answer was thrown away) |
 | 5 | In Chooms!, comment on one of those posts | Within two minutes the author answers V |

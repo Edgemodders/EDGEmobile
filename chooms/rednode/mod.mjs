@@ -46,7 +46,7 @@ const DEFAULTS = {
   weightActivity: 15,
   postModel: 'sonnet',
   dmModel: 'opus',
-  dailyCapUsd: 1,
+  dailyCapUsd: 2, // the owner's choice for now (2026-11-25), to be tuned after play testing
   // C3: one gang of V's district may post per check, with this chance; NPCs' comments per check;
   // a cheap model reads each answer for spoilers as well as the word check.
   gangChance: 10,
@@ -57,6 +57,9 @@ let settings = { general: { ...DEFAULTS }, people: {} };
 try {
   const s = JSON.parse(readFileSync(settingsFile, 'utf8'));
   settings = { general: { ...DEFAULTS, ...s.general }, people: s.people ?? {}, folder: typeof s.folder === 'string' ? s.folder : null };
+  // Settings saved before 0.2.0 (which first saves secondCheck) hold a cap that did nothing then:
+  // it takes the new default.
+  if (s.general && !('secondCheck' in s.general)) settings.general.dailyCapUsd = DEFAULTS.dailyCapUsd;
 } catch {
   // first start
 }

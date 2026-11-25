@@ -28,7 +28,7 @@ How to keep it (the Edgemodders convention):
 - The cast follow V once you have met them, and send you a Choom Request when your story reaches the right point, one at a time.
 - Likes grow on posts over game time.
 - Two checks against spoilers: names from later in the story, and a quick read by a cheaper model. A post that fails is written again.
-- The settings window's Posting tab says why nothing posts, or when the next check is; **Post now** to try it; today's spending against a daily cap ($1 unless you change it), and a log of what was asked and what it cost.
+- The settings window's Posting tab says why nothing posts, or when the next check is; **Post now** to try it; today's spending against a daily cap ($2 unless you change it), and a log of what was asked and what it cost.
 
 ### Other
 
