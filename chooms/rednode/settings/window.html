@@ -29,6 +29,11 @@
   .place .stack { gap: 6px; }
   .place input { width: 100%; box-sizing: border-box; font: 13px var(--rn-mono); color: inherit; background: transparent; border: 1px solid var(--rn-line); padding: 4px 6px; }
   .note { color: var(--rn-accent); }
+  .scroll { max-height: 640px; overflow-y: auto; padding-right: 4px; }
+  .status { padding: 8px 10px; background: var(--rn-panel); border-left: 2px solid var(--rn-accent); }
+  .log { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+  .log p { font-size: 12px; }
+  .log .meta { color: var(--rn-dim); font-family: var(--rn-mono); }
   /* The picker: drawn in the window, since the system's file picker opens behind the game. */
   .picker { display: flex; flex-direction: column; gap: 8px; height: 640px; }
   .picker .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -57,13 +62,16 @@
     <p id="msg" class="fine" hidden></p>
     <rn-tabs id="tabs">
       <rn-tab label="Posting">
-        <div class="stack">
-          <p class="fine">People and corporations start posting by themselves in a later version of Chooms! (C3). Until then the feed has a few hand-written posts, and you can try a photo post from the People tab.</p>
+        <div class="stack scroll">
+          <p id="status" class="status">Load a save.</p>
+          <p class="fine">People V has met, the corporations of V's district and now and then one of its gangs post by themselves, and comment on each other's posts. When you post or comment, the people who follow V answer within a minute or two.</p>
           <rn-toggle id="on" label="Chooms! on"></rn-toggle>
           <rn-slider id="everyMinutes" label="Check for new posts every" min="1" max="120" value="10" unit=" min"></rn-slider>
           <rn-slider id="peopleChance" label="Chance a person posts, per check" min="0" max="100" value="30" unit="%"></rn-slider>
           <rn-slider id="corpChance" label="Chance a corporation in V's district posts" min="0" max="100" value="20" unit="%"></rn-slider>
+          <rn-slider id="gangChance" label="Chance one gang of V's district posts" min="0" max="100" value="10" unit="%"></rn-slider>
           <rn-slider id="maxPerCheck" label="Most posts per check" min="0" max="10" value="2"></rn-slider>
+          <rn-slider id="maxCommentsPerCheck" label="Most comments per check" min="0" max="10" value="2"></rn-slider>
           <rn-panel title="What people post">
             <div class="stack">
               <rn-slider id="weightText" label="Text" min="0" max="100" value="40"></rn-slider>
@@ -77,7 +85,16 @@
               <div class="field"><span>Model for posts</span><select id="postModel"><option value="haiku">Haiku</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option></select></div>
               <div class="field"><span>Model for messages</span><select id="dmModel"><option value="haiku">Haiku</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option></select></div>
               <div class="field"><span>Most to spend per day (US$)</span><input id="dailyCapUsd" type="number" min="0" max="100" step="0.5"></div>
-              <p class="fine">Posts and messages are written by REDagent with your Anthropic key, photos by Google's or OpenAI's image model with your Gemini or OpenAI key. Used from later versions of Chooms! on.</p>
+              <rn-toggle id="secondCheck" label="A second check for spoilers, by Haiku (a small extra cost on each post)"></rn-toggle>
+              <p class="fine">Posts and comments are written by REDagent with your Anthropic key; each costs a little, and Chooms! stops for the day at the amount above. REDagent has its own daily limit for each mod, $0.25 unless you change it: raise Chooms!'s in REDagent's Mods view. Photos come in a later version, from Google's or OpenAI's image model with your Gemini or OpenAI key.</p>
+            </div>
+          </rn-panel>
+          <rn-panel title="Today">
+            <div class="stack">
+              <p id="spent" class="fine"></p>
+              <div class="row"><select id="who" class="chip"><option value="">Anyone who may post here</option></select><rn-button id="postNow">Post now</rn-button></div>
+              <p class="fine">Post now runs a check at once, for trying Chooms! out. It costs as a check does.</p>
+              <div id="log" class="log"><p class="fine">Nothing asked yet.</p></div>
             </div>
           </rn-panel>
         </div>

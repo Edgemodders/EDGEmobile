@@ -225,11 +225,40 @@ export class Store {
     return c;
   }
 
-  newPost(text, by = 'v', image = null, likes = 0) {
-    const p = { id: this.#next('p'), by, at: this.data.now, text: clean(text), image, likes, liked: false, comments: [] };
+  /** A new post at the game time now. `extra` is kept with it: { gen, kind, scene } for one Chooms! wrote (C3). */
+  newPost(text, by = 'v', image = null, likes = 0, extra = {}) {
+    const p = { id: this.#next('p'), by, at: this.data.now, text: clean(text), image, likes, liked: false, comments: [], ...extra };
     this.data.posts.push(p);
     this.save();
     return p;
+  }
+
+  /** Someone other than V comments on a post (C3), at the game time now. */
+  npcComment(postId, by, text, extra = {}) {
+    const p = this.data.posts.find((x) => x.id === postId);
+    if (!p) throw new Error('No such post.');
+    const c = { id: this.#next('c'), by, at: this.data.now, text: clean(text), likes: 0, liked: false, gen: true, ...extra };
+    p.comments.push(c);
+    this.save();
+    return c;
+  }
+
+  /** A person follows V (C3). Returns whether it changed. */
+  followV(id) {
+    const r = this.relation(id);
+    if (!r || isOrg(this.roster.get(id)) || r.followsV) return false;
+    stamp(r, 'followsV', true, this.data.now);
+    this.save();
+    return true;
+  }
+
+  /** A person sends V a Choom Request (C3). Returns whether it was sent. */
+  sendRequest(id) {
+    const r = this.relation(id);
+    if (!r || isOrg(this.roster.get(id)) || r.request) return false;
+    stamp(r, 'request', 'pending', this.data.now);
+    this.save();
+    return true;
   }
 
   /** V writes to a choom. Replies come in C5. */

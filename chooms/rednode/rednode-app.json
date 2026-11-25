@@ -1,15 +1,18 @@
 {
   "id": "chooms",
   "name": "Chooms!",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Edgemodders",
-  "description": "Night City's social feed, a mobile app for EDGEmobile's phone. This package keeps your feed for each playthrough and holds its settings: how often people post, and the portraits and places used for their photos. Open Chooms! on the phone.",
+  "description": "Night City's social feed, a mobile app for EDGEmobile's phone. People V has met, the corporations and the gangs of V's district post by themselves every few minutes, written by REDagent with your Anthropic key (each post costs a little; a daily cap is in the settings). This package keeps your feed for each playthrough and holds its settings. Open Chooms! on the phone.",
   "entry": "settings/window.html",
   "main": "mod.mjs",
   "service": "service.mjs",
+  "permissions": [
+    "agent"
+  ],
   "isolation": "process",
   "requires": {
-    "rednode": ">=0.50.0",
+    "rednode": ">=0.72.0",
     "edgemobile": ">=0.1.0"
   },
   "kind": "window",

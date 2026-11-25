@@ -5,7 +5,7 @@
 
 const { channel } = await import('rednode');
 const $ = (id) => document.getElementById(id);
-const SLIDERS = ['everyMinutes', 'peopleChance', 'corpChance', 'maxPerCheck', 'weightText', 'weightSelfie', 'weightActivity'];
+const SLIDERS = ['everyMinutes', 'peopleChance', 'corpChance', 'gangChance', 'maxPerCheck', 'maxCommentsPerCheck', 'weightText', 'weightSelfie', 'weightActivity'];
 
 let people = [];
 let current = null;
@@ -21,6 +21,7 @@ function message(text, tone = 'fine') {
 
 channel.on((m) => {
   if (m.type === 'state') drawGeneral(m);
+  else if (m.type === 'posting') drawPosting(m);
   else if (m.type === 'person' && m.id === current) drawPerson(m);
   else if (m.type === 'browse') drawBrowse(m);
   else if (m.type === 'peek') drawPeek(m);
@@ -35,6 +36,7 @@ function drawGeneral(s) {
   drawing = true;
   const g = s.general;
   $('on').toggleAttribute('checked', !!g.on);
+  $('secondCheck').toggleAttribute('checked', !!g.secondCheck);
   for (const k of SLIDERS) $(k).setAttribute('value', String(g[k]));
   $('postModel').value = g.postModel;
   $('dmModel').value = g.dmModel;
@@ -83,6 +85,32 @@ function setGeneral(key, value) {
 }
 
 $('on').addEventListener('change', (e) => setGeneral('on', !!e.detail?.checked));
+$('secondCheck').addEventListener('change', (e) => setGeneral('secondCheck', !!e.detail?.checked));
+$('postNow').addEventListener('click', () => {
+  message('Asking REDagent…');
+  channel.post({ type: 'post-now', who: $('who').value });
+});
+
+// The status line, today's spending, who may post now, and the log of what was asked.
+const WHAT = { post: 'posted', comment: 'commented', reply: 'answered V', request: '' };
+const clock = (ms) => new Date(ms).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+function drawPosting(s) {
+  $('status').textContent = s.status;
+  $('spent').textContent = `Spent today: ${s.spent.toFixed(3)} of ${Number(s.cap).toFixed(2)}.`;
+  const sel = $('who');
+  const keep = sel.value;
+  const anyone = new Option(s.district ? `Anyone who may post in ${s.district}` : 'Anyone who may post here', '');
+  sel.replaceChildren(anyone, ...s.who.map((a) => new Option(a.name, a.id)));
+  sel.value = s.who.some((a) => a.id === keep) ? keep : '';
+  const rows = s.log.map((e) => {
+    const p = document.createElement('p');
+    const meta = Object.assign(document.createElement('span'), { className: 'meta', textContent: `${clock(e.at)} ${e.cost ? `${e.cost.toFixed(4)} ` : ''}` });
+    const b = Object.assign(document.createElement('strong'), { textContent: e.name });
+    p.append(meta, b, ` ${[WHAT[e.what], e.note].filter(Boolean).join(', ')}${e.text ? `: ${e.text}` : ''}`);
+    return p;
+  });
+  $('log').replaceChildren(...(rows.length ? rows : [Object.assign(document.createElement('p'), { className: 'fine', textContent: 'Nothing asked yet.' })]));
+}
 for (const k of SLIDERS) {
   for (const ev of ['input', 'change']) $(k).addEventListener(ev, (e) => e.detail?.value !== undefined && setGeneral(k, Number(e.detail.value)));
 }

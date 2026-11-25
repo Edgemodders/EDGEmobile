@@ -1,14 +1,15 @@
 // Chooms!'s Node mod (docs/design.md, "Chooms!" and "C1 plan"): the accounts, the history of each
 // playthrough, the settings and their images, and the answers its mobile app gets through
-// EDGEmobile (service.mjs). C1: hand-written posts, no AI yet.
+// EDGEmobile (service.mjs). C3: people, corporations and gangs post by themselves (posts.mjs).
 
-import { api, channel, game, pkg, quests, service } from 'rednode';
+import { agent, api, channel, game, pkg, quests, service } from 'rednode';
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { cardsFor, loadCards } from './cards.mjs';
 import { readStory } from './journal.mjs';
+import { DISTRICTS, Ledger, Poster, grownLikes, placeName } from './posts.mjs';
 import { Store, isOrg } from './store.mjs';
 
 const roster = JSON.parse(readFileSync(join(pkg.dir, 'roster.json'), 'utf8')).accounts;
@@ -46,6 +47,11 @@ const DEFAULTS = {
   postModel: 'sonnet',
   dmModel: 'opus',
   dailyCapUsd: 1,
+  // C3: one gang of V's district may post per check, with this chance; NPCs' comments per check;
+  // a cheap model reads each answer for spoilers as well as the word check.
+  gangChance: 10,
+  maxCommentsPerCheck: 2,
+  secondCheck: true,
 };
 let settings = { general: { ...DEFAULTS }, people: {} };
 try {
@@ -128,6 +134,7 @@ if (PEOPLE.map((a) => applyDefaults(a.id)).some(Boolean)) saveSettings();
 // refuses the next one, which only means the world went away.
 
 let inWorld = false;
+let gameNow = {}; // the last game.state(): menu, scene, photo mode
 const NO_WORLD = /not in the world yet/i;
 
 async function gameSeconds() {
@@ -187,7 +194,9 @@ async function readGame() {
     // The window and the app, whenever the playthrough, its time or its story changed: a switch
     // back to a playthrough whose story is as it was still changes what the window shows.
     if (opened || dropped || told) {
+      if (told) poster.social();
       channel.post(windowState());
+      channel.post(postingState());
       changed();
     }
   } catch (err) {
@@ -200,21 +209,177 @@ async function readGame() {
 }
 
 function onGameState(s) {
+  gameNow = s ?? {};
   const now = !!(s.connected && s.world);
   if (now === inWorld) return;
   inWorld = now;
-  if (inWorld) storyAt = 0;
-  if (inWorld) readGame();
+  if (inWorld) {
+    storyAt = 0;
+    nextCheckAt = 0; // the first check comes a full interval after V arrives
+    readGame();
+  }
+  channel.post(postingState());
 }
 game.onState(onGameState);
 game.state().then(onGameState, () => {});
-setInterval(readGame, NOW_MS);
+let ticks = 0;
+setInterval(() => {
+  readGame();
+  maybeCheck();
+  poster.tick();
+  // The window's countdown to the next check.
+  if (++ticks % 6 === 0) channel.post(postingState());
+}, NOW_MS);
 
 // --- Events to the app ------------------------------------------------------------------------
 
 function changed() {
   service.emit('mobile', { event: 'changed' });
   service.emit('mobile', { event: 'badge', data: { count: store.unseen() } });
+}
+
+// --- Posts by themselves (C3, posts.mjs) -------------------------------------------------------
+// Every everyMinutes, while V is in the world, not in a menu, a scene or photo mode, and the save's
+// story has been read: a check, in which people, the corporations of V's district and at most one
+// of its gangs may post, and NPCs comment. V's own posts and comments are answered within a
+// minute or two. Each question goes to REDagent with tools: false (REDnode 0.72.0).
+
+const ledger = new Ledger(join(pkg.dataDir, 'posting.json'));
+const [replyLo, replyHi] = String(process.env.CHOOMS_REPLY_MS ?? '60000,120000').split(',').map(Number);
+
+/** Why Chooms! cannot post now, or null. */
+function gate() {
+  if (!settings.general.on) return 'off';
+  if (!store.data) return 'no-save';
+  if (!inWorld) return 'no-world';
+  if (!store.data.story) return 'story';
+  if (gameNow.menu || gameNow.scene || gameNow.photoMode) return 'busy';
+  return null;
+}
+
+const poster = new Poster({
+  store,
+  roster,
+  story,
+  cards,
+  general: () => settings.general,
+  personOn: (id) => settings.people[id]?.on !== false,
+  media: (id) => {
+    const p = settings.people[id];
+    if (!p) return null;
+    return { images: !!p.images, portrait: !!p.portrait, body: !!p.body, places: p.settings.map((s) => ({ description: s.description, activities: s.activities })) };
+  },
+  ask: (prompt, options) => agent.ask(prompt, options),
+  ledger,
+  gate,
+  onChange: () => {
+    changed();
+    channel.post(postingState());
+  },
+  log: (line) => console.log(line),
+  replyDelayMs: [replyLo, replyHi],
+});
+
+let lastWhere = null; // the district at the last read, for the window
+let nextCheckAt = 0; // when the next check is due (Date.now()); 0: an interval from now
+let cycling = false;
+
+/** Where V is and when, for the post questions: the district as roster.json names it, the part of it, the game's hour. */
+async function readWhere() {
+  const t = await gameSeconds();
+  const where = { district: null, area: null, time: `${String(Math.floor((t % 86400) / 3600)).padStart(2, '0')}:${String(Math.floor((t % 3600) / 60)).padStart(2, '0')}`, day: Math.floor(t / 86400) + 1 };
+  try {
+    const container = await api.GameInstance.GetScriptableSystemsContainer(game.instance);
+    const prevention = await container.Get('PreventionSystem');
+    const district = await prevention.GetCurrentDistrict();
+    let record = district ? await district.GetDistrictRecord() : null;
+    // From the spot V is in up to the top district (Little China, then Watson). By the records'
+    // enum names, which do not change with the game's language.
+    const names = [];
+    for (let i = 0; record && i < 5; i++) {
+      names.push(String(await record.EnumName()));
+      record = await record.ParentDistrict();
+    }
+    where.district = DISTRICTS[names.at(-1)] ?? null;
+    where.area = names.length > 1 ? placeName(names.at(-2)) : null;
+  } catch (err) {
+    if (NO_WORLD.test(err?.message ?? '')) throw err;
+    console.log(`Could not read the district: ${err?.message ?? err}`);
+  }
+  return where;
+}
+
+async function runCheck(options = {}) {
+  cycling = true;
+  try {
+    const where = await readWhere();
+    lastWhere = where;
+    const out = await poster.cycle(where, options);
+    if (out.posts || out.comments) console.log(`A check in ${where.district ?? 'no district'}: ${out.posts} posts, ${out.comments} comments`);
+    return out;
+  } catch (err) {
+    if (NO_WORLD.test(err?.message ?? '')) inWorld = false;
+    else console.log(`The check failed: ${err?.message ?? err}`);
+    return { posts: 0, comments: 0, stopped: 'error' };
+  } finally {
+    cycling = false;
+    nextCheckAt = Date.now() + settings.general.everyMinutes * 60000;
+    channel.post(postingState());
+  }
+}
+
+function maybeCheck() {
+  if (cycling || gate()) return;
+  if (!nextCheckAt) {
+    nextCheckAt = Date.now() + settings.general.everyMinutes * 60000;
+    channel.post(postingState());
+  }
+  if (Date.now() >= nextCheckAt) runCheck();
+}
+
+async function postNow(who) {
+  const why = gate();
+  if (why || cycling) {
+    channel.post({ type: 'error', text: cycling ? 'A check is running.' : statusLine() });
+    return;
+  }
+  const out = await runCheck({ force: true, who });
+  const text = out.posts ? `${out.posts} new post${out.posts === 1 ? '' : 's'}: open Chooms! on the phone.` : out.stopped ? statusLine() : who ? `${byId.get(who)?.name ?? who} did not post: see the log.` : 'No one may post here now: see the log.';
+  channel.post({ type: out.posts ? 'note' : 'error', text });
+}
+
+// The line the settings window shows: why nothing posts, or when the next check is.
+function statusLine() {
+  const why = gate();
+  const p = poster.problem;
+  const cap = settings.general.dailyCapUsd;
+  if (why === 'off') return 'Chooms! is off.';
+  if (why === 'no-save' || why === 'no-world') return 'Waiting for V: load a save.';
+  if (why === 'story') return "Reading the save's story.";
+  if (p?.kind === 'not-allowed') return 'Chooms! may not ask REDagent yet: allow it in the launcher or the Mod Manager.';
+  if (p?.kind === 'no-agent') return 'REDagent is not running: install it and switch it on.';
+  if (p?.kind === 'agent-paused') return "Chooms! is paused in REDagent: see REDagent's Mods view.";
+  if (p?.kind === 'agent-cap') return "Chooms! has used its daily limit in REDagent. Raise it in REDagent's Mods view, or wait for tomorrow.";
+  if (p?.kind === 'error') return `REDagent could not answer: ${p.text.slice(0, 160)}`;
+  if (ledger.today >= cap) return `Today's spending has reached the cap ($${cap.toFixed(2)}). Posts start again tomorrow.`;
+  if (why === 'busy') return 'Waiting: a menu, a scene or photo mode is open.';
+  if (cycling) return 'Checking for posts now.';
+  const min = nextCheckAt ? Math.max(0, Math.ceil((nextCheckAt - Date.now()) / 60000)) : settings.general.everyMinutes;
+  return `The next check is in ${min} min${lastWhere?.district ? `, in ${lastWhere.district}` : ''}.`;
+}
+
+function postingState() {
+  const c = poster.candidates(lastWhere?.district ?? null);
+  const name = (id) => byId.get(id)?.name ?? id;
+  return {
+    type: 'posting',
+    status: statusLine(),
+    spent: ledger.today,
+    cap: settings.general.dailyCapUsd,
+    district: lastWhere?.district ?? null,
+    who: [...c.people, ...c.corps, ...c.gangs].map((a) => ({ id: a.id, name: a.name, kind: a.kind })),
+    log: ledger.log.slice(0, 20).map((e) => ({ ...e, name: name(e.who) })),
+  };
 }
 
 // --- What the app sees -----------------------------------------------------------------------
@@ -238,8 +403,12 @@ function ago(at) {
   return `${Math.floor(s / 86400)}d`;
 }
 
+// Likes on what Chooms! and V wrote grow with game time (posts.mjs); V's following counts for V's.
+const vFans = () => 40 + 300 * PEOPLE.filter((a) => store.known(a.id) && store.relation(a.id).followsV).length;
+const grown = (item, comment = false) => grownLikes(item, { now: store.data.now, account: byId.get(item.by), vFans: item.by === 'v' ? vFans() : 0, comment });
+
 function commentView(c) {
-  return { id: c.id, by: author(c.by), ago: ago(c.at), text: c.text, likes: c.likes + (c.liked ? 1 : 0), liked: !!c.liked };
+  return { id: c.id, by: author(c.by), ago: ago(c.at), text: c.text, likes: c.likes + grown(c, true) + (c.liked ? 1 : 0), liked: !!c.liked };
 }
 
 function postView(p, full = false) {
@@ -249,7 +418,7 @@ function postView(p, full = false) {
     ago: ago(p.at),
     text: p.text,
     image: p.image ? { $media: p.image.file, alt: p.image.alt ?? '' } : null,
-    likes: p.likes + (p.liked ? 1 : 0),
+    likes: p.likes + grown(p) + (p.liked ? 1 : 0),
     liked: !!p.liked,
     comments: p.comments.length,
     ...(full ? { commentList: p.comments.map(commentView) } : {}),
@@ -384,10 +553,12 @@ export function answer(call, args) {
       return post(a);
     case 'comment':
       store.comment(a, b);
+      poster.onV({ post: a });
       changed();
       return post(a);
     case 'newPost': {
       const p = store.newPost(a);
+      poster.onV({ post: p.id });
       changed();
       return post(p.id);
     }
@@ -569,7 +740,7 @@ function removeFile(rel) {
   if (rel) rmSync(join(pkg.dataDir, rel), { force: true });
 }
 
-const NUMBERS = { everyMinutes: [1, 240], peopleChance: [0, 100], corpChance: [0, 100], maxPerCheck: [0, 10], weightText: [0, 100], weightSelfie: [0, 100], weightActivity: [0, 100], dailyCapUsd: [0, 100] };
+const NUMBERS = { everyMinutes: [1, 240], peopleChance: [0, 100], corpChance: [0, 100], gangChance: [0, 100], maxPerCheck: [0, 10], maxCommentsPerCheck: [0, 10], weightText: [0, 100], weightSelfie: [0, 100], weightActivity: [0, 100], dailyCapUsd: [0, 100] };
 
 channel.on((m) => {
   const id = m?.person;
@@ -577,14 +748,24 @@ channel.on((m) => {
   switch (m?.type) {
     case 'hello':
       channel.post(windowState());
+      channel.post(postingState());
+      // Who may post where V is now, for Post now.
+      if (!gate() && !cycling) readWhere().then((w) => ((lastWhere = w), channel.post(postingState())), () => {});
+      break;
+    case 'post-now':
+      // { who }: a check now, for testing; with who, that account posts and nothing else.
+      postNow(typeof m.who === 'string' && m.who ? m.who : null);
       break;
     case 'general': {
+      const every = settings.general.everyMinutes;
       for (const [k, [lo, hi]] of Object.entries(NUMBERS)) {
         if (m.values?.[k] === undefined) continue;
         const n = Number(m.values[k]);
         if (Number.isFinite(n)) settings.general[k] = Math.min(hi, Math.max(lo, n));
       }
-      if (typeof m.values?.on === 'boolean') settings.general.on = m.values.on;
+      if (settings.general.everyMinutes !== every) nextCheckAt = 0;
+      for (const k of ['on', 'secondCheck']) if (typeof m.values?.[k] === 'boolean') settings.general[k] = m.values[k];
+      channel.post(postingState());
       for (const k of ['postModel', 'dmModel']) if (['haiku', 'sonnet', 'opus'].includes(m.values?.[k])) settings.general[k] = m.values[k];
       saveSettings();
       channel.post(windowState());

@@ -1,5 +1,5 @@
 {
-  "_about": "Chooms!'s story points (docs/design.md, C2 plan): each is a journal entry reaching a state. `path` is the entry's path in the game's journal, `kind` its kind (quest unless named), `when` 'done' (Succeeded) or 'started' (Active, Succeeded or Failed). A point V has passed lets each NPC use the knowledge cards for it (cards/, from C2's second half). The notes are ours, for whoever writes the cards; no game text. Paths seen in the user's saves on 2026-11-14, except those marked `\"from\": \"journal\"`: read from the game's own journal file (base\\journal\\cooked_journal.journal, through REDcode, 2026-11-21), so they exist, but no save has reached them yet. Lifepaths: the prologue quest V finished; only the Corpo one was seen.",
+  "_about": "Chooms!'s story points (docs/design.md, C2 plan): each is a journal entry reaching a state. `path` is the entry's path in the game's journal, `kind` its kind (quest unless named), `when` 'done' (Succeeded) or 'started' (Active, Succeeded or Failed). A point V has passed lets each NPC use the knowledge cards for it (cards/, from C2's second half). The notes are ours, for whoever writes the cards; no game text. Paths seen in the user's saves on 2026-11-14, except those marked `\"from\": \"journal\"`: read from the game's own journal file (base\\journal\\cooked_journal.journal, through REDcode, 2026-11-21), so they exist, but no save has reached them yet. `words` (C3): names no card uses but the model knows from the game, which a post may not name before the point (spoilers.mjs). Lifepaths: the prologue quest V finished; only the Corpo one was seen.",
   "lifepaths": {
     "corpo": "quests/main_quest/prologue/q000_corpo",
     "nomad": "quests/main_quest/prologue/q000_nomad",
@@ -58,7 +58,12 @@
       "act": "prologue",
       "path": "quests/main_quest/prologue/q005_heist",
       "when": "done",
-      "note": "The heist goes wrong: Jackie dies, V carries the chip, Dex shoots V"
+      "note": "The heist goes wrong: Jackie dies, V carries the chip, Dex shoots V",
+      "words": [
+        "Relic",
+        "Yorinobu",
+        "Soulkiller"
+      ]
     },
     {
       "id": "firestorm",
@@ -420,7 +425,10 @@
       "act": "pl",
       "path": "ep1/quests/main_quest/q300_phantom_liberty",
       "when": "done",
-      "note": "Songbird's call; V goes to Dogtown"
+      "note": "Songbird's call; V goes to Dogtown",
+      "words": [
+        "Songbird"
+      ]
     },
     {
       "id": "pl-crash",

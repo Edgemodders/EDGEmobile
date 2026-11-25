@@ -1,7 +1,7 @@
 {
   "id": "chooms",
   "name": "Chooms!",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Edgemodders",
   "description": "Night City's social feed.",
   "entry": "index.html",
