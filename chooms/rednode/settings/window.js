@@ -97,10 +97,12 @@ const clock = (ms) => new Date(ms).toLocaleTimeString(undefined, { hour: '2-digi
 function drawPosting(s) {
   $('status').textContent = s.status;
   $('spent').textContent = `Spent today: ${s.spent.toFixed(3)} of ${Number(s.cap).toFixed(2)}.`;
+  // The kit's rn-select (a page's own <select> does not open right in the game). Its options are
+  // replaced only when they change, so an open list is not redrawn under the mouse.
   const sel = $('who');
   const keep = sel.value;
-  const anyone = new Option(s.district ? `Anyone who may post in ${s.district}` : 'Anyone who may post here', '');
-  sel.replaceChildren(anyone, ...s.who.map((a) => new Option(a.name, a.id)));
+  const opts = [{ value: '', label: s.district ? `Anyone who may post in ${s.district}` : 'Anyone who may post here' }, ...s.who.map((a) => ({ value: a.id, label: a.name }))];
+  if (JSON.stringify(opts) !== JSON.stringify(sel.options.map(({ value, label }) => ({ value, label })))) sel.options = opts;
   sel.value = s.who.some((a) => a.id === keep) ? keep : '';
   const rows = s.log.map((e) => {
     const p = document.createElement('p');
@@ -114,7 +116,7 @@ function drawPosting(s) {
 for (const k of SLIDERS) {
   for (const ev of ['input', 'change']) $(k).addEventListener(ev, (e) => e.detail?.value !== undefined && setGeneral(k, Number(e.detail.value)));
 }
-for (const k of ['postModel', 'dmModel']) $(k).addEventListener('change', () => setGeneral(k, $(k).value));
+for (const k of ['postModel', 'dmModel']) $(k).addEventListener('change', (e) => setGeneral(k, e.detail?.value ?? $(k).value));
 $('dailyCapUsd').addEventListener('change', () => setGeneral('dailyCapUsd', Number($('dailyCapUsd').value)));
 
 // --- People ----------------------------------------------------------------------------------

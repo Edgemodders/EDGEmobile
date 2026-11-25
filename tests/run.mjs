@@ -158,7 +158,10 @@ if (mode === 'apps') {
   cpSync(join(REPO, 'chooms', 'rednode'), CHOOMS, { recursive: true, filter: (f) => !/[\\/]content([\\/]|$)/.test(f.slice(join(REPO, 'chooms', 'rednode').length)) });
   mkdirSync(join(CHOOMS, 'content', 'people', 'viktor'), { recursive: true });
   for (const n of [1, 2, 3]) writeFileSync(join(CHOOMS, 'content', 'people', 'viktor', `v${n}.png`), variant(n));
+  mkdirSync(join(CHOOMS, 'content', 'people', 'tygerclaws'), { recursive: true });
+  writeFileSync(join(CHOOMS, 'content', 'people', 'tygerclaws', 't1.png'), variant(4));
   writeFileSync(join(CHOOMS, 'content', 'content.json'), JSON.stringify({ people: {
+    tygerclaws: { portrait: 'people/tygerclaws/t1.png' },
     viktor: { portrait: 'people/viktor/v1.png', places: [
       { file: 'people/viktor/v2.png', description: 'His clinic, under the boxing gym', activities: ['patching up a merc'] },
       { file: 'people/viktor/v3.png', description: 'The ring upstairs', activities: [] },
@@ -759,6 +762,8 @@ if (mode === 'apps') {
   writeFileSync(join(dos, 'panam', 'places', 'camp.png'), await solid(800, 600, 100));
   writeFileSync(join(dos, 'panam', 'places', 'camp.md'), '# The Aldecaldos camp\n- working on her car\n\n* around the campfire\n');
   writeFileSync(join(dos, 'panam', 'places', 'road.md'), '# A Badlands road\n- driving\n');
+  mkdirSync(join(dos, 'maelstrom'), { recursive: true });
+  writeFileSync(join(dos, 'maelstrom', 'portrait.png'), await solid(600, 600, 250));
   const dossiers = (...a) => spawnSync(process.execPath, [join(REPO, 'tools', 'chooms', 'dossiers.mjs'), '--dossiers', dos, ...a], { encoding: 'utf8' });
   let dr = dossiers();
   const pm = fs.existsSync(join(dos, 'panam', 'portrait.webp')) ? await sharp(join(dos, 'panam', 'portrait.webp')).metadata() : null;
@@ -768,9 +773,16 @@ if (mode === 'apps') {
   dr = dossiers('--build', '--out', built);
   const cj = dr.status === 0 ? JSON.parse(readFileSync(join(built, 'content.json'), 'utf8')) : null;
   const cp = cj?.people.panam;
-  check('  the build: content.json and the images by their hash; a place with no image left out', /^people\/panam\/[0-9a-f]{16}\.webp$/.test(cp?.portrait ?? '') && cp.places?.length === 1 && cp.places[0].description === 'The Aldecaldos camp' && cp.places[0].activities.join('|') === 'working on her car|around the campfire' && fs.existsSync(join(built, cp.places[0].file)) && Object.keys(cj.people).join() === 'panam' && !fs.existsSync(join(dos, 'panam', 'places', 'road.png')), dr.stdout + dr.stderr);
+  check('  the build: content.json and the images by their hash; a place with no image left out', /^people\/panam\/[0-9a-f]{16}\.webp$/.test(cp?.portrait ?? '') && cp.places?.length === 1 && cp.places[0].description === 'The Aldecaldos camp' && cp.places[0].activities.join('|') === 'working on her car|around the campfire' && fs.existsSync(join(built, cp.places[0].file)) && Object.keys(cj.people).sort().join() === 'maelstrom,panam' && !fs.existsSync(join(dos, 'panam', 'places', 'road.png')), dr.stdout + dr.stderr);
   const again = dossiers('--build', '--out', built);
   check('  the same image keeps the same name', again.status === 0 && JSON.parse(readFileSync(join(built, 'content.json'), 'utf8')).people.panam.portrait === cp?.portrait);
+  const mreadme = fs.existsSync(join(dos, 'maelstrom', 'README.md')) ? readFileSync(join(dos, 'maelstrom', 'README.md'), 'utf8') : '';
+  check('  a gang: its profile picture built and checked off; a corporation with none still to provide', /^people\/maelstrom\/[0-9a-f]{16}\.webp$/.test(cj?.people.maelstrom?.portrait ?? '') && !cj.people.maelstrom.body && /- \[x\] Profile picture: `portrait\.webp`/.test(mreadme) && /- \[ \] Profile picture \(`portrait\.png`\)/.test(fs.existsSync(join(dos, 'arasaka', 'README.md')) ? readFileSync(join(dos, 'arasaka', 'README.md'), 'utf8') : ''), JSON.stringify(cj?.people.maelstrom) + mreadme.slice(mreadme.indexOf('## Checklist')));
+  mkdirSync(join(dos, 'arasaka', 'places'), { recursive: true });
+  writeFileSync(join(dos, 'arasaka', 'places', 'tower.md'), '# Arasaka Tower\n');
+  dr = dossiers('--dry');
+  check('  a corporation with a place is refused: it has only a profile picture', dr.status === 1 && /arasaka\/: a corporation has only a profile picture/.test(dr.stderr), dr.stderr);
+  rmSync(join(dos, 'arasaka', 'places'), { recursive: true });
   writeFileSync(join(dos, 'panam', 'places', 'stray.png'), await solid(10, 10, 0));
   mkdirSync(join(dos, 'nobody'));
   dr = dossiers('--build', '--out', built);
@@ -1288,6 +1300,11 @@ if (mode === 'apps') {
   wm = await winWait({ type: 'post-now', who: 'tygerclaws' }, said);
   const tq = H.asks.find((x) => x.model === 'sonnet');
   check("  the Tyger Claws' post is asked with the fight", wm?.type === 'note' && tq?.context?.fightsWithV?.[0]?.downed === 2, JSON.stringify(tq?.context?.fightsWithV));
+  // A gang's bundled profile picture (content/) is its avatar in the app; one with none keeps its initials.
+  f = await callApp('feed');
+  const tcp = f.posts.find((x) => x.by.id === 'tygerclaws');
+  const mp = f.posts.find((x) => x.by.kind === 'gang' && x.by.id !== 'tygerclaws') ?? { by: { avatar: null } };
+  check('  a gang with a bundled profile picture shows it; others keep their initials', /^\/media\//.test(tcp?.by.avatar?.url ?? '') && !mp.by.avatar, JSON.stringify(tcp?.by));
 
   console.log(`\n${results.filter(Boolean).length}/${results.length} passed.`);
   process.exit(results.every(Boolean) ? 0 : 1);

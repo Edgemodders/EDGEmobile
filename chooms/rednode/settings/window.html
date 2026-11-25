@@ -16,7 +16,8 @@
   .error { color: var(--rn-danger, #ff5a5a); }
   .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .field { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px; }
-  .field select, .field input, textarea { font: 13px var(--rn-mono); color: inherit; background: var(--rn-panel); border: 1px solid var(--rn-line); padding: 4px 6px; }
+  #who { flex: 1; min-width: 0; }
+  .field input, textarea { font: 13px var(--rn-mono); color: inherit; background: var(--rn-panel); border: 1px solid var(--rn-line); padding: 4px 6px; }
   .field input { width: 90px; }
   textarea { width: 100%; box-sizing: border-box; min-height: 64px; resize: vertical; }
   .people { display: grid; grid-template-columns: 180px 1fr; gap: 12px; min-height: 560px; }
@@ -82,8 +83,8 @@
           </rn-panel>
           <rn-panel title="AI">
             <div class="stack">
-              <div class="field"><span>Model for posts</span><select id="postModel"><option value="haiku">Haiku</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option></select></div>
-              <div class="field"><span>Model for messages</span><select id="dmModel"><option value="haiku">Haiku</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option></select></div>
+              <rn-select id="postModel" label="Model for posts"><rn-option value="haiku">Haiku</rn-option><rn-option value="sonnet">Sonnet</rn-option><rn-option value="opus">Opus</rn-option></rn-select>
+              <rn-select id="dmModel" label="Model for messages"><rn-option value="haiku">Haiku</rn-option><rn-option value="sonnet">Sonnet</rn-option><rn-option value="opus">Opus</rn-option></rn-select>
               <div class="field"><span>Most to spend per day (US$)</span><input id="dailyCapUsd" type="number" min="0" max="100" step="0.5"></div>
               <rn-toggle id="secondCheck" label="A second check for spoilers, by Haiku (a small extra cost on each post)"></rn-toggle>
               <p class="fine">Posts and comments are written by REDagent with your Anthropic key; each costs a little, and Chooms! stops for the day at the amount above. REDagent has a daily limit of its own for each mod: if Chooms! stops for it, the line above says so, and you can raise it in REDagent's Mods view. Photos come in a later version, from Google's or OpenAI's image model with your Gemini or OpenAI key.</p>
@@ -92,7 +93,7 @@
           <rn-panel title="Today">
             <div class="stack">
               <p id="spent" class="fine"></p>
-              <div class="row"><select id="who" class="chip"><option value="">Anyone who may post here</option></select><rn-button id="postNow">Post now</rn-button></div>
+              <div class="row"><rn-select id="who" value=""><rn-option value="">Anyone who may post here</rn-option></rn-select><rn-button id="postNow">Post now</rn-button></div>
               <p class="fine">Post now runs a check at once, for trying Chooms! out. It costs as a check does.</p>
               <div id="log" class="log"><p class="fine">Nothing asked yet.</p></div>
             </div>
