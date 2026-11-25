@@ -1263,6 +1263,13 @@ if (mode === 'apps') {
   // only by its TweakDB id; someone else's kill and a person of no gang do not count. The fight is
   // logged when combat ends, and the Tyger Claws' next question carries it.
   const tdbId = (p) => `0x${createHash('sha1').update(p).digest('hex').slice(0, 16).toUpperCase()}`;
+  // REDnode 0.73.0 sends "left combat" once per new player puppet (each load) with no fight before
+  // it, and a person placed already down sends npcDowned with by "none": neither logs a fight.
+  fromWin.length = 0;
+  H.fire('npcDowned', { entity: '900', record: 'Character.tyger_claws_gang', affiliation: 'Factions.TygerClaws', killed: true, by: 'none', byPlayer: false });
+  H.fire('combat', { inCombat: false });
+  await wait(500);
+  check('fights: "left combat" after a load with no fight, and a person placed already down, log nothing', !fromWin.some((m) => m.type === 'posting' && m.log?.some((l) => l.what === 'fight')));
   H.fire('combat', { inCombat: true });
   H.fire('npcDowned', { entity: '901', record: 'Character.tyger_claws_gang', affiliation: 'Factions.TygerClaws', killed: true, by: 'player', byPlayer: true });
   H.fire('npcDowned', { entity: '902', record: '0x00000012AB34CD56', affiliation: tdbId('Factions.TygerClaws'), killed: false, by: 'companion', byPlayer: true });
