@@ -17,6 +17,7 @@ The same as REDnode's:
 
 - **Commits:** straight to `main` and push, in small logical commits, after agreeing the plan in chat.
 - **Git identity:** set per repo to `CyberbuildsAI` with the GitHub no-reply email. Never change the global identity.
+- **Writing files on this PC (the owner's rule, 2026-11-26, shared by every Edgemodders repo):** follow REDnode's CLAUDE.md, section "Writing files on this PC". In short: write and change files with Write and Edit, never through a Bash heredoc, `node -e`, `python -c` or `sed`; a script longer than one line goes in a file written with Write, then run; read the diff before committing (a whole-file diff means the line endings changed: undo it). Files are LF (`.gitattributes`; CRLF only for `.cmd` and `.bat`).
 - **Writing style:** plain, short sentences, tables for comparisons. Mark anything unverified as unverified.
 - **Never commit game files** or data extracted from them, Cloudflare's `cloudflared` program, or a player's paired phones.
 - **Security:** a paired phone may use only what EDGEmobile and its mobile apps offer, never REDnode's `api`, its MCP server or files. The server listens on `127.0.0.1` only. Any change to pairing or the tunnel gets the rules in docs/design.md, "Pairing and security", checked again. A phone gets in only with both the QR link's one-time key and the approval of someone at the PC (the user's rule, 2026-10-29). Once paired, it comes back by signing the PC's challenge with its key, with no key and no Allow (the M2 plan, agreed 2026-10-29).
