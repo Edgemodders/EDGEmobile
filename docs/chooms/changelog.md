@@ -6,7 +6,8 @@ How to keep it (the Edgemodders convention):
 
 - With each change a player would notice, add a line under **Unreleased**, in its group: **New**, **Changed**, **Fixed** or **Other**. One change per line.
 - Before a release, rename **Unreleased** to `## <version> (<date>)` and start a new empty **Unreleased** above it.
-- Links are full URLs, since the same text goes to GitHub and Nexus.
+- With the rename, write the section's **Nexus summary** under its heading: an HTML comment that starts `<!-- nexus` and ends `-->`, with one short plain line per change a player would notice, each starting `New:`, `Changed:`, `Fixed:`, `Removed:`, `Other:` or `Needs:`, at most 120 characters and 12 lines, no markdown. Nexus shows each line as one entry in a small text field and cannot edit a changelog once posted, so write them for a player skimming. The comment hides it on GitHub and the docs site; the release workflow posts it with a "Full changelog" link and stops if it is missing or breaks a rule (EDGErepo's README, "Nexus changelogs"). `node tools/release/notes.mjs <version> --changelog docs/chooms/changelog.md --nexus` prints it, or says what is wrong.
+- Links are full URLs, since the same text goes to GitHub.
 
 ## Unreleased
 

@@ -801,7 +801,7 @@ The tooling is built (`tools/release/`, `.github/workflows/release.yml`); these 
 
 | # | Step |
 |---|---|
-| 1 | Each changelog's **Unreleased** section (`docs/changelog.md`, `docs/chooms/changelog.md`) becomes the version's section |
+| 1 | Each changelog's **Unreleased** section (`docs/changelog.md`, `docs/chooms/changelog.md`) becomes the version's section, with its **Nexus summary** under the heading: a `<!-- nexus` ... `-->` comment of short plain lines starting `New:`, `Changed:`, `Fixed:`, `Removed:`, `Other:` or `Needs:` (at most 120 characters and 12 lines; EDGErepo's README, "Nexus changelogs"; EDGEmobile #1, 2026-11-25). `notes.mjs --nexus` posts it with a "Full changelog" link and stops when it is missing or breaks a rule; the GitHub notes leave it out |
 | 2 | README's status line names the version (`**Status: <version> released on <date>** ...`); the `status` badge in `tools/brand/badges.py` drawn again (`python -I tools/brand/badges.py docs/assets/brand/badges`) with the README's `<img alt>`; `node tools/release/readme-check.mjs --version <v>` passes |
 | 3 | `node tests/all.mjs` passes |
 | 4 | The release workflow: both zips, the GitHub release with notes from `notes.mjs`, the Nexus uploads once the pages exist |

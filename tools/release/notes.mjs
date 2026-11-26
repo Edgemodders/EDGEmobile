@@ -6,7 +6,9 @@
 //                                                             with the install lines and Chooms!'s zip
 //   node tools/release/notes.mjs <version> --changelog docs/chooms/changelog.md
 //                                                             another changelog's section alone
-//   --nexus                                                   plain lines for Nexus's changelog field
+//   --nexus                                                   the section's short Nexus summary (below)
+//                                                             for Nexus's changelog field; stops when
+//                                                             there is none or it breaks a rule
 //   --out <file>                                              writes the notes to a file (UTF-8)
 //
 // Adapted from REDnode's tools/release/notes.mjs: this repo's changelogs group changes under
@@ -30,24 +32,63 @@ if (!version) {
 
 const section = sectionOf(changelog, version);
 
+// The section for GitHub: without its Nexus summary (below).
+const github = [];
+for (let i = 0, inBlock = false; i < section.length; i++) {
+  if (!inBlock && section[i].trim() === '<!-- nexus') inBlock = true;
+  else if (inBlock && section[i].trim() === '-->') inBlock = false;
+  else if (!inBlock) github.push(section[i]);
+}
+
 if (nexus) {
-  // Nexus's changelog takes one plain line per change: no markdown, links as "text (url)".
-  const result = [];
-  let group = '';
-  for (const line of section) {
-    const heading = line.match(/^###\s+(.+)$/) ?? line.match(/^\*\*(.+)\*\*$/);
-    if (heading) group = heading[1].trim();
-    else if (line.startsWith('- ')) result.push((group ? `${group}: ` : '') + plain(line.slice(2)));
-    else if (line.trim()) result.push(plain(line.trim()));
+  // Nexus shows each line of a version's changelog as one entry, as plain text in a small field,
+  // and cannot edit a changelog once posted, so its lines are a short summary written by hand
+  // under the version's heading, not the section itself (EDGErepo's README, "Nexus changelogs"):
+  //
+  //   <!-- nexus
+  //   New: Chooms!'s people post on their own, about what V has done
+  //   Fixed: the settings window's dropdowns open in the game
+  //   -->
+  //
+  // An HTML comment, so GitHub and the docs site show none of it. Each line starts with New:,
+  // Changed:, Fixed:, Removed:, Other: or Needs:, has no markdown and at most NEXUS_LINE
+  // characters; at most NEXUS_LINES lines, so with the "Full changelog" line added at the end
+  // Nexus gets at most 13.
+  const NEXUS_LINE = 120;
+  const NEXUS_LINES = 12;
+  const open = section.findIndex((line) => line.trim() === '<!-- nexus');
+  const close = open < 0 ? -1 : section.findIndex((line, i) => i > open && line.trim() === '-->');
+  if (open < 0 || close < 0) {
+    console.error(`${changelog}: the section for ${version} has no Nexus summary. Add one under its heading:
+
+<!-- nexus
+New: one short line per change, at most ${NEXUS_LINE} characters
+-->`);
+    process.exit(1);
   }
-  write(result.join('\n'));
+  const summary = section.slice(open + 1, close).map((line) => line.trim()).filter(Boolean);
+  const wrong = [];
+  if (!summary.length) wrong.push('it is empty');
+  if (summary.length > NEXUS_LINES) wrong.push(`${summary.length} lines, at most ${NEXUS_LINES}`);
+  for (const line of summary) {
+    if (!/^(New|Changed|Fixed|Removed|Other|Needs): \S/.test(line)) wrong.push(`"${line}" does not start with New:, Changed:, Fixed:, Removed:, Other: or Needs:`);
+    if (line.length > NEXUS_LINE) wrong.push(`"${line.slice(0, 50)}..." is ${line.length} characters, at most ${NEXUS_LINE}`);
+    if (/`|\*\*|\]\(/.test(line)) wrong.push(`"${line.slice(0, 50)}..." has markdown`);
+  }
+  if (wrong.length) {
+    console.error(`${changelog}: the Nexus summary for ${version}:\n- ${wrong.join('\n- ')}`);
+    process.exit(1);
+  }
+  const pages = 'https://edgemodders.github.io/EDGEmobile/';
+  const full = own ? `${pages}changelog.html` : changelog === 'docs/chooms/changelog.md' ? `${pages}chooms/changelog.html` : `https://github.com/Edgemodders/EDGEmobile/blob/main/${changelog}`;
+  write([...summary, `Full changelog: ${full}`].join('\n'));
 } else if (!own) {
-  write(section.join('\n').trim());
+  write(github.join('\n').trim());
 } else {
   const chooms = JSON.parse(readFileSync(root + 'chooms/rednode/rednode-app.json', 'utf8'));
   const needs = (m) => m.requires.rednode.replace(/^>=\s*/, '');
   const phone = JSON.parse(readFileSync(root + 'edgephone/rednode-app.json', 'utf8'));
-  write(`${section.join('\n').trim()}
+  write(`${github.join('\n').trim()}
 
 **Install:** extract \`EDGEmobile-${version}.zip\` into the game folder, or add it to Vortex or EDGEdeck. It has EDGEmobile and EDGEphone, the phone in the game. Needs REDnode ${needs(phone)} or later (https://github.com/Edgemodders/REDnode/releases). Your phone reaches your PC through a private web address from Cloudflare, and only a phone that scans the QR code in the game and that you allow at the PC can connect. Docs: https://edgemodders.github.io/EDGEmobile/ (changelog: https://edgemodders.github.io/EDGEmobile/changelog.html)
 
@@ -71,13 +112,6 @@ function sectionOf(file, v) {
     process.exit(1);
   }
   return s;
-}
-
-function plain(text) {
-  return text
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/`([^`]+)`/g, '$1');
 }
 
 function write(text) {

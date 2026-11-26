@@ -788,6 +788,23 @@ if (mode === 'apps') {
   dr = dossiers('--build', '--out', built);
   check('  a place with no .md, or a folder that is no one, stops the build and leaves content/ alone', dr.status === 1 && /stray\.png: no stray\.md/.test(dr.stderr) && /nobody\/: no one in the roster/.test(dr.stderr) && fs.existsSync(join(built, cp?.portrait ?? 'x')), dr.stderr);
 
+  // The release notes: Nexus gets the section's hand-written summary, GitHub the section without it
+  // (EDGErepo's rules: New:/Changed:/Fixed:/Removed:/Other:/Needs:, 120 characters, 13 lines with the link).
+  mkdirSync(join(OUT, 'notes'), { recursive: true });
+  const notesLog = join(OUT, 'notes', 'changelog.md');
+  const notes = (v, ...a) => spawnSync(process.execPath, [join(REPO, 'tools', 'release', 'notes.mjs'), v, '--changelog', notesLog.slice(REPO.length + 1), ...a], { encoding: 'utf8' });
+  writeFileSync(notesLog, `# Changelog\n\n## Unreleased\n\n## 9.1.0 (2026-11-25)\n\n<!-- nexus\nNew: one short line\nFixed: another\n-->\n\n### New\n\n- **A long line** with \`code\` and [a link](https://example.com).\n\n## 9.0.0 (2026-11-01)\n\n### New\n\n- No summary.\n\n## 8.0.0\n\n<!-- nexus\nNew: a line with \`code\`\nAdded: a wrong start\nNew: ${'x'.repeat(120)}\n-->\n\n- A line.\n`);
+  const nx = notes('9.1.0', '--nexus');
+  check('release notes: Nexus gets the summary and a "Full changelog" link last', nx.status === 0 && nx.stdout.trim().split(/\r?\n/).join('|') === 'New: one short line|Fixed: another|Full changelog: https://github.com/Edgemodders/EDGEmobile/blob/main/tests/.out/notes/changelog.md', nx.stdout + nx.stderr);
+  const ngh = notes('9.1.0');
+  check('  GitHub gets the section without the summary', ngh.status === 0 && !ngh.stdout.includes('nexus') && !ngh.stdout.includes('one short line') && ngh.stdout.includes('**A long line**'), ngh.stdout + ngh.stderr);
+  const none = notes('9.0.0', '--nexus');
+  check('  a section with no summary stops the Nexus notes', none.status === 1 && /has no Nexus summary/.test(none.stderr), none.stderr);
+  const nbad = notes('8.0.0', '--nexus');
+  check('  markdown, a wrong start and a line over 120 characters are each named', nbad.status === 1 && /has markdown/.test(nbad.stderr) && /"Added: a wrong start" does not start with/.test(nbad.stderr) && /is 125 characters, at most 120/.test(nbad.stderr), nbad.stderr);
+  const chn = spawnSync(process.execPath, [join(REPO, 'tools', 'release', 'notes.mjs'), '0.0.0', '--nexus', '--changelog', 'docs/chooms/changelog.md'], { encoding: 'utf8' });
+  check('  a version with no section still stops', chn.status === 1 && /has no section for 0\.0\.0/.test(chn.stderr), chn.stderr);
+
   // An older save of the same playthrough: what came after it is dropped.
   const before = H.time;
   H.time = before + 3600;
