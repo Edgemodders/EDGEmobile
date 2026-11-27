@@ -13,7 +13,7 @@ DIM = "#8a93a8"
 COLORS = {"yellow": "#fcee0a", "cyan": "#19f3ff", "green": "#5dffa1"}
 
 BADGES = [
-    ('status', 'status', 'C3 in progress', 'yellow'),
+    ('status', 'status', 'C3 built, test pending', 'yellow'),
     ('game', 'game', 'Cyberpunk 2077', 'cyan'),
     ('rednode', 'runs in', 'REDnode', 'cyan'),
     ('license', 'license', 'MIT', 'green'),
@@ -48,5 +48,6 @@ def badge(label, value, color):
 out = pathlib.Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
 for name, label, value, color in BADGES:
-    (out / f"{name}.svg").write_text(badge(label, value, color), encoding="utf-8")
+    with open(out / f"{name}.svg", "w", encoding="utf-8", newline="") as f:
+        f.write(badge(label, value, color))
     print(f"Wrote {out / (name + '.svg')}")
